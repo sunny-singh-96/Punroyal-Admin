@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-soft: #F8F9FA;
+  --bg-white: #FFFFFF;
+  --text-dark: #1F2937;
+  --text-muted: #6B7280;
+  --border-light: #E5E7EB;
+}
+
+@layer base {
+  body {
+    @apply bg-[#F8F9FA] text-[#1F2937] antialiased font-sans;
+  }
+}
+
+/* Removed left/right borders as requested */
+.main-container {
+  max-width: 1440px;
+  margin-left: auto;
+  margin-right: auto;
+  background-color: #FFFFFF;
+}
+
+.container-custom {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+}
+
+img, video {
+  pointer-events: auto;
+}
+
+/* Smooth 3D transitions */
+* {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
+}
