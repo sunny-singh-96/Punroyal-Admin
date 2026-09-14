@@ -1,6 +1,7 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -13,6 +14,8 @@ import {
   ChevronRight,
   Boxes
 } from "lucide-react";
+import { orderAPI } from "@/lib/integration/orders";
+import { logoutUser } from "@/lib/middleware/auth";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -64,6 +67,7 @@ const menuItems = [
     name: "Orders",
     icon: ShoppingCart,
     path: "/orders",
+    badgeKey: "pending" as const,
   },
   {
     name: "Inventory",
@@ -119,6 +123,25 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   const pathname = usePathname();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [openMenus, setOpenMenus] = useState<string[]>([]);
+  const [pendingCount, setPendingCount] = useState(0);
+
+  // ✅ Fetch pending order count for badge
+  const fetchBadgeData = useCallback(async () => {
+    try {
+      const response = await orderAPI.getOrderStatus();
+      if (response?.code === "OK") {
+        setPendingCount(response?.data?.pending || 0);
+      }
+    } catch {
+      // Silently fail — badge is non-critical
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchBadgeData();
+    const interval = setInterval(fetchBadgeData, 60000);
+    return () => clearInterval(interval);
+  }, [fetchBadgeData]);
 
   // ✅ Toggle submenu
   const toggleMenu = (name: string) => {
@@ -164,14 +187,32 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
 
           {/* Logo */}
           <div className="h-20 flex items-center justify-between px-6 border-b">
-            <h1 className="text-xl font-bold">
-              Pun<span className="text-blue-600">Royal</span>
-            </h1>
+            <Link href="/dashboard" className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 border border-amber-300/70 shadow-xs bg-slate-900 p-0.5">
+                <Image
+                  src="/punroyal-logo.png"
+                  alt="Punroyal Logo"
+                  width={38}
+                  height={38}
+                  className="w-full h-full object-cover rounded-full"
+                  priority
+                  unoptimized
+                />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-lg font-black text-slate-900 tracking-tight leading-none">
+                  Pun<span className="text-blue-600">Royal</span>
+                </span>
+                <span className="text-[10px] font-extrabold text-amber-600 uppercase tracking-widest mt-0.5">
+                  Enterprise
+                </span>
+              </div>
+            </Link>
             <button
               onClick={() => setIsOpen(false)}
-              className="lg:hidden"
+              className="lg:hidden p-2 text-slate-400 hover:text-slate-600"
             >
-              <X />
+              <X size={20} />
             </button>
           </div>
 
@@ -230,7 +271,16 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                       }`}
                     >
                       <item.icon size={18} />
-                      {item.name}
+                      <span className="flex-1">{item.name}</span>
+                      {(item as any).badgeKey === "pending" && pendingCount > 0 && (
+                        <span className={`min-w-[20px] h-5 flex items-center justify-center text-[10px] font-bold rounded-full px-1.5 ${
+                          isActive
+                            ? "bg-white text-blue-600"
+                            : "bg-red-500 text-white"
+                        }`}>
+                          {pendingCount > 99 ? "99+" : pendingCount}
+                        </span>
+                      )}
                     </Link>
                   )}
 
@@ -299,11 +349,17 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setShowLogoutModal(false)}
-                className="flex-1 py-2 bg-slate-100 rounded-lg"
+                className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl transition"
               >
                 Cancel
               </button>
-              <button className="flex-1 py-2 bg-red-500 text-white rounded-lg">
+              <button
+                onClick={async () => {
+                  setShowLogoutModal(false);
+                  await logoutUser();
+                }}
+                className="flex-1 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-xl shadow transition"
+              >
                 Yes
               </button>
             </div>

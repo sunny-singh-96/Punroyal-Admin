@@ -6,6 +6,11 @@ import { Toaster } from "react-hot-toast";
 export const metadata: Metadata = {
   title: "Punroyal - Admin",
   description: "Enterprise Admin Dashboard",
+  icons: {
+    icon: "/punroyal-logo.png",
+    shortcut: "/punroyal-logo.png",
+    apple: "/punroyal-logo.png",
+  },
 };
 
 export default function RootLayout({

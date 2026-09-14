@@ -24,6 +24,7 @@ import {
 import toast from "react-hot-toast";
 import { getErrorMessage } from "@/lib/helpers/handlers";
 import { dashboardAPI } from "@/lib/integration/dashboard";
+import { orderAPI } from "@/lib/integration/orders";
 interface DashboardData {
   totalSales: number;
   totalOrders: number;
@@ -53,39 +54,34 @@ interface DashboardData {
 export default function AdminDashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [orderStats, setOrderStats] = useState({ totalOrders: 0, pending: 0, completed: 0, cancelled: 0, revenue: 0 });
+
+  // Smart number formatter: show raw number if < 1000, otherwise show K
+  const formatNum = (num: number, decimals = 0) => {
+    if (num >= 1000) return `${(num / 1000).toFixed(decimals)}K`;
+    return String(num);
+  };
+
+  const formatCurrency = (num: number) => {
+    if (num >= 100000) return `₹${(num / 100000).toFixed(1)}L`;
+    if (num >= 1000) return `₹${(num / 1000).toFixed(0)}K`;
+    return `₹${num}`;
+  };
 
   const fetchDashboardData = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await dashboardAPI.getAll();
-      if (response?.code === "OK") {
-        // const mockData = {
-        //   totalSales: 983410,
-        //   totalOrders: 58375,
-        //   totalReturns: 1250,
-        //   revenueAnalytics: [
-        //     { _id: '2026-05-12', revenue: 35000, orderCount: 85 },
-        //     { _id: '2026-05-13', revenue: 42000, orderCount: 100 },
-        //     { _id: '2026-05-14', revenue: 38000, orderCount: 95 },
-        //     { _id: '2026-05-15', revenue: 51000, orderCount: 120 },
-        //     { _id: '2026-05-16', revenue: 44000, orderCount: 110 },
-        //     { _id: '2026-05-17', revenue: 45000, orderCount: 105 },
-        //     { _id: '2026-05-18', revenue: 40000, orderCount: 98 },
-        //   ],
-        //   monthlyTarget: {
-        //     percentage: 85,
-        //     current: 983410,
-        //     target: 1000000,
-        //   },
-        //   topCategories: [
-        //     { _id: 'cat_1', categoryName: 'Electronics', totalSales: 250000, orderCount: 500 },
-        //     { _id: 'cat_2', categoryName: 'Fashion', totalSales: 180000, orderCount: 400 },
-        //     { _id: 'cat_3', categoryName: 'Home & Kitchen', totalSales: 150000, orderCount: 350 },
-        //     { _id: 'cat_4', categoryName: 'Beauty & Personal Care', totalSales: 120000, orderCount: 300 },
-        //   ],
-        // };
-        // setData(mockData);
-        setData(response?.data?.data ?? []);
+      const [dashResponse, orderResponse] = await Promise.all([
+        dashboardAPI.getAll(),
+        orderAPI.getOrderStatus(),
+      ]);
+
+      if (dashResponse?.code === "OK") {
+        setData(dashResponse?.data ?? null);
+      }
+
+      if (orderResponse?.code === "OK") {
+        setOrderStats(orderResponse?.data || { totalOrders: 0, pending: 0, completed: 0, cancelled: 0, revenue: 0 });
       }
     } catch (error) {
       toast.error(getErrorMessage(error));
@@ -95,10 +91,7 @@ export default function AdminDashboard() {
   }, []);
 
   useEffect(() => {
-    const delay = setTimeout(() => {
-      fetchDashboardData();
-    }, 300);
-    return () => clearTimeout(delay);
+    fetchDashboardData();
   }, [fetchDashboardData]);
 
   if (loading)
@@ -108,7 +101,20 @@ export default function AdminDashboard() {
       </div>
     );
 
-  if (!data) return null;
+  if (!data)
+    return (
+      <div className="min-h-[70vh] bg-slate-50 flex flex-col items-center justify-center p-8 text-center">
+        <ShoppingCart className="w-12 h-12 text-slate-300 mb-3" />
+        <h3 className="text-lg font-bold text-slate-700">Unable to load dashboard data</h3>
+        <p className="text-slate-500 text-sm mt-1 mb-4">Please check connection or click retry</p>
+        <button
+          onClick={() => fetchDashboardData()}
+          className="px-5 py-2.5 bg-blue-600 text-white font-bold rounded-xl shadow-xs hover:bg-blue-700 transition"
+        >
+          Retry
+        </button>
+      </div>
+    );
 
   const COLORS = ["#3B82F6", "#60A5FA", "#93C5FD", "#DBEAFE"];
 
@@ -131,7 +137,7 @@ export default function AdminDashboard() {
                   Total Sales
                 </p>
                 <p className="text-3xl font-bold text-slate-900 mt-2">
-                  ₹{(data?.totalSales || 0 / 1000).toFixed(0)}K
+                  {formatCurrency(data?.totalSales || 0)}
                 </p>
                 <div className={`flex items-center mt-2 ${(data?.salesTrend ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                   {(data?.salesTrend ?? 0) >= 0 ? (
@@ -158,7 +164,7 @@ export default function AdminDashboard() {
                   Total Orders
                 </p>
                 <p className="text-3xl font-bold text-slate-900 mt-2">
-                  {(data?.totalOrders || 0 / 1000).toFixed(1)}K
+                  {formatNum(orderStats.totalOrders || data?.totalOrders || 0)}
                 </p>
                 <div className={`flex items-center mt-2 ${(data?.ordersTrend ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                   {(data?.ordersTrend ?? 0) >= 0 ? (
@@ -177,47 +183,44 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Total Visitors */}
+          {/* Pending Orders */}
           <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-slate-500 text-sm font-medium">
-                  Total Visitors
+                  Pending Orders
                 </p>
-                <p className="text-3xl font-bold text-slate-900 mt-2">{((data?.totalVisitors || 0) / 1000).toFixed(1)}K</p>
-                <div className={`flex items-center mt-2 ${(data?.visitorsTrend ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {(data?.visitorsTrend ?? 0) >= 0 ? (
-                    <TrendingUp className="w-4 h-4 mr-1" />
-                  ) : (
-                    <TrendingDown className="w-4 h-4 mr-1" />
-                  )}
-                  <span className="text-sm font-medium">
-                    {(data?.visitorsTrend ?? 0) >= 0 ? '+' : ''}{(data?.visitorsTrend ?? 0).toFixed(2)}% vs last week
-                  </span>
+                <p className="text-3xl font-bold text-slate-900 mt-2">
+                  {formatNum(orderStats.pending || 0)}
+                </p>
+                <div className="flex items-center mt-2 text-amber-600">
+                  <span className="text-sm font-medium">Awaiting action</span>
                 </div>
               </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Eye className="w-6 h-6 text-blue-600" />
+              <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
+                <Eye className="w-6 h-6 text-amber-600" />
               </div>
             </div>
           </div>
 
-          {/* Total Returns */}
+          {/* Cancelled Orders */}
           <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-slate-500 text-sm font-medium">
-                  Total Returns
+                  Cancelled Orders
                 </p>
                 <p className="text-3xl font-bold text-slate-900 mt-2">
-                  {(data?.totalReturns || 0 / 1000).toFixed(2)}K
+                  {formatNum(orderStats.cancelled || data?.totalReturns || 0)}
                 </p>
-                <div className="flex items-center mt-2 text-slate-600">
-                  <span className="text-sm font-medium">Status: Active</span>
+                <div className="flex items-center mt-2 text-red-500">
+                  <span className="text-sm font-medium">
+                    {orderStats.completed ? `${orderStats.completed} completed` : "Status: Active"}
+                  </span>
                 </div>
               </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Users className="w-6 h-6 text-blue-600" />
+              <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                <Users className="w-6 h-6 text-red-500" />
               </div>
             </div>
           </div>
@@ -239,7 +242,7 @@ export default function AdminDashboard() {
               </button>
             </div>
             <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={data.revenueAnalytics}>
+              <AreaChart data={data.revenueAnalytics || []}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis
                   dataKey="_id"
@@ -316,13 +319,13 @@ export default function AdminDashboard() {
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-slate-600">Target:</span>
                   <span className="font-bold text-slate-900">
-                    ₹{(data?.monthlyTarget?.target || 0 / 1000).toFixed(0)}K
+                    {formatCurrency(data?.monthlyTarget?.target || 0)}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-600">Current:</span>
                   <span className="font-bold text-slate-900">
-                    ₹{(data?.monthlyTarget?.current || 0 / 1000).toFixed(0)}K
+                    {formatCurrency(data?.monthlyTarget?.current || 0)}
                   </span>
                 </div>
               </div>
@@ -331,7 +334,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Bottom Section */}
-        {data?.topCategories ? (
+        {data?.topCategories && data.topCategories.length > 0 ? (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Top Categories */}
             <div className="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
@@ -358,7 +361,7 @@ export default function AdminDashboard() {
                         <div
                           className="h-2 rounded-full"
                           style={{
-                            width: `${(category.totalSales / data.topCategories[0].totalSales) * 100}%`,
+                            width: `${(category.totalSales / (data.topCategories[0]?.totalSales || 1)) * 100}%`,
                             backgroundColor: COLORS[index % COLORS.length],
                           }}
                         ></div>

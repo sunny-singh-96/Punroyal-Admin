@@ -14,13 +14,7 @@ type Props = {
   onClear?: () => void;
 };
 
-const ORDER_STATUS_CONFIG = {
-  pending: { label: "Pending" },
-  completed: { label: "Completed" },
-  failed: { label: "Failed" },
-  cancelled: { label: "Cancelled" },
-  processing: { label: "Processing" },
-};
+import { ORDER_STATUS_CONFIG } from "./utils";
 
 export const FiltersBar = ({ onApply, onClear }: Props) => {
   const [search, setSearch] = useState("");

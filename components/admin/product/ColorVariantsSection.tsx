@@ -138,17 +138,17 @@ export default function ColorVariantsSection({
         isValid = false;
       }
 
-      if (group.media_gallery.length < 3) {
-        err.images = "At least 3 images are required";
+      if (group.media_gallery.length < 1) {
+        err.images = "At least 1 image is required";
         isValid = false;
       }
 
       if (product_type === "sizes") {
         const hasInvalidSize = group.sizes.some(
-          (s) => !s.size_id || s.stock < 1 || s.stock > 20,
+          (s) => !s.size_id || s.stock < 0,
         );
         if (hasInvalidSize) {
-          err.sizes = "Each size must be selected with quantity between 1–20";
+          err.sizes = "Each size must be selected with valid stock quantity (0 or more)";
           isValid = false;
         }
       }
@@ -235,11 +235,11 @@ export default function ColorVariantsSection({
     setColorGroups(updated);
   };
 
-  // Update handleStockChange to enforce 1–20
+  // Update handleStockChange to allow any positive stock
   const handleStockChange = (gIdx: number, sIdx: number, value: string) => {
     if (/^\d*$/.test(value)) {
       const num = Number(value);
-      const clamped = value === "" ? 0 : Math.min(Math.max(num, 0), 20);
+      const clamped = value === "" ? 0 : Math.max(num, 0);
       updateSizeField(gIdx, sIdx, "stock", clamped);
     }
   };
@@ -262,48 +262,42 @@ export default function ColorVariantsSection({
           const canvas = document.createElement("canvas");
           let width = img.width;
           let height = img.height;
-          const maxDimension = 1200;
+          const maxDimension = 1600;
           if (width > maxDimension || height > maxDimension) {
             if (width > height) {
-              height = (height * maxDimension) / width;
+              height = Math.round((height * maxDimension) / width);
               width = maxDimension;
             } else {
-              width = (width * maxDimension) / height;
+              width = Math.round((width * maxDimension) / height);
               height = maxDimension;
             }
           }
           canvas.width = width;
           canvas.height = height;
           const ctx = canvas.getContext("2d");
-          if (!ctx) return reject(new Error("Could not get canvas context"));
+          if (!ctx) return resolve(file);
           ctx.drawImage(img, 0, 0, width, height);
 
-          // Preserve original mime type if possible, fallback to jpeg
-          const outputType =
-            file.type === "image/png" ? "image/png" : "image/jpeg";
-          const outputExt = file.type === "image/png" ? ".png" : ".jpg";
-
-          // Fix filename: strip old extension and add correct one
+          // Fast & efficient JPEG output for e-commerce products
           const baseName = file.name.replace(/\.[^/.]+$/, "");
-          const newFileName = `${baseName}${outputExt}`;
+          const newFileName = `${baseName}.jpg`;
 
           canvas.toBlob(
             (blob) => {
-              if (!blob) return reject(new Error("Canvas toBlob failed"));
+              if (!blob) return resolve(file);
               resolve(
                 new File([blob], newFileName, {
-                  // ✅ use newFileName not file.name
-                  type: outputType,
+                  type: "image/jpeg",
                   lastModified: Date.now(),
                 }),
               );
             },
-            outputType,
-            0.8,
+            "image/jpeg",
+            0.82,
           );
         };
-        img.onerror = reject;
-        reader.onerror = reject;
+        img.onerror = () => resolve(file);
+        reader.onerror = () => resolve(file);
       };
     });
   };
@@ -318,16 +312,20 @@ export default function ColorVariantsSection({
 
     const file = files[0];
     
-    // ❗ 5MB limit check
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("File size should not exceed 5MB");
+    if (file.size > 25 * 1024 * 1024) {
+      toast.error("File size should not exceed 25MB");
       return;
     }
 
     let finalFile = file;
 
-    if (file.size > 500 * 1024) {
-      finalFile = await compressImage(file);
+    // Fast client-side compression to make upload blazing fast
+    if (file.type.startsWith("image/") && file.size > 150 * 1024) {
+      try {
+        finalFile = await compressImage(file);
+      } catch {
+        finalFile = file;
+      }
     }
 
     const preview = URL.createObjectURL(finalFile);
@@ -615,8 +613,7 @@ export default function ColorVariantsSection({
                         <input
                           type="text"
                           inputMode="numeric"
-                          min={10}
-                          max={20}
+                          min={0}
                           placeholder="Stock"
                           value={size.stock || ""}
                           readOnly={loading}

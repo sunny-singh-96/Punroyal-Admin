@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -12,6 +12,7 @@ import {
   Package, // ✅ better icon for orders
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { orderAPI } from "@/lib/integration/orders";
 
 type SidebarProps = {
   isOpen: boolean;
@@ -22,16 +23,41 @@ const menuItems = [
   { name: "Dashboard", icon: LayoutDashboard, href: "/admin/dashboard" },
   { name: "Categories", icon: Layers, href: "/admin/categories" },
   { name: "Products", icon: ShoppingBag, href: "/admin/products" },
-  { name: "Orders", icon: Package, href: "/admin/orders" }, // ✅ changed
+  { name: "Orders", icon: Package, href: "/admin/orders", badgeKey: "pending" as const }, // ✅ badge
   { name: "Customers", icon: Users, href: "/admin/customers" },
 ];
 
 export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   const pathname = usePathname();
+  const [pendingCount, setPendingCount] = useState(0);
+
+  // Fetch pending order count for badge
+  const fetchBadgeData = useCallback(async () => {
+    try {
+      const response = await orderAPI.getOrderStatus();
+      if (response?.code === "OK") {
+        setPendingCount(response?.data?.pending || 0);
+      }
+    } catch {
+      // Silently fail — badge is non-critical
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchBadgeData();
+    // Refresh badge every 60 seconds
+    const interval = setInterval(fetchBadgeData, 60000);
+    return () => clearInterval(interval);
+  }, [fetchBadgeData]);
 
   // ✅ better active check
   const isActiveRoute = (href: string) => {
     return pathname === href || pathname.startsWith(href + "/");
+  };
+
+  const getBadgeCount = (item: typeof menuItems[number]) => {
+    if (item.badgeKey === "pending") return pendingCount;
+    return 0;
   };
 
   const SidebarContent = () => (
@@ -55,6 +81,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       <nav className="flex-1 px-4 space-y-1 mt-4">
         {menuItems.map((item) => {
           const isActive = isActiveRoute(item.href);
+          const badge = getBadgeCount(item);
 
           return (
             <Link
@@ -75,7 +102,16 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                     : "group-hover:scale-110 transition-transform"
                 }
               />
-              <span className="font-medium">{item.name}</span>
+              <span className="font-medium flex-1">{item.name}</span>
+              {badge > 0 && (
+                <span className={`min-w-[20px] h-5 flex items-center justify-center text-[10px] font-bold rounded-full px-1.5 ${
+                  isActive
+                    ? "bg-white text-blue-600"
+                    : "bg-red-500 text-white"
+                }`}>
+                  {badge > 99 ? "99+" : badge}
+                </span>
+              )}
             </Link>
           );
         })}
@@ -130,4 +166,4 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       </AnimatePresence>
     </>
   );
-}
+}

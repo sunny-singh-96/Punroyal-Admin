@@ -1,11 +1,11 @@
-export const baseURL = "https://api.punroyal.com/v1"; 
+export const baseURL = "http://localhost:3000/v1";
 
 export const ENDPOINTS = {
     LOGIN: "/auth/admin-login",
     LOGOUT: "/auth/logout",
-    DASHBOARD: '/index/admin/dashboard-stats',
-    COMMON:  '/index/common',
-    COMMON_HANDLER:  '/index/common-handler',
+    DASHBOARD: '/index/admin/dashboard/stats',
+    COMMON: '/index/common',
+    COMMON_HANDLER: '/index/common-handler',
     PRODUCT: {
         ADD: '/product/admin/product/add',
         UPDATE: '/product/admin/product/edit',
@@ -45,5 +45,23 @@ export const ENDPOINTS = {
     },
     SALES: {
         MONTHLY_STATS: '/order/admin/stats/monthly-sales',
+    },
+    INFLUENCER: {
+        LOGIN: '/auth/influencer-login',
+        REGISTER: '/auth/influencer-register',
+        DASHBOARD: '/influencer/dashboard',
+        SALES: '/influencer/sales',
+        UPLOAD_VIDEO: '/influencer/admin/upload-video'
+    },
+    FREELANCER: {
+        ASSIGN: '/freelancer/assign',
+        ASSIGNMENTS: '/freelancer/assignments',
+        ASSIGNMENT_BY_ID: '/freelancer/assignment',
+        LIST: '/freelancer/freelancers',
+        PRODUCTS: '/freelancer/products',
+        CALCULATE_COMMISSION: '/freelancer/calculate-commission',
+        ORDERS: '/freelancer/orders',
+        PAYMENTS: '/freelancer/payments',
+        DASHBOARD: '/freelancer/dashboard'
     }
 };

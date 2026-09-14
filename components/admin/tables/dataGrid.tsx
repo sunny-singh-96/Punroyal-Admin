@@ -1,6 +1,6 @@
 // ========================= DataGrid.tsx =========================
 import React, { useState, useEffect, useMemo } from "react";
-import { Search, ChevronUp, ChevronDown } from "lucide-react";
+import { Search, ChevronUp, ChevronDown, GripVertical } from "lucide-react";
 
 export interface Header<T = unknown> {
   key: keyof T | string;
@@ -20,6 +20,8 @@ export interface DataGridProps<T = unknown> {
   loading: boolean;
   searchEnable?: boolean;
   rightContent?: { text: string; onClick: () => void; };
+  draggable?: boolean;
+  onReorder?: (newOrder: T[]) => void;
 }
 
 export default function DataGrid<T = unknown>({
@@ -32,11 +34,15 @@ export default function DataGrid<T = unknown>({
   onSearch,
   loading,
   searchEnable,
-  rightContent
+  rightContent,
+  draggable = false,
+  onReorder
 }: DataGridProps<T>) {
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   // SORT ONLY (NO PAGINATION HERE)
   const sortedData = useMemo(() => {
@@ -115,6 +121,11 @@ export default function DataGrid<T = unknown>({
           <table className="w-full text-left">
             <thead className="bg-gray-50">
               <tr>
+                {draggable && (
+                  <th className="w-20 px-3 py-3 text-xs font-bold uppercase text-slate-500 text-center select-none">
+                    Order
+                  </th>
+                )}
                 {headers.map((h) => (
                   <th
                     key={String(h.key)}
@@ -137,7 +148,68 @@ export default function DataGrid<T = unknown>({
 
             <tbody>
               {sortedData.map((row, i) => (
-                <tr key={i} className="border-t hover:bg-gray-50">
+                <tr
+                  key={i}
+                  draggable={draggable && !loading}
+                  onDragStart={(e) => {
+                    if (!draggable) return;
+                    setDraggedIndex(i);
+                    e.dataTransfer.effectAllowed = "move";
+                    e.dataTransfer.setData("text/plain", String(i));
+                  }}
+                  onDragOver={(e) => {
+                    if (!draggable) return;
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = "move";
+                    if (dragOverIndex !== i) {
+                      setDragOverIndex(i);
+                    }
+                  }}
+                  onDragLeave={() => {
+                    if (!draggable) return;
+                  }}
+                  onDragEnd={() => {
+                    setDraggedIndex(null);
+                    setDragOverIndex(null);
+                  }}
+                  onDrop={(e) => {
+                    if (!draggable) return;
+                    e.preventDefault();
+                    if (draggedIndex === null || draggedIndex === i) {
+                      setDraggedIndex(null);
+                      setDragOverIndex(null);
+                      return;
+                    }
+                    const newItems = [...rows];
+                    const [moved] = newItems.splice(draggedIndex, 1);
+                    newItems.splice(i, 0, moved);
+                    setDraggedIndex(null);
+                    setDragOverIndex(null);
+                    if (onReorder) {
+                      onReorder(newItems);
+                    }
+                  }}
+                  className={`border-t transition-all ${
+                    draggedIndex === i
+                      ? "opacity-30 bg-blue-50 scale-[0.99]"
+                      : dragOverIndex === i
+                      ? "border-t-2 border-blue-500 bg-blue-50/40"
+                      : "hover:bg-gray-50"
+                  } ${draggable ? "cursor-default" : ""}`}
+                >
+                  {draggable && (
+                    <td className="w-20 px-3 py-3 text-center">
+                      <div
+                        className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg cursor-grab active:cursor-grabbing transition select-none shadow-sm"
+                        title="Drag to reorder"
+                      >
+                        <GripVertical size={14} className="text-slate-400" />
+                        <span className="text-xs font-bold text-slate-700">
+                          #{(page - 1) * pageSize + i + 1}
+                        </span>
+                      </div>
+                    </td>
+                  )}
                   {headers.map((h) => (
                     <td key={String(h.key)} className="px-4 py-3">
                       {h.render
@@ -151,7 +223,7 @@ export default function DataGrid<T = unknown>({
               {sortedData.length === 0 && (
                 <tr>
                   <td
-                    colSpan={headers.length}
+                    colSpan={headers.length + (draggable ? 1 : 0)}
                     className="text-center py-6 text-gray-400"
                   >
                     No Data Found

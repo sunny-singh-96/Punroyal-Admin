@@ -7,8 +7,13 @@ const PUBLIC_ROUTES = ['/'];
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
-  // Allow public routes
-  if (PUBLIC_ROUTES.includes(pathname)) {
+  // Allow static assets, images, Next internals, or files with extensions
+  if (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/api') ||
+    pathname.includes('.') ||
+    PUBLIC_ROUTES.includes(pathname)
+  ) {
     return NextResponse.next();
   }
 
@@ -27,9 +32,10 @@ export function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 
-// Apply middleware to all routes except static files
+// Apply middleware to all routes except static files and assets
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|public).*)',
+    '/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js)$).*)',
   ],
 };
+

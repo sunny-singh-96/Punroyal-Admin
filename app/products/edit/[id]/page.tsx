@@ -9,6 +9,7 @@ import AsyncSelect from "@/components/admin/select/select";
 import ColorVariantsSection from "@/components/admin/product/EditColorVariantsSection";
 import { getErrorMessage } from "@/lib/helpers/handlers";
 import { productValidate } from "@/validations/product";
+import { storageUtils } from "@/lib/storage";
 interface ProductFormData {
   title: string;
   display_price: number;
@@ -24,6 +25,9 @@ interface ProductFormData {
   primaryColorId: string | null;
   isPrimary: boolean;
   model_id: string;
+  influencer_id?: string;
+  commission?: number;
+  commission_type?: "percentage" | "flat";
   weight: number;
   height: number;
   breadth: number;    
@@ -154,6 +158,8 @@ export default function CreateProductPage() {
     primaryColorId: null,
     isPrimary: false,
     model_id: "",
+    commission: 0,
+    commission_type: "percentage",
     weight: 0,
     height: 0,
     breadth: 0,
@@ -180,6 +186,9 @@ export default function CreateProductPage() {
     height?: string;
     breadth?: string;
     length?: string;
+    commission?: string;
+    commission_type?: string;
+    influencer_id?: string;
   }
 
   const [errors, setErrors] = useState<ProductError>({});
@@ -216,7 +225,10 @@ export default function CreateProductPage() {
           video_link: product?.video_link || "",
           primaryColorId: product?.primaryColorId || null,
           isPrimary: product?.isPrimary || false,
-          model_id: product?.model?._id || "",
+          model_id: product?.influencer_id || product?.model?._id || product?.model_id || "",
+          influencer_id: product?.influencer_id || product?.model?._id || product?.model_id || "",
+          commission: product?.commission !== undefined && product?.commission !== null ? Number(product.commission) : 0,
+          commission_type: (product?.commission_type || product?.commission_Type || "percentage") as "percentage" | "flat",
           metarial: product?.materials
             ? product.materials.map((m: Material) => ({
                 id: m._id,
@@ -251,13 +263,19 @@ export default function CreateProductPage() {
   }, []);
 
   useEffect(() => {
+    const user = storageUtils.getUser();
+    if (user?.role === "influencer") {
+      toast.error("Access restricted: Influencers can only view product details.");
+      router.replace("/influencer/products");
+      return;
+    }
     const delay = setTimeout(() => {
       setLoading(true);
       fetchCommon();
       fetchProduct(id);
     }, 300);
     return () => clearTimeout(delay);
-  }, [fetchCommon, fetchProduct]);
+  }, [fetchCommon, fetchProduct, id, router]);
 
   useEffect(() => {
     if (redirectTo) if (redirectTo) router.push(redirectTo);
@@ -280,8 +298,10 @@ export default function CreateProductPage() {
       "status",
       "video_link",
       "primaryColorId",
-      "isPrimary",
       "model_id",
+      "influencer_id",
+      "commission",
+      "commission_type",
       "weight",
       "height",
       "breadth",
@@ -292,6 +312,16 @@ export default function CreateProductPage() {
       if (value === null || value === undefined) return;
       formData.append(key, String(value));
     });
+
+    const finalInfluencer = data.influencer_id || data.model_id || "";
+    if (finalInfluencer) {
+      formData.set("influencer_id", finalInfluencer);
+      formData.set("model_id", finalInfluencer);
+    }
+    formData.set("commission", String(data.commission !== undefined && data.commission !== null ? data.commission : 0));
+    const commType = data.commission_type || "percentage";
+    formData.set("commission_type", commType);
+    formData.set("commission_Type", commType);
 
     // ── Video ──────────────────────────────────────────────────────────────────
     if (data.video && data.video.length > 0) {
@@ -371,7 +401,8 @@ export default function CreateProductPage() {
       }
       if (!colorVariantsValid) {
         toast.error(
-          "Please fix color variant errors (color, 3 images, sizes & quantity 1–20)",
+          "Please fix color variant errors (color, at least 1 image, valid sizes & stock)",
+          { id: toastId }
         );
         return;
       }
@@ -429,18 +460,17 @@ export default function CreateProductPage() {
     }
   };
 
-  const handleFieldChange = <
-    K extends keyof ProductFormData & keyof ProductError,
-  >(
+  const handleFieldChange = <K extends keyof ProductFormData>(
     field: K,
     value: ProductFormData[K],
   ) => {
     setForm((prev) => ({ ...prev, [field]: value }));
 
-    if (errors[field]) {
+    const errorKey = field as keyof ProductError;
+    if (errors[errorKey]) {
       setErrors((prev) => {
         const newErrs = { ...prev };
-        delete newErrs[field];
+        delete newErrs[errorKey];
         return newErrs;
       });
     }
@@ -525,8 +555,8 @@ export default function CreateProductPage() {
                 className={`w-full px-4 py-3 bg-slate-50 border-2 rounded-xl outline-none transition-all focus:bg-white ${hasError("product_type") ? "border-red-500 bg-red-50" : "border-transparent focus:border-indigo-600"}`}
               >
                 <option value="">Select</option>
-                <option value="sizes">Standard</option>
-                <option value="no_sizes">Default</option>
+                <option value="sizes">Readymade</option>
+                <option value="no_sizes">Unstitched</option>
               </select>
               {hasError("product_type") && (
                 <p className="text-red-500 text-xs">
@@ -623,7 +653,7 @@ export default function CreateProductPage() {
             </div>
             <div className="space-y-1">
               <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider ml-1">
-                Video (Redirect Link) <span className="text-red-500">*</span>
+                Video (Redirect Link)
               </label>
               <input
                 type="text"
@@ -642,14 +672,21 @@ export default function CreateProductPage() {
             </div>
             <div className="space-y-1">
               <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider ml-1">
-                Influncers
+                Influencer
               </label>
               <select
-                value={form.model_id}
-                onChange={(e) => handleFieldChange("model_id", e.target.value)}
+                value={form.model_id || form.influencer_id || ""}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setForm((prev) => ({
+                    ...prev,
+                    model_id: val,
+                    influencer_id: val,
+                  }));
+                }}
                 className="w-full px-4 py-3 bg-slate-50 border-2 border-transparent rounded-xl outline-none focus:border-indigo-600"
               >
-                <option value="">Select</option>
+                <option value="">Select Influencer</option>
                 {common?.models?.map((item) => (
                   <option key={item._id} value={item._id}>
                     {item.name}
@@ -662,9 +699,55 @@ export default function CreateProductPage() {
                 </p>
               )}
             </div>
+
+            {/* COMMISSION & TYPE FIELDS - Only show when influencer is selected */}
+            {(form.model_id || form.influencer_id) && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-purple-50/60 rounded-2xl border border-purple-100 col-span-full">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-purple-900 uppercase tracking-wider ml-1">
+                    Commission Number
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    step="any"
+                    value={form.commission !== undefined && form.commission !== null ? (form.commission === 0 ? "" : form.commission) : ""}
+                    onChange={(e) =>
+                      handleFieldChange("commission", e.target.value === "" ? 0 : Number(e.target.value))
+                    }
+                    placeholder={form.commission_type === 'flat' ? 'e.g. 150 (Flat ₹)' : 'e.g. 10 (10%)'}
+                    className="w-full px-4 py-2.5 bg-white border-2 border-purple-200 rounded-xl outline-none focus:border-purple-600 text-sm font-medium"
+                  />
+                  <p className="text-xs text-purple-600 mt-1">
+                    {form.commission_type === 'flat' 
+                      ? 'Flat commission amount in ₹ per item' 
+                      : 'Commission percentage (%) of product price'}
+                  </p>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-purple-900 uppercase tracking-wider ml-1">
+                    Commission Type
+                  </label>
+                  <select
+                    value={form.commission_type || "percentage"}
+                    onChange={(e) =>
+                      handleFieldChange(
+                        "commission_type",
+                        e.target.value as "percentage" | "flat"
+                      )
+                    }
+                    className="w-full px-4 py-2.5 bg-white border-2 border-purple-200 rounded-xl outline-none focus:border-purple-600 text-sm font-medium"
+                  >
+                    <option value="percentage">Percentage (%)</option>
+                    <option value="flat">Flat Amount (₹)</option>
+                  </select>
+                </div>
+              </div>
+            )}
             <div className="space-y-1">
               <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider ml-1">
-                Fabric <span className="text-red-500">*</span>
+                Fabric
               </label>
               <div className="flex gap-2">
                 <select
@@ -758,7 +841,7 @@ export default function CreateProductPage() {
             </div>
             <div className="space-y-1">
               <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider ml-1">
-                Height (kg) <span className="text-red-500">*</span>
+                Height (cm) <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -774,7 +857,7 @@ export default function CreateProductPage() {
             </div>
             <div className="space-y-1">
               <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider ml-1">
-                Breadth (kg) <span className="text-red-500">*</span>
+                Breadth (cm) <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -790,7 +873,7 @@ export default function CreateProductPage() {
             </div>
             <div className="space-y-1">
               <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider ml-1">
-                Length (kg) <span className="text-red-500">*</span>
+                Length (cm) <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"

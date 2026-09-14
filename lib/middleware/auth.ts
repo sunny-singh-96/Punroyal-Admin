@@ -35,10 +35,21 @@ export const isAuthenticated = (): boolean => {
 export const logoutUser = async (): Promise<void> => {
   if (typeof window === 'undefined') return;
   
-  storageUtils.clearAll();
+  try {
+    storageUtils.clearAll();
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('auth-storage');
+    sessionStorage.clear();
+  } catch (e) {
+    console.error('Storage clear error:', e);
+  }
+
   // Clear cookie
-  document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-  window.location.href = '/';
+  document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0;';
+  document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0;';
+
+  window.location.replace('/');
 };
 
 /**

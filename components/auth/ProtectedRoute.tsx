@@ -28,7 +28,18 @@ export default function ProtectedRoute({ children, requiredRole = 'super_admin' 
     }
 
     console.log('✅ User authenticated, allowing access');
-  }, [user, isLoading, router]);
+
+    // Role checking
+    const userRole = user.role;
+    if (requiredRole === 'super_admin' && userRole === 'influencer') {
+      router.push('/influencer/dashboard');
+      return;
+    }
+    if (requiredRole === 'user' && (userRole === 'superadmin' || userRole === 'admin')) {
+      router.push('/dashboard');
+      return;
+    }
+  }, [user, isLoading, router, requiredRole]);
   
   if (isLoading && requiredRole === 'super_admin') {
     return (

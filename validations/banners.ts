@@ -9,9 +9,11 @@ export const bannerValidate = (
   const newErrors: BannerError = {};
   if (!title.trim()) newErrors.title = 'Banner title is required';
   if (!image && !imageFile) {
+    newErrors.banner = 'Banner image is required';
     newErrors.image = 'Banner image is required';
   }
   if (image && !image.startsWith('http')) {
+    newErrors.banner = 'Image must be a valid URL';
     newErrors.image = 'Image must be a valid URL';
   }
   setErrors(newErrors);

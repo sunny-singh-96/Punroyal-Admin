@@ -21,7 +21,9 @@ import {
 import toast from "react-hot-toast";
 import { productsAPI } from "@/lib/integration";
 import { handleImageError } from "@/lib/imageHelper";
+import { storageUtils } from "@/lib/storage";
 import Image from "next/image";
+import Link from "next/link";
 
 interface ProductImage {
   _id: string;
@@ -189,7 +191,14 @@ export default function ProductViewPage() {
     );
   };
 
+  const currentUser = storageUtils.getUser();
+  const isInfluencer = currentUser?.role === "influencer";
+
   const handleEdit = () => {
+    if (isInfluencer) {
+      toast.error("Access restricted: Influencers can only view product details.");
+      return;
+    }
     router.push(`/products/edit/${productId}`);
   };
 
@@ -243,13 +252,15 @@ export default function ProductViewPage() {
             </span>
           </div>
           <div className="text-xs text-slate-500">ID: {productId}</div>
-          <button
-            onClick={handleEdit}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded-lg transition-all hover:shadow-md font-medium text-sm"
-          >
-            <Edit className="w-4 h-4" />
-            Edit
-          </button>
+          {!isInfluencer && (
+            <button
+              onClick={handleEdit}
+              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded-lg transition-all hover:shadow-md font-medium text-sm"
+            >
+              <Edit className="w-4 h-4" />
+              Edit
+            </button>
+          )}
         </div>
       </div>
 
@@ -258,9 +269,15 @@ export default function ProductViewPage() {
         {/* Breadcrumb & Title */}
         <div className="mb-8">
           <div className="flex items-center gap-2 text-sm text-slate-500 mb-4">
-            <span>Products</span>
+            <Link
+              href={isInfluencer ? "/influencer/products" : "/products"}
+              className="hover:text-blue-600 transition flex items-center gap-1 font-medium"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>{isInfluencer ? "My Products" : "Products"}</span>
+            </Link>
             <ArrowRight className="w-4 h-4" />
-            <span className="text-slate-700 font-medium">{product.title}</span>
+            <span className="text-slate-700 font-semibold">{product.title}</span>
           </div>
         </div>
 

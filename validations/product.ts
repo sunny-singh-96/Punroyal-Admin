@@ -14,9 +14,13 @@ export interface ProductFormData {
   video: File[];
   video_link: string;
   model_id: string;
+  influencer_id?: string;
   metarial: {
     id: string;
   }[];
+  commission?: number;
+  commission_type?: "percentage" | "flat";
+  type?: number;
   variants: {
     color_id: string;
     size_id: string;
@@ -56,17 +60,8 @@ export const productValidate = (
   if (!form.specifications.trim()) {
     newErrors.specifications = "Specifications are required";
   }
-  if (!form.model_id) {
-    newErrors.model_id = "At least one model is required";
-  }
-  if (form.video.length === 0) {
-    newErrors.video = "Video is required";
-  }
   if (form.video_link && !form.video_link.startsWith("http")) {
     newErrors.video_link = "Video link must be a valid URL";
-  }
-  if (!form.metarial || form.metarial.length === 0) {
-    newErrors.metarial = "At least one material is required";
   }
   setErrors(newErrors);
   console.log("Validation errors:", newErrors);

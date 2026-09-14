@@ -262,16 +262,16 @@ export default function ColorVariantsSection({
       }
       // Count only non-deleted items
       const visibleImages = group.media_gallery.filter((m) => !m.isDeleted);
-      if (visibleImages.length < 3) {
-        err.images = "At least 3 images are required";
+      if (visibleImages.length < 1) {
+        err.images = "At least 1 image is required";
         isValid = false;
       }
       if (product_type === "sizes") {
         const hasInvalidSize = group.sizes.some(
-          (s) => !s.size_id || s.stock < 1 || s.stock > 20,
+          (s) => !s.size_id || s.stock < 0,
         );
         if (hasInvalidSize) {
-          err.sizes = "Each size must be selected with quantity between 1–20";
+          err.sizes = "Each size must be selected with valid stock quantity (0 or more)";
           isValid = false;
         }
       }
@@ -389,7 +389,7 @@ export default function ColorVariantsSection({
   const handleStockChange = (gIdx: number, sIdx: number, value: string) => {
     if (/^\d*$/.test(value)) {
       const num = Number(value);
-      const clamped = value === "" ? 0 : Math.min(Math.max(num, 0), 20);
+      const clamped = value === "" ? 0 : Math.max(num, 0);
       updateSizeField(gIdx, sIdx, "stock", clamped);
     }
   };
@@ -882,8 +882,7 @@ export default function ColorVariantsSection({
                         <input
                           type="text"
                           inputMode="numeric"
-                          min={1}
-                          max={20}
+                          min={0}
                           placeholder="Stock"
                           value={size.stock || ""}
                           readOnly={loading}

@@ -15,6 +15,15 @@ import { getErrorMessage } from '@/lib/helpers/handlers';
 import OrderInfoModal from '@/components/admin/orders/OrderInfoModal';
 import { useRouter } from "next/navigation";
 import PageHeader from '@/components/admin/head/head';
+import { ORDER_STATUS_CONFIG } from '@/components/admin/orders/utils';
+
+const PAYMENT_STATUS_STYLES: Record<string, { bg: string; color: string }> = {
+  paid: { bg: 'bg-emerald-50', color: 'text-emerald-700' },
+  unpaid: { bg: 'bg-red-50', color: 'text-red-600' },
+  pending: { bg: 'bg-amber-50', color: 'text-amber-700' },
+  refunded: { bg: 'bg-slate-100', color: 'text-slate-600' },
+  failed: { bg: 'bg-red-50', color: 'text-red-600' },
+};
 interface Payment {
   amount: number;
   status: string;
@@ -370,15 +379,13 @@ export default function AdminOrderMaster() {
           setSearchTerm(formatted.search);
           setStatusFilter(formatted.status);
           setDateRange(formatted.dateRange);
-          fetchOrders();
-          fetchOrderStats();
+          setLazyParams((p) => ({ ...p, page: 1 }));
         }}
         onClear={() => {
           setSearchTerm("");
           setStatusFilter("");
           setDateRange({ from: "", to: "" });
-          fetchOrders();
-          fetchOrderStats();
+          setLazyParams((p) => ({ ...p, page: 1 }));
         }}
       />
 
@@ -424,16 +431,18 @@ export default function AdminOrderMaster() {
             {
               key: "payment_status",
               label: "Payment Status",
-              render: (row: Order) => (
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`px-2.5 py-1 text-xs font-semibold rounded-full ${"bg-slate-100 text-slate-600"
-                      }`}
-                  >
-                    {row.payment_status}
-                  </span>
-                </div>
-              ),
+              render: (row: Order) => {
+                const ps = PAYMENT_STATUS_STYLES[row.payment_status?.toLowerCase()] || { bg: 'bg-slate-100', color: 'text-slate-600' };
+                return (
+                  <div className="flex items-center gap-3">
+                    <span
+                      className={`px-2.5 py-1 text-xs font-semibold rounded-full capitalize ${ps.bg} ${ps.color}`}
+                    >
+                      {row.payment_status}
+                    </span>
+                  </div>
+                );
+              },
             },
             {
               key: "total_amount",
@@ -447,14 +456,20 @@ export default function AdminOrderMaster() {
             {
               key: "order_status",
               label: "Order Status",
-              render: (row: Order) => (
-                <span
-                  className={`px-2.5 py-1 text-xs font-semibold rounded-full ${"bg-slate-100 text-slate-600"
-                    }`}
-                >
-                  {row.status}
-                </span>
-              ),
+              render: (row: Order) => {
+                const statusKey = row.status?.toLowerCase();
+                const cfg = ORDER_STATUS_CONFIG[statusKey];
+                const bg = cfg?.bg || 'bg-slate-100';
+                const color = cfg?.color || 'text-slate-600';
+                const label = cfg?.label || row.status;
+                return (
+                  <span
+                    className={`px-2.5 py-1 text-xs font-semibold rounded-full capitalize ${bg} ${color}`}
+                  >
+                    {label}
+                  </span>
+                );
+              },
             },
             {
               key: "is_returned",

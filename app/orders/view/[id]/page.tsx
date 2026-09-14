@@ -2,11 +2,12 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, Package } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { orderAPI } from "@/lib/integration/orders";
 import { getErrorMessage } from "@/lib/helpers/handlers";
 import PageHeader from "@/components/admin/head/head";
+import { ORDER_STATUS_CONFIG } from "@/components/admin/orders/utils";
 
 interface Payment {
   amount: number;
@@ -42,6 +43,7 @@ interface OrderItem {
       _id: string;
       name: string;
     };
+    image?: string;
   };
   createdAt: string;
   updatedAt: string;
@@ -117,8 +119,20 @@ export default function OrderDetailsPage() {
 
   return (
     <div className="p-6 md:p-10 bg-[#f6f7fb] min-h-screen">
-      <div className="mb-6">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <PageHeader title="Order Detail" subtitle={"#" + order.order_number} />
+        {(() => {
+          const cfg = ORDER_STATUS_CONFIG[order.status?.toLowerCase()];
+          const bg = cfg?.bg || 'bg-slate-100';
+          const color = cfg?.color || 'text-slate-700';
+          const border = cfg?.border || 'border-slate-200';
+          const label = cfg?.label || order.status;
+          return (
+            <span className={`px-4 py-2 text-sm font-bold rounded-xl capitalize border ${bg} ${color} ${border} shadow-xs`}>
+              Status: {label}
+            </span>
+          );
+        })()}
       </div>
 
       {/* TOP STATUS CARDS */}
@@ -251,31 +265,47 @@ export default function OrderDetailsPage() {
                     className="border rounded-xl p-4 flex gap-4 hover:shadow-sm transition"
                   >
                     {/* IMAGE */}
-                    <div className="w-20 h-20 bg-slate-100 rounded-lg flex items-center justify-center text-xs">
-                      IMG
+                    <div className="w-20 h-20 bg-slate-100 rounded-lg flex items-center justify-center overflow-hidden">
+                      {item.metadata?.image || (item.product as any)?.media?.find((m: any) => m.color_id === item.color_id)?.url || (item.product as any)?.media?.[0]?.url ? (
+                        <img
+                          src={item.metadata?.image || (item.product as any)?.media?.find((m: any) => m.color_id === item.color_id)?.url || (item.product as any)?.media?.[0]?.url}
+                          alt={item.product?.title || "Product"}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Package size={24} className="text-slate-300" />
+                      )}
                     </div>
                     <div className="flex-1">
                       <p className="font-medium text-sm">
                         {item.product?.title}
                       </p>
                       <p className="text-xs text-slate-500">
-                        Color: {item.metadata?.color?.name}
+                        रंग: {item.metadata?.color?.name || "—"}
                       </p>
                       {size && (
                         <p className="text-xs text-slate-500">
-                          Size: {size}
+                          साइज़: {size}
                         </p>
                       )}
                       <p className="text-xs text-slate-500">
-                        Qty: {item.quantity}
+                        मात्रा: {item.quantity}
                       </p>
-                      <div className="flex justify-between mt-2">
+                      <div className="flex justify-between mt-2 items-center">
                         <p className="font-semibold">
                           ₹{item.price}
                         </p>
-                        <span className="text-xs bg-slate-100 px-2 py-1 rounded capitalize">
-                          {item.status}
-                        </span>
+                        {(() => {
+                          const itemCfg = ORDER_STATUS_CONFIG[item.status?.toLowerCase()];
+                          const bg = itemCfg?.bg || 'bg-slate-100';
+                          const color = itemCfg?.color || 'text-slate-600';
+                          const label = itemCfg?.label || item.status;
+                          return (
+                            <span className={`text-xs px-2.5 py-1 rounded-full capitalize font-semibold ${bg} ${color}`}>
+                              {label}
+                            </span>
+                          );
+                        })()}
                       </div>
                     </div>
                   </div>

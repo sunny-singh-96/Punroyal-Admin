@@ -17,7 +17,7 @@ interface AuthState {
 
 const publicRoutes = ['/'];
 
-const IS_TEST_MODE = true;
+const IS_TEST_MODE = false;
 
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -94,16 +94,16 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true });
 
         try {
-          const res = await api.get('/auth/me');
+          const res = await api.get('/auth/get-profile');
           if (res.data.success) {
 
             set({
-              user: res.data.user,
+              user: res.data.data,
               token: get().token,
               isLoading: false
             });
 
-            storageUtils.setUser(res.data.user);
+            storageUtils.setUser(res.data.data);
 
           } else {
             set({ user: null, token: null, isLoading: false });

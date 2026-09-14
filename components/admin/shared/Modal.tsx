@@ -26,28 +26,28 @@ export default function Modal({ isOpen, type = 'info', title, message, onClose, 
 
   return (
     <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-      <div className={`bg-white rounded-[2.5rem] w-full ${type === 'custom' ? 'max-w-2xl' : 'max-w-md'} overflow-hidden shadow-2xl scale-in-center`}>
+      <div className={`bg-white rounded-[2rem] w-full ${type === 'custom' ? 'max-w-2xl' : 'max-w-md'} max-h-[90vh] flex flex-col overflow-hidden shadow-2xl scale-in-center`}>
         
         {/* Header Section */}
-        <div className={`p-8 flex flex-col ${type === 'custom' ? 'items-start text-left' : 'items-center text-center'} ${theme.bg}`}>
+        <div className={`px-6 py-4 flex flex-col shrink-0 ${type === 'custom' ? 'items-start text-left' : 'items-center text-center'} ${theme.bg} border-b border-slate-100`}>
           {type !== 'custom' && theme.icon}
           
           <div className="flex justify-between items-center w-full">
-            <h3 className={`text-xl font-black text-slate-900 ${type === 'custom' ? 'mt-0' : 'mt-4'}`}>
+            <h3 className={`text-lg font-black text-slate-900 ${type === 'custom' ? 'mt-0' : 'mt-2'}`}>
               {title}
             </h3>
             {type === 'custom' && (
-              <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full text-slate-400 transition-colors">
-                <X size={20} />
+              <button onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-full text-slate-400 transition-colors">
+                <X size={18} />
               </button>
             )}
           </div>
 
-          {message && <p className="mt-2 text-slate-500 font-medium text-sm leading-relaxed">{message}</p>}
+          {message && <p className="mt-1 text-slate-500 font-medium text-xs leading-relaxed">{message}</p>}
         </div>
 
         {/* Content Area - Form yahan dikhega */}
-        <div className={children ? "px-8 pb-8 pt-2" : "hidden"}>
+        <div className={children ? "px-6 py-4 overflow-y-auto flex-1" : "hidden"}>
           {children}
         </div>
 

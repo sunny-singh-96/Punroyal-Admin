@@ -1,0 +1,12 @@
+{
+  "pages": {
+    "/_app": []
+  },
+  "devFiles": [],
+  "polyfillFiles": [],
+  "lowPriorityFiles": [
+    "static/fFTzvoKerbEak-onJva0w/_ssgManifest.js",
+    "static/fFTzvoKerbEak-onJva0w/_buildManifest.js"
+  ],
+  "rootMainFiles": []
+}

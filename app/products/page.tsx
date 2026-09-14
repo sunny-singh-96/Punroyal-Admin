@@ -256,7 +256,7 @@ export default function ProductsPage() {
     colors: [],
   });
 
-  const [showFilters, setShowFilters] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
   const [appliedFilters, setAppliedFilters] =
     useState<FilterState>(EMPTY_FILTERS);
   const [pendingFilters, setPendingFilters] =
@@ -563,7 +563,7 @@ export default function ProductsPage() {
       label: "Type",
       render: (row) => (
         <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-blue-50 text-blue-600">
-          {row.product_type === "sizes" ? "Standard" : "Default"}
+          {row.product_type === "sizes" ? "Readymade" : "Unstitched"}
         </span>
       ),
     },
