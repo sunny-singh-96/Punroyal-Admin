@@ -8,7 +8,6 @@ import { bannerValidate } from "@/validations/banners";
 import { BannerError } from "@/types/types";
 import PageHeader from "@/components/admin/head/head";
 import { getErrorMessage } from "@/lib/helpers/handlers";
-import { url } from "inspector/promises";
 
 export default function EditBannerPage() {
   const router = useRouter();
@@ -40,15 +39,17 @@ export default function EditBannerPage() {
     const startTime = Date.now();
     try {
       const response = await bannersAPI.getById(id);
-      if (response?.code === "OK") {
-        const data = response?.data?.banner;
-        setFormData({
-          title: data.title || "",
-          banner: data.banner || "",
-          status: data.status ?? true,
-        });
-        setImageFile(null);
-        setPreviewUrl(data.banner || "");
+      if (response?.code === "OK" || response?.data?.code === "OK") {
+        const data = response?.data?.banner || response?.banner || response?.data;
+        if (data) {
+          setFormData({
+            title: data.title || "",
+            banner: data.banner || "",
+            status: data.status ?? true,
+          });
+          setImageFile(null);
+          setPreviewUrl(data.banner || "");
+        }
       }
     } catch (error) {
       toast.error(getErrorMessage(error));
@@ -91,18 +92,17 @@ export default function EditBannerPage() {
       const payload = new FormData();
       payload.append("title", formData.title);
       payload.append("status", String(formData.status));
-      console.log(`imageFile==>`, imageFile, formData.banner);
       if (imageFile) {
         payload.append("banner", imageFile);
-      } else {
-        if (!/^https?:\/\//i.test(formData.banner)) {
-          payload.append("banner", formData.banner);
-        }
+      } else if (formData.banner) {
+        payload.append("banner", formData.banner);
       }
       const response = await bannersAPI.update(id, payload);
-      if (response?.code === "OK") {
+      if (response?.code === "OK" || response?.data?.code === "OK") {
         toast.success("Banner updated successfully", { id: toastId });
         router.push("/banners");
+      } else {
+        toast.error(response?.message || response?.data?.message || "Failed to update banner", { id: toastId });
       }
     } catch (error) {
       toast.error(getErrorMessage(error), { id: toastId });

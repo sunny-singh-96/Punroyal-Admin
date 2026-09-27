@@ -10,7 +10,7 @@ const handleAuthError = async () => {
 };
 
 const concatUrl = (endpoint: string) => {
-  if (endpoint.startsWith('https://')) {
+  if (endpoint.startsWith('https://') || endpoint.startsWith('http://')) {
     return endpoint;
   }
   return baseURL.concat(endpoint);

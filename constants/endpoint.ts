@@ -1,4 +1,21 @@
-export const baseURL = "http://localhost:3000/v1";
+const getBaseURL = () => {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+  if (typeof window !== 'undefined') {
+    const { protocol, hostname } = window.location;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return `${protocol}//${hostname}:3000/v1`;
+    }
+    if (/^\d+\.\d+\.\d+\.\d+$/.test(hostname)) {
+      return `${protocol}//${hostname}:3000/v1`;
+    }
+    return `https://api.punroyal.com/v1`;
+  }
+  return "http://127.0.0.1:3000/v1";
+};
+
+export const baseURL = getBaseURL();
 
 export const ENDPOINTS = {
     LOGIN: "/auth/admin-login",
@@ -63,5 +80,18 @@ export const ENDPOINTS = {
         ORDERS: '/freelancer/orders',
         PAYMENTS: '/freelancer/payments',
         DASHBOARD: '/freelancer/dashboard'
+    },
+    ENQUIRY: {
+        LIST: '/enquiry/admin/list',
+        STATS: '/enquiry/admin/stats',
+        GET: '/enquiry/admin',
+        UPDATE: '/enquiry/admin',
+        DELETE: '/enquiry/admin'
+    },
+    NEWSLETTER: {
+        LIST: '/newsletter/admin/list',
+        STATS: '/newsletter/admin/stats',
+        TOGGLE_STATUS: '/newsletter/admin',
+        DELETE: '/newsletter/admin'
     }
 };

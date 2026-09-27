@@ -361,7 +361,7 @@ export default function ColorVariantsSection({
   // ── Sizes ──────────────────────────────────────────────────────────────────
   const addSizeToGroup = (gIdx: number) => {
     const currentSizes = colorGroups[gIdx].sizes;
-    if (currentSizes.length >= sizes.length) {
+    if (sizes.length > 0 && currentSizes.length >= sizes.length) {
       toast.error("No more sizes available to add for this color");
       return;
     }

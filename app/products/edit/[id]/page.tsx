@@ -290,7 +290,6 @@ export default function CreateProductPage() {
       "title",
       "display_price",
       "price",
-      "quantity",
       "product_type",
       "description",
       "specifications",
@@ -312,6 +311,14 @@ export default function CreateProductPage() {
       if (value === null || value === undefined) return;
       formData.append(key, String(value));
     });
+
+    if (data.product_type === "no_sizes") {
+      const parsedQty = parseInt(String(data.quantity), 10);
+      const qty = isNaN(parsedQty) || parsedQty < 0 ? 0 : parsedQty;
+      formData.set("quantity", String(qty));
+    } else {
+      formData.set("quantity", "0");
+    }
 
     const finalInfluencer = data.influencer_id || data.model_id || "";
     if (finalInfluencer) {
@@ -483,6 +490,13 @@ export default function CreateProductPage() {
     }
   };
 
+  const handleQuantityChange = (value: string) => {
+    if (value === "" || /^\d*$/.test(value)) {
+      const num = value === "" ? 0 : parseInt(value, 10);
+      handleFieldChange("quantity", isNaN(num) ? 0 : num);
+    }
+  };
+
   const hasError = (field: keyof ProductError) => !!errors[field];
   const handleError = (field: keyof ProductError): string => {
     return errors[field] || "";
@@ -572,12 +586,8 @@ export default function CreateProductPage() {
                 <input
                   type="text"
                   inputMode="numeric"
-                  min={10}
-                  max={50}
-                  value={form.quantity}
-                  onChange={(e) =>
-                    handleFieldChange("quantity", Number(e.target.value))
-                  }
+                  value={form.quantity === 0 ? "" : form.quantity}
+                  onChange={(e) => handleQuantityChange(e.target.value)}
                   placeholder="e.g. Product Quantity"
                   className={`w-full px-4 py-3 bg-slate-50 border-2 rounded-xl outline-none transition-all focus:bg-white ${hasError("quantity") ? "border-red-500 bg-red-50" : "border-transparent focus:border-indigo-600"}`}
                 />

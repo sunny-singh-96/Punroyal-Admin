@@ -1,3 +1,0 @@
-module.exports=[66188,a=>{"use strict";var b=a.i(7997);function c(){return(0,b.jsx)("div",{className:"min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100",children:(0,b.jsxs)("div",{className:"text-center",children:[(0,b.jsx)("h1",{className:"text-4xl font-extrabold text-slate-900 mb-2",children:"404"}),(0,b.jsx)("p",{className:"text-slate-600",children:"Page not found"})]})})}a.s(["default",()=>c])}];
-
-//# sourceMappingURL=app_not-found_tsx_ef35050a._.js.map

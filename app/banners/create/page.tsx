@@ -50,7 +50,7 @@ export default function CreateBannerPage() {
   const handleSave = async () => {
     if (!bannerValidate(formData.title, formData.banner, imageFile, setErrors)) return;
     setLoading(true);
-    const toastId = toast.loading('Loading...');
+    const toastId = toast.loading('Creating banner...');
     try {
       const payload = new FormData();
       payload.append('title', formData.title);
@@ -61,10 +61,12 @@ export default function CreateBannerPage() {
         payload.append('banner', formData.banner);
       }
       const response = await bannersAPI.create(payload);
-      if (response?.data?.code === 'OK') {
+      if (response?.code === 'OK' || response?.data?.code === 'OK') {
         toast.success('Banner created successfully', { id: toastId });
+        setRedirectTo('/banners');
+      } else {
+        toast.error(response?.message || response?.data?.message || 'Failed to create banner', { id: toastId });
       }
-      setRedirectTo('/banners');
     } catch (error) {
       toast.error(getErrorMessage(error), { id: toastId });
     } finally {

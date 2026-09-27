@@ -12,9 +12,13 @@ import {
   X,
   LogOut,
   ChevronRight,
-  Boxes
+  Boxes,
+  MessageSquare,
+  Mail
 } from "lucide-react";
 import { orderAPI } from "@/lib/integration/orders";
+import { enquiryAPI } from "@/lib/integration/enquiry";
+import { newsletterAPI } from "@/lib/integration/newsletter";
 import { logoutUser } from "@/lib/middleware/auth";
 
 interface SidebarProps {
@@ -68,6 +72,18 @@ const menuItems = [
     icon: ShoppingCart,
     path: "/orders",
     badgeKey: "pending" as const,
+  },
+  {
+    name: "Enquiries",
+    icon: MessageSquare,
+    path: "/enquiries",
+    badgeKey: "enquiries" as const,
+  },
+  {
+    name: "Newsletters",
+    icon: Mail,
+    path: "/newsletters",
+    badgeKey: "newsletters" as const,
   },
   {
     name: "Inventory",
@@ -124,13 +140,26 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [openMenus, setOpenMenus] = useState<string[]>([]);
   const [pendingCount, setPendingCount] = useState(0);
+  const [pendingEnquiriesCount, setPendingEnquiriesCount] = useState(0);
+  const [subscriberCount, setSubscriberCount] = useState(0);
 
-  // ✅ Fetch pending order count for badge
+  // ✅ Fetch pending order and enquiry counts for badges
   const fetchBadgeData = useCallback(async () => {
     try {
-      const response = await orderAPI.getOrderStatus();
-      if (response?.code === "OK") {
-        setPendingCount(response?.data?.pending || 0);
+      const [orderRes, enquiryRes, newsletterRes] = await Promise.allSettled([
+        orderAPI.getOrderStatus(),
+        enquiryAPI.getStats(),
+        newsletterAPI.getStats(),
+      ]);
+
+      if (orderRes.status === 'fulfilled' && orderRes.value?.code === 'OK') {
+        setPendingCount(orderRes.value?.data?.pending || 0);
+      }
+      if (enquiryRes.status === 'fulfilled' && enquiryRes.value?.code === 'OK') {
+        setPendingEnquiriesCount(enquiryRes.value?.data?.pending || 0);
+      }
+      if (newsletterRes.status === 'fulfilled' && newsletterRes.value?.code === 'OK') {
+        setSubscriberCount(newsletterRes.value?.data?.subscribed || 0);
       }
     } catch {
       // Silently fail — badge is non-critical
@@ -279,6 +308,24 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                             : "bg-red-500 text-white"
                         }`}>
                           {pendingCount > 99 ? "99+" : pendingCount}
+                        </span>
+                      )}
+                      {(item as any).badgeKey === "enquiries" && pendingEnquiriesCount > 0 && (
+                        <span className={`min-w-[20px] h-5 flex items-center justify-center text-[10px] font-bold rounded-full px-1.5 ${
+                          isActive
+                            ? "bg-white text-blue-600"
+                            : "bg-amber-500 text-white"
+                        }`}>
+                          {pendingEnquiriesCount > 99 ? "99+" : pendingEnquiriesCount}
+                        </span>
+                      )}
+                      {(item as any).badgeKey === "newsletters" && subscriberCount > 0 && (
+                        <span className={`min-w-[20px] h-5 flex items-center justify-center text-[10px] font-bold rounded-full px-1.5 ${
+                          isActive
+                            ? "bg-white text-blue-600"
+                            : "bg-blue-500 text-white"
+                        }`}>
+                          {subscriberCount > 999 ? "999+" : subscriberCount}
                         </span>
                       )}
                     </Link>

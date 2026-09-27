@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import dynamic from "next/dynamic";
 import toast from "react-hot-toast";
 import { Loader2, AlertCircle, Save } from "lucide-react";
@@ -98,7 +98,7 @@ export default function CreateProductPage() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(false);
-  const [colorVariantsValid, setColorVariantsValid] = useState(false);
+  const colorVariantsValidRef = useRef(false);
   const [redirectTo, setRedirectTo] = useState("");
 
   const [common, setCommon] = useState<CommonData>({
@@ -108,18 +108,26 @@ export default function CreateProductPage() {
     colors: [],
   });
 
-  const [variantData, setVariantData] = useState<VariantData>({
+  const variantDataRef = useRef<VariantData>({
     primaryColorId: null,
     images: [],
     variants: [],
   });
+
+  const handleVariantChange = useCallback((data: VariantData) => {
+    variantDataRef.current = data;
+  }, []);
+
+  const handleValidationChange = useCallback((isValid: boolean) => {
+    colorVariantsValidRef.current = isValid;
+  }, []);
 
   const [form, setForm] = useState<ProductFormData>({
     title: "",
     display_price: 0,
     price: 0,
     quantity: 0,
-    product_type: "no_sizes",
+    product_type: "sizes",
     description: "",
     specifications: "",
     cat_id: "",
@@ -168,8 +176,14 @@ export default function CreateProductPage() {
   const fetchCommon = useCallback(async () => {
     try {
       const response = await commonAPI.getAll();
-      if (response?.data?.code === "OK") {
-        setCommon(response?.data?.data || []);
+      const resData = response?.data || response;
+      if (resData?.code === "OK") {
+        setCommon({
+          models: resData?.data?.models || [],
+          materials: resData?.data?.materials || [],
+          sizes: resData?.data?.sizes || [],
+          colors: resData?.data?.colors || [],
+        });
       }
     } catch (error) {
       toast.error(getErrorMessage(error));
@@ -187,7 +201,7 @@ export default function CreateProductPage() {
   }, [fetchCommon, router]);
 
   useEffect(() => {
-    if (redirectTo) if (redirectTo) router.push(redirectTo);
+    if (redirectTo) router.push(redirectTo);
   }, [redirectTo, router]);
 
   const toFormData = (data: ProductFormData): FormData => {
@@ -196,7 +210,6 @@ export default function CreateProductPage() {
       "title",
       "display_price",
       "price",
-      "quantity",
       "product_type",
       "description",
       "specifications",
@@ -220,6 +233,14 @@ export default function CreateProductPage() {
       if (value === null || value === undefined) return;
       formData.append(key, String(value));
     });
+
+    if (data.product_type === "no_sizes") {
+      const parsedQty = parseInt(String(data.quantity), 10);
+      const qty = isNaN(parsedQty) || parsedQty < 0 ? 0 : parsedQty;
+      formData.set("quantity", String(qty));
+    } else {
+      formData.set("quantity", "0");
+    }
 
     const finalInfluencer = data.influencer_id || data.model_id || "";
     if (finalInfluencer) {
@@ -273,21 +294,22 @@ export default function CreateProductPage() {
 
   // Handle Submit
   const handleSubmit = async () => {
+    if (!productValidate(form, setErrors)) {
+      toast.error("Please fix the errors in the form");
+      return;
+    }
+    if (!colorVariantsValidRef.current) {
+      toast.error(
+        "Please fix color variant errors (color, at least 1 image, valid sizes & stock)"
+      );
+      return;
+    }
+
     setLoading(true);
     const toastId = toast.loading("Creating...");
     try {
-      if (!productValidate(form, setErrors)) {
-        toast.error("Please fix the errors in the form", { id: toastId });
-        return;
-      }
-      if (!colorVariantsValid) {
-        toast.error(
-          "Please fix color variant errors (color, at least 1 image, valid sizes & stock)",
-          { id: toastId }
-        );
-        return;
-      }
-      form.media = variantData.images.map((img) => ({
+      const variantData = variantDataRef.current;
+      const media = variantData.images.map((img) => ({
         color_id: img.color_id,
         files: img.files
           .filter(
@@ -307,12 +329,16 @@ export default function CreateProductPage() {
             sort_order: f.sort_order,
           })),
       }));
-      form.primaryColorId = variantData.primaryColorId;
-      form.isPrimary = true;
-      if (form.product_type === "sizes") {
-        form.variants = variantData.variants;
-      }
-      const formData = toFormData(form);
+
+      const submitForm: ProductFormData = {
+        ...form,
+        media,
+        primaryColorId: variantData.primaryColorId,
+        isPrimary: true,
+        variants: form.product_type === "sizes" ? variantData.variants : [],
+      };
+
+      const formData = toFormData(submitForm);
       const response = await productsAPI.create(formData);
       if (response?.data?.code === "OK") {
         toast.success(`Product created successfully!`, { id: toastId });
@@ -326,66 +352,103 @@ export default function CreateProductPage() {
   };
 
   // ---------- Handlers (typed) ----------
-  const handleDescriptionChange = (value: string) => {
+  const handleDescriptionChange = useCallback((value: string) => {
     setForm((prev) => ({ ...prev, description: value }));
-    if (errors.description) {
-      setErrors((prev) => {
-        const newErrs = { ...prev };
-        delete newErrs.description;
-        return newErrs;
-      });
-    }
-  };
+    setErrors((prev) => {
+      if (!prev.description) return prev;
+      const newErrs = { ...prev };
+      delete newErrs.description;
+      return newErrs;
+    });
+  }, []);
 
-  const handleSpecificationsChange = (value: string) => {
+  const handleSpecificationsChange = useCallback((value: string) => {
     setForm((prev) => ({ ...prev, specifications: value }));
-    if (errors.specifications) {
-      setErrors((prev) => {
-        const newErrs = { ...prev };
-        delete newErrs.specifications;
-        return newErrs;
-      });
-    }
-  };
+    setErrors((prev) => {
+      if (!prev.specifications) return prev;
+      const newErrs = { ...prev };
+      delete newErrs.specifications;
+      return newErrs;
+    });
+  }, []);
 
-  const handleFieldChange = <K extends keyof ProductFormData>(
-    field: K,
-    value: ProductFormData[K],
-  ) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+  const handleFieldChange = useCallback(
+    <K extends keyof ProductFormData>(field: K, value: ProductFormData[K]) => {
+      setForm((prev) => ({ ...prev, [field]: value }));
 
-    const errorKey = field as keyof ProductError;
-    if (errors[errorKey]) {
+      const errorKey = field as keyof ProductError;
       setErrors((prev) => {
+        if (!prev[errorKey]) return prev;
         const newErrs = { ...prev };
         delete newErrs[errorKey];
         return newErrs;
       });
-    }
-  };
+    },
+    []
+  );
 
   type NumberFields = "display_price" | "price" | "quantity" | "weight" | "height" | "breadth" | "length";
-  const handleNumberChange = (field: NumberFields, value: string) => {
-    if (value === "" || /^\d*\.?\d*$/.test(value)) {
-      handleFieldChange(field, Number(value));
-    }
-  };
+  const handleNumberChange = useCallback(
+    (field: NumberFields, value: string) => {
+      if (value === "" || /^\d*\.?\d*$/.test(value)) {
+        handleFieldChange(field, Number(value));
+      }
+    },
+    [handleFieldChange]
+  );
 
-  const hasError = (field: keyof ProductError) => !!errors[field];
-  const handleError = (field: keyof ProductError): string => {
-    return errors[field] || "";
-  };
+  const handleQuantityChange = useCallback(
+    (value: string) => {
+      if (value === "" || /^\d*$/.test(value)) {
+        const num = value === "" ? 0 : parseInt(value, 10);
+        handleFieldChange("quantity", isNaN(num) ? 0 : num);
+      }
+    },
+    [handleFieldChange]
+  );
 
-  const mappedColors = common.colors.map((c) => ({
-    id: c._id,
-    name: c.name,
-    hex: c.hex,
-  }));
+  const hasError = useCallback((field: keyof ProductError) => !!errors[field], [errors]);
+  const handleError = useCallback((field: keyof ProductError): string => errors[field] || "", [errors]);
 
-  const mappedSizes = common.sizes.map((s) => ({
-    id: s._id,
-    name: s.name,
-  }));
+  const fetchCategoryOptions = useCallback(
+    ({ page, limit, search }: { page: number; limit: number; search: string }) =>
+      categoriesAPI.getAll({ page, limit, search }),
+    []
+  );
+
+  const mapCategoryOption = useCallback(
+    (item: any) => ({
+      label: item.title,
+      value: item._id,
+    }),
+    []
+  );
+
+  const handleCatIdChange = useCallback(
+    (val: string) => {
+      handleFieldChange("cat_id", val);
+    },
+    [handleFieldChange]
+  );
+
+  const mappedColors = useMemo(
+    () =>
+      common.colors.map((c) => ({
+        id: c._id,
+        name: c.name,
+        hex: c.hex,
+      })),
+    [common.colors]
+  );
+
+  const mappedSizes = useMemo(
+    () =>
+      common.sizes.map((s) => ({
+        id: s._id,
+        name: s.name,
+      })),
+    [common.sizes]
+  );
 
   // ---------- Render ----------
   return (
@@ -397,8 +460,10 @@ export default function CreateProductPage() {
           product_type={form.product_type}
           colors={mappedColors}
           sizes={mappedSizes}
-          onChange={setVariantData}
-          onValidationChange={setColorVariantsValid}
+          onChange={handleVariantChange}
+          onValidationChange={handleValidationChange}
+          onRefreshSizes={fetchCommon}
+          onProductTypeChange={(type) => handleFieldChange("product_type", type)}
         />
 
         {/* Basic Details */}
@@ -438,10 +503,14 @@ export default function CreateProductPage() {
                 }
                 className={`w-full px-4 py-3 bg-slate-50 border-2 rounded-xl outline-none transition-all focus:bg-white ${hasError("product_type") ? "border-red-500 bg-red-50" : "border-transparent focus:border-indigo-600"}`}
               >
-                <option value="">Select</option>
-                <option value="sizes">Readymade</option>
-                <option value="no_sizes">Unstitched</option>
+                <option value="sizes">Readymade (With Sizes & Stock)</option>
+                <option value="no_sizes">Unstitched / Free Size (Single Quantity)</option>
               </select>
+              {form.product_type === "sizes" && (
+                <p className="text-[11px] text-indigo-600 font-medium">
+                  ✓ Sizes & stock quantities are configured in Color Variants above
+                </p>
+              )}
               {hasError("product_type") && (
                 <p className="text-red-500 text-xs">
                   {handleError("product_type")}
@@ -456,12 +525,8 @@ export default function CreateProductPage() {
                 <input
                   type="text"
                   inputMode="numeric"
-                  min={10}
-                  max={50}
-                  value={form.quantity}
-                  onChange={(e) =>
-                    handleFieldChange("quantity", Number(e.target.value))
-                  }
+                  value={form.quantity === 0 ? "" : form.quantity}
+                  onChange={(e) => handleQuantityChange(e.target.value)}
                   placeholder="e.g. Product Quantity"
                   className={`w-full px-4 py-3 bg-slate-50 border-2 rounded-xl outline-none transition-all focus:bg-white ${hasError("quantity") ? "border-red-500 bg-red-50" : "border-transparent focus:border-indigo-600"}`}
                 />
@@ -479,16 +544,11 @@ export default function CreateProductPage() {
               <AsyncSelect
                 className={`w-full px-1 py-1 bg-slate-50 border-2 rounded-xl outline-none transition-all focus:bg-white ${hasError("product_type") ? "border-red-500 bg-red-50" : "border-transparent focus:border-indigo-600"}`}
                 value={form.cat_id}
-                onChange={(val) => setForm({ ...form, cat_id: val })}
+                onChange={handleCatIdChange}
                 placeholder="Select Category"
                 limit={10}
-                fetchOptions={({ page, limit, search }) =>
-                  categoriesAPI.getAll({ page, limit, search })
-                }
-                mapOption={(item) => ({
-                  label: item.title,
-                  value: item._id,
-                })}
+                fetchOptions={fetchCategoryOptions}
+                mapOption={mapCategoryOption}
               />
               {hasError("cat_id") && (
                 <p className="text-red-500 text-xs">{handleError("cat_id")}</p>

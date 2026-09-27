@@ -60,6 +60,12 @@ export const productValidate = (
   if (!form.specifications.trim()) {
     newErrors.specifications = "Specifications are required";
   }
+  if (form.product_type === "no_sizes") {
+    const qty = Number(form.quantity);
+    if (!form.quantity || isNaN(qty) || qty <= 0) {
+      newErrors.quantity = "Quantity must be greater than 0";
+    }
+  }
   if (form.video_link && !form.video_link.startsWith("http")) {
     newErrors.video_link = "Video link must be a valid URL";
   }

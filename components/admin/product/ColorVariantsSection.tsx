@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, memo } from "react";
 import Image from "next/image";
 import {
   Box,
@@ -14,6 +14,8 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { sizesAPI } from "@/lib/integration/sizes";
+import { getErrorMessage } from "@/lib/helpers/handlers";
 
 type SizeItem = {
   id: number;
@@ -67,31 +69,66 @@ interface Props {
   loading: boolean;
   onChange: (data: VariantData) => void;
   product_type: "sizes" | "no_sizes";
-  onValidationChange?: (isValid: boolean) => void; // ← ADD THIS
+  onValidationChange?: (isValid: boolean) => void;
+  onRefreshSizes?: () => void;
+  onProductTypeChange?: (type: "sizes" | "no_sizes") => void;
 }
 
-// Add after colorGroups state
 type ColorGroupError = {
   color_id?: string;
   images?: string;
   sizes?: string;
 };
 
-export default function ColorVariantsSection({
+function ColorVariantsSection({
   loading,
   colors,
   sizes,
   onChange,
   product_type,
   onValidationChange,
+  onRefreshSizes,
+  onProductTypeChange,
 }: Props) {
-  const [colorGroups, setColorGroups] = useState<ColorGroup[]>([]);
+  const [colorGroups, setColorGroups] = useState<ColorGroup[]>([
+    {
+      id: 1,
+      color_id: "",
+      media_gallery: [],
+      sizes: [{ id: 2, size_id: "", stock: 0, sku: "" }],
+    },
+  ]);
   const [primaryColorId, setPrimaryColorId] = useState<string | null>(null);
-  // const [groupErrors, setGroupErrors] = useState<
-  //   Record<number, ColorGroupError>
-  // >({});
+  const [interacted, setInteracted] = useState(false);
+  const [isAddingNewSize, setIsAddingNewSize] = useState(false);
+  const [newSizeName, setNewSizeName] = useState("");
+  const [addingSizeLoading, setAddingSizeLoading] = useState(false);
 
-  const getImagesPayload = () => {
+  const handleCreateNewSize = async () => {
+    if (!newSizeName.trim()) {
+      toast.error("Please enter a size name (e.g. XS, 38, Free Size)");
+      return;
+    }
+    setAddingSizeLoading(true);
+    try {
+      const response = await sizesAPI.create({ name: newSizeName.trim(), status: true });
+      const resData = response?.data || response;
+      if (resData?.code === "OK" || response?.status === 200 || response?.status === 201) {
+        toast.success(`Size "${newSizeName.trim()}" created successfully!`);
+        onRefreshSizes?.();
+        setNewSizeName("");
+        setIsAddingNewSize(false);
+      } else {
+        toast.error(resData?.message || "Failed to create size");
+      }
+    } catch (err: any) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setAddingSizeLoading(false);
+    }
+  };
+
+  const getImagesPayload = useCallback(() => {
     return colorGroups.map((group) => ({
       color_id: group.color_id,
       files: group.media_gallery.map((m) => ({
@@ -101,9 +138,9 @@ export default function ColorVariantsSection({
         sort_order: m.sort_order,
       })),
     }));
-  };
+  }, [colorGroups]);
 
-  const getVariantsPayload = () => {
+  const getVariantsPayload = useCallback(() => {
     const variants: {
       color_id: string;
       size_id: string;
@@ -123,9 +160,8 @@ export default function ColorVariantsSection({
     });
 
     return variants;
-  };
+  }, [colorGroups]);
 
-  // Add this function before useEffect
   const validateGroups = useCallback(() => {
     const newErrors: Record<number, ColorGroupError> = {};
     let isValid = true;
@@ -159,7 +195,6 @@ export default function ColorVariantsSection({
     return { isValid, errors: newErrors };
   }, [colorGroups, product_type]);
 
-  // Effect 1: only call onChange/onValidationChange (no setState)
   const validation = useMemo(() => validateGroups(), [validateGroups]);
   const groupErrors = validation.errors;
   const isValid = validation.isValid;
@@ -171,16 +206,10 @@ export default function ColorVariantsSection({
       images: getImagesPayload(),
       variants: getVariantsPayload(),
     });
-  }, [colorGroups, primaryColorId, isValid]);
-
-  // Effect 2: update groupErrors separately
-  // useEffect(() => {
-  //   const { errors } = validateGroups();
-  //   setGroupErrors(errors);
-  // }, [colorGroups]);
+  }, [colorGroups, primaryColorId, isValid, onChange, onValidationChange, getImagesPayload, getVariantsPayload]);
 
   // ---------------- ADD COLOR ----------------
-  const addColorVariant = () => {
+  const addColorVariant = useCallback(() => {
     if (colorGroups.length >= colors.length) {
       toast.error("No more colors available to add");
       return;
@@ -195,115 +224,131 @@ export default function ColorVariantsSection({
         sizes: [{ id: id + 1, size_id: "", stock: 0, sku: "" }],
       },
     ]);
-  };
+  }, [colorGroups.length, colors.length]);
 
-  const removeColorVariant = (id: number) => {
-    const updated = colorGroups.filter((g) => g.id !== id);
-    setColorGroups(updated);
-
-    if (primaryColorId == colorGroups.find((g) => g.id === id)?.color_id) {
-      setPrimaryColorId(updated.length ? updated[0].color_id : null);
-    }
-  };
+  const removeColorVariant = useCallback((id: number) => {
+    setColorGroups((prev) => {
+      const targetGroup = prev.find((g) => g.id === id);
+      targetGroup?.media_gallery.forEach((m) => {
+        if (m.preview) URL.revokeObjectURL(m.preview);
+      });
+      const updated = prev.filter((g) => g.id !== id);
+      if (primaryColorId === targetGroup?.color_id) {
+        setPrimaryColorId(updated.length ? updated[0].color_id : null);
+      }
+      return updated;
+    });
+  }, [primaryColorId]);
 
   // ---------------- SIZE ----------------
-  const addSizeToGroup = (gIdx: number) => {
-    const currentSizes = colorGroups[gIdx].sizes;
-    console.log("Current sizes for group", gIdx, currentSizes);
-    if (currentSizes.length >= sizes.length) {
-      toast.error("No more sizes available to add for this color");
-      return;
-    }
-    const updated = [...colorGroups];
-    updated[gIdx].sizes.push({
-      id: Date.now(),
-      size_id: "",
-      stock: 0,
-      sku: "",
+  const addSizeToGroup = useCallback((gIdx: number) => {
+    setInteracted(true);
+    setColorGroups((prev) => {
+      const currentSizes = prev[gIdx]?.sizes || [];
+      if (sizes.length > 0 && currentSizes.length >= sizes.length) {
+        toast.error("No more sizes available to add for this color");
+        return prev;
+      }
+      const updated = [...prev];
+      updated[gIdx] = {
+        ...updated[gIdx],
+        sizes: [
+          ...updated[gIdx].sizes,
+          { id: Date.now(), size_id: "", stock: 0, sku: "" },
+        ],
+      };
+      return updated;
     });
-    setColorGroups(updated);
-  };
+  }, [sizes.length]);
 
-  const updateSizeField = <K extends keyof SizeItem>(
+  const updateSizeField = useCallback(<K extends keyof SizeItem>(
     gIdx: number,
     sIdx: number,
     field: K,
     value: SizeItem[K],
   ) => {
-    const updated = [...colorGroups];
-    updated[gIdx].sizes[sIdx][field] = value;
-    setColorGroups(updated);
-  };
+    setInteracted(true);
+    setColorGroups((prev) => {
+      const updated = [...prev];
+      const newSizes = [...updated[gIdx].sizes];
+      newSizes[sIdx] = { ...newSizes[sIdx], [field]: value };
+      updated[gIdx] = { ...updated[gIdx], sizes: newSizes };
+      return updated;
+    });
+  }, []);
 
-  // Update handleStockChange to allow any positive stock
-  const handleStockChange = (gIdx: number, sIdx: number, value: string) => {
+  const handleStockChange = useCallback((gIdx: number, sIdx: number, value: string) => {
+    setInteracted(true);
     if (/^\d*$/.test(value)) {
       const num = Number(value);
       const clamped = value === "" ? 0 : Math.max(num, 0);
       updateSizeField(gIdx, sIdx, "stock", clamped);
     }
-  };
+  }, [updateSizeField]);
 
-  const removeSize = (gIdx: number, sIdx: number) => {
-    const updated = [...colorGroups];
-    updated[gIdx].sizes.splice(sIdx, 1);
-    setColorGroups(updated);
-  };
+  const removeSize = useCallback((gIdx: number, sIdx: number) => {
+    setColorGroups((prev) => {
+      const updated = [...prev];
+      const newSizes = [...updated[gIdx].sizes];
+      newSizes.splice(sIdx, 1);
+      updated[gIdx] = { ...updated[gIdx], sizes: newSizes };
+      return updated;
+    });
+  }, []);
 
   // ---------- Helper Functions (typed) ----------
-  const compressImage = (file: File, maxSizeMB = 10): Promise<File> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = (event) => {
-        const img = new window.Image();
-        img.src = event.target?.result as string;
-        img.onload = () => {
-          const canvas = document.createElement("canvas");
-          let width = img.width;
-          let height = img.height;
-          const maxDimension = 1600;
-          if (width > maxDimension || height > maxDimension) {
-            if (width > height) {
-              height = Math.round((height * maxDimension) / width);
-              width = maxDimension;
-            } else {
-              width = Math.round((width * maxDimension) / height);
-              height = maxDimension;
-            }
+  const compressImage = useCallback((file: File): Promise<File> => {
+    return new Promise((resolve) => {
+      const objectUrl = URL.createObjectURL(file);
+      const img = new window.Image();
+      img.src = objectUrl;
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+        const maxDimension = 1600;
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
           }
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext("2d");
-          if (!ctx) return resolve(file);
-          ctx.drawImage(img, 0, 0, width, height);
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return resolve(file);
+        ctx.drawImage(img, 0, 0, width, height);
 
-          // Fast & efficient JPEG output for e-commerce products
-          const baseName = file.name.replace(/\.[^/.]+$/, "");
-          const newFileName = `${baseName}.jpg`;
+        const baseName = file.name.replace(/\.[^/.]+$/, "");
+        const newFileName = `${baseName}.jpg`;
 
-          canvas.toBlob(
-            (blob) => {
-              if (!blob) return resolve(file);
-              resolve(
-                new File([blob], newFileName, {
-                  type: "image/jpeg",
-                  lastModified: Date.now(),
-                }),
-              );
-            },
-            "image/jpeg",
-            0.82,
-          );
-        };
-        img.onerror = () => resolve(file);
-        reader.onerror = () => resolve(file);
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) return resolve(file);
+            resolve(
+              new File([blob], newFileName, {
+                type: "image/jpeg",
+                lastModified: Date.now(),
+              }),
+            );
+          },
+          "image/jpeg",
+          0.82,
+        );
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        resolve(file);
       };
     });
-  };
+  }, []);
 
   // ---------------- IMAGE ----------------
-  const handleImageUpload = async (
+  const handleImageUpload = useCallback(async (
     gIdx: number,
     role: string,
     files: FileList,
@@ -319,7 +364,6 @@ export default function ColorVariantsSection({
 
     let finalFile = file;
 
-    // Fast client-side compression to make upload blazing fast
     if (file.type.startsWith("image/") && file.size > 150 * 1024) {
       try {
         finalFile = await compressImage(file);
@@ -332,8 +376,9 @@ export default function ColorVariantsSection({
 
     setColorGroups((prev) => {
       const updated = [...prev];
+      const mediaGallery = [...updated[gIdx].media_gallery];
 
-      const index = updated[gIdx].media_gallery.findIndex(
+      const index = mediaGallery.findIndex(
         (m) => m.role === role,
       );
 
@@ -342,41 +387,51 @@ export default function ColorVariantsSection({
         preview,
         role,
         is_primary:
-          updated[gIdx].media_gallery.length === 0 || role === "Front" ? 1 : 0,
-        sort_order: updated[gIdx].media_gallery.length,
+          mediaGallery.length === 0 || role === "Front" ? 1 : 0,
+        sort_order: mediaGallery.length,
       };
 
       if (index !== -1) {
-        updated[gIdx].media_gallery[index] = newMedia;
+        if (mediaGallery[index]?.preview) {
+          URL.revokeObjectURL(mediaGallery[index].preview!);
+        }
+        mediaGallery[index] = newMedia;
       } else {
-        updated[gIdx].media_gallery.push(newMedia);
+        mediaGallery.push(newMedia);
       }
 
+      updated[gIdx] = { ...updated[gIdx], media_gallery: mediaGallery };
       return updated;
     });
-  };
+  }, [compressImage]);
 
-  const setAsPrimaryImage = (gIdx: number, idx: number) => {
-    const updated = [...colorGroups];
-    updated[gIdx].media_gallery.forEach((m, i) => {
-      m.is_primary = i === idx ? 1 : 0;
-    });
-    setColorGroups(updated);
-  };
-
-  const removeImage = (gIdx: number, idx: number) => {
+  const setAsPrimaryImage = useCallback((gIdx: number, idx: number) => {
     setColorGroups((prev) => {
       const updated = [...prev];
-
-      const media = updated[gIdx].media_gallery[idx];
-      if (media?.preview) {
-        URL.revokeObjectURL(media.preview); // ✅ prevent memory leak
-      }
-
-      updated[gIdx].media_gallery.splice(idx, 1);
+      const mediaGallery = updated[gIdx].media_gallery.map((m, i) => ({
+        ...m,
+        is_primary: i === idx ? 1 : 0,
+      }));
+      updated[gIdx] = { ...updated[gIdx], media_gallery: mediaGallery };
       return updated;
     });
-  };
+  }, []);
+
+  const removeImage = useCallback((gIdx: number, idx: number) => {
+    setColorGroups((prev) => {
+      const updated = [...prev];
+      const mediaGallery = [...updated[gIdx].media_gallery];
+
+      const media = mediaGallery[idx];
+      if (media?.preview) {
+        URL.revokeObjectURL(media.preview);
+      }
+
+      mediaGallery.splice(idx, 1);
+      updated[gIdx] = { ...updated[gIdx], media_gallery: mediaGallery };
+      return updated;
+    });
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -443,7 +498,7 @@ export default function ColorVariantsSection({
                     </option>
                   ))}
               </select>
-              {groupErrors[gIdx]?.color_id && (
+              {interacted && groupErrors[gIdx]?.color_id && (
                 <span className="text-red-400 text-xs ml-2">
                   {groupErrors[gIdx].color_id}
                 </span>
@@ -541,7 +596,7 @@ export default function ColorVariantsSection({
                   );
                 })}
               </div>
-              {groupErrors[gIdx]?.images && (
+              {interacted && groupErrors[gIdx]?.images && (
                 <p className="text-red-500 text-xs mt-2 flex items-center gap-1">
                   <AlertCircle size={12} /> {groupErrors[gIdx].images}
                 </p>
@@ -550,7 +605,7 @@ export default function ColorVariantsSection({
 
             {/* SIZES */}
 
-            {product_type && product_type == "sizes" && (
+            {product_type === "sizes" ? (
               <div className="lg:col-span-5 bg-slate-50 p-5 rounded-2xl border border-slate-100">
                 {/* Header */}
                 <div className="flex justify-between items-center mb-3">
@@ -558,18 +613,61 @@ export default function ColorVariantsSection({
                     <Ruler size={14} /> Sizes & Stock
                   </h4>
 
-                  <button
-                    onClick={() => addSizeToGroup(gIdx)}
-                    className="text-[10px] bg-white px-3 py-1.5 rounded-xl border font-bold text-indigo-600 border-indigo-100 hover:bg-indigo-50 shadow-sm"
-                  >
-                    + Add Size
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsAddingNewSize((prev) => !prev)}
+                      className="text-[10px] bg-indigo-50 px-2.5 py-1.5 rounded-xl border font-bold text-indigo-600 border-indigo-200 hover:bg-indigo-100 shadow-sm flex items-center gap-1"
+                    >
+                      <Plus size={12} /> New Size
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => addSizeToGroup(gIdx)}
+                      className="text-[10px] bg-white px-3 py-1.5 rounded-xl border font-bold text-indigo-600 border-indigo-100 hover:bg-indigo-50 shadow-sm flex items-center gap-1"
+                    >
+                      <Plus size={12} /> Add Size Row
+                    </button>
+                  </div>
                 </div>
+
+                {/* Inline Quick Add Size input */}
+                {isAddingNewSize && (
+                  <div className="mb-3 p-3 bg-white rounded-xl border border-indigo-200 shadow-sm space-y-2">
+                    <p className="text-[10px] font-bold text-indigo-700">Create New Size (e.g. XS, 38, 40, Free Size)</p>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Size name"
+                        value={newSizeName}
+                        onChange={(e) => setNewSizeName(e.target.value)}
+                        className="flex-1 p-2 text-xs bg-slate-50 border rounded-lg outline-none focus:border-indigo-500 font-semibold"
+                      />
+                      <button
+                        type="button"
+                        disabled={addingSizeLoading}
+                        onClick={handleCreateNewSize}
+                        className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 disabled:opacity-50"
+                      >
+                        {addingSizeLoading ? "Saving..." : "Save"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsAddingNewSize(false);
+                          setNewSizeName("");
+                        }}
+                        className="px-2 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-200"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Helper text */}
                 <p className="text-[9px] text-slate-400 mb-3">
-                  SKU auto-generates when Brand, Category Code, Product Code,
-                  Color, and Size are selected
+                  Select available sizes (e.g. S, M, L, XL) and specify stock quantity for this color variant.
                 </p>
 
                 {/* Scroll Area */}
@@ -594,7 +692,9 @@ export default function ColorVariantsSection({
                           }
                           className="flex-1 p-2.5 bg-slate-50 rounded-lg text-xs font-bold border-2 border-transparent focus:border-indigo-500 outline-none"
                         >
-                          <option value="">Select Size</option>
+                          <option value="">
+                            {sizes.length === 0 ? "Loading sizes..." : "Select Size"}
+                          </option>
                           {sizes
                             .filter(
                               (sz) =>
@@ -624,10 +724,11 @@ export default function ColorVariantsSection({
                         />
 
                         {/* Remove */}
-                        {!loading && (
+                        {!loading && group.sizes.length > 1 && (
                           <button
                             onClick={() => removeSize(gIdx, sIdx)}
                             className="text-slate-400 hover:text-red-500 p-2"
+                            title="Remove size row"
                           >
                             <X size={16} />
                           </button>
@@ -644,12 +745,29 @@ export default function ColorVariantsSection({
                       )}
                     </div>
                   ))}
-                  {groupErrors[gIdx]?.sizes && (
+                  {interacted && groupErrors[gIdx]?.sizes && (
                     <p className="text-red-500 text-xs mt-2 flex items-center gap-1">
                       <AlertCircle size={12} /> {groupErrors[gIdx].sizes}
                     </p>
                   )}
                 </div>
+              </div>
+            ) : (
+              <div className="lg:col-span-5 bg-slate-50 p-6 rounded-2xl border border-slate-200 flex flex-col justify-center items-center text-center">
+                <Ruler size={24} className="text-slate-400 mb-2" />
+                <h4 className="text-xs font-bold text-slate-700">Unstitched / Free Size Mode</h4>
+                <p className="text-[11px] text-slate-400 max-w-xs mt-1">
+                  Individual sizes are disabled for Unstitched products. Total quantity is entered in Basic Details.
+                </p>
+                {onProductTypeChange && (
+                  <button
+                    type="button"
+                    onClick={() => onProductTypeChange("sizes")}
+                    className="mt-3 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold hover:bg-indigo-100 transition-all border border-indigo-200"
+                  >
+                    Enable Sizes (Switch to Readymade)
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -658,3 +776,6 @@ export default function ColorVariantsSection({
     </div>
   );
 }
+
+export default memo(ColorVariantsSection);
+

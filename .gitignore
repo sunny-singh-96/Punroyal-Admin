@@ -1,1 +1,29 @@
-node_modules
+# Dependencies
+node_modules/
+frontend/node_modules/
+
+# Next.js build output - DO NOT COMMIT
+.next/
+frontend/.next/
+out/
+frontend/out/
+
+# Environment variables
+.env
+.env.local
+frontend/.env
+frontend/.env.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.tsbuildinfo
+
