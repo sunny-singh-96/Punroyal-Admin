@@ -40,6 +40,7 @@ export default function ModelsPage() {
 
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreview, setVideoPreview] = useState<string>('');
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
   const [errors, setErrors] = useState<ModelsError>({});
 
@@ -86,6 +87,7 @@ export default function ModelsPage() {
     setModalType('EDIT_VIDEO');
     setVideoFile(null);
     setVideoPreview(row.video || '');
+    setUploadProgress(null);
     setErrors({});
     setIsModalOpen(true);
   }, []);
@@ -105,7 +107,13 @@ export default function ModelsPage() {
         if (videoFile) {
           const payload = new FormData();
           payload.append('video', videoFile);
-          const res = await modelsAPI.uploadVideo(selectedRow._id, payload);
+          setUploadProgress(0);
+          const res = await modelsAPI.uploadVideo(selectedRow._id, payload, (progressEvent) => {
+            if (progressEvent.total) {
+              const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+              setUploadProgress(percent);
+            }
+          });
           if (res?.data?.data?.video || res?.data?.video || res?.code === 'OK') {
             finalVideoUrl = res?.data?.data?.video || res?.data?.video || res?.video || finalVideoUrl;
           }
@@ -124,14 +132,15 @@ export default function ModelsPage() {
         toast.error(getErrorMessage(error), { id: toastId });
       } finally {
         setLoading(false);
+        setUploadProgress(null);
       }
       return;
     }
 
     if (modalType === 'MODEL') {
       if (!formData.name.trim()) {
-         setErrors({ name: 'Name is required' });
-         return;
+        setErrors({ name: 'Name is required' });
+        return;
       }
       const toastId = toast.loading("Creating Model...");
       try {
@@ -193,7 +202,7 @@ export default function ModelsPage() {
   const handleDelete = useCallback(async (id: string) => {
     const isConfirmed = await confirmDelete("Delete this influencer?");
     if (!isConfirmed) return;
-    
+
     try {
       setLoading(true);
       const response = await modelsAPI.delete(id);
@@ -242,9 +251,9 @@ export default function ModelsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Header - Sticky */}
-      <PageHeader 
-        title="Influencers" 
-        subtitle="Manage Product Influencers • Drag and drop rows to reorder videos on the website" 
+      <PageHeader
+        title="Influencers"
+        subtitle="Manage Product Influencers • Drag and drop rows to reorder videos on the website"
         rightContent={
           <button
             onClick={() => {
@@ -268,8 +277,8 @@ export default function ModelsPage() {
             modalType === 'EDIT_VIDEO'
               ? `Edit Influencer Video - ${selectedRow?.name}`
               : modalType === 'AUTH'
-              ? 'Register Auth'
-              : 'Create Influencer'
+                ? 'Register Auth'
+                : 'Create Influencer'
           }
           type="custom"
         >
@@ -338,6 +347,21 @@ export default function ModelsPage() {
                         className="h-full w-auto max-w-full object-contain"
                       />
                     </div>
+                {uploadProgress !== null && (
+                  <div className="mt-3 p-3 bg-blue-50 rounded-xl border border-blue-100">
+                    <div className="flex justify-between items-center text-xs font-bold text-blue-700 mb-1.5">
+                      <span className="flex items-center gap-1.5">
+                        <span className="animate-spin inline-block w-3 h-3 border-2 border-current border-t-transparent rounded-full" />
+                        Uploading to server...
+                      </span>
+                      <span>{uploadProgress}%</span>
+                    </div>
+                    <div className="w-full bg-blue-200 rounded-full h-2 overflow-hidden">
+                      <div
+                        className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-out"
+                        style={{ width: `${uploadProgress}%` }}
+                      />
+                    </div>
                   </div>
                 )}
               </div>
@@ -346,7 +370,8 @@ export default function ModelsPage() {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-5 py-2 border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all"
+                  disabled={loading}
+                  className="px-5 py-2 border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all disabled:opacity-50"
                 >
                   Cancel
                 </button>
@@ -356,7 +381,7 @@ export default function ModelsPage() {
                   disabled={loading || (!videoFile && !videoPreview)}
                   className="px-5 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold shadow-md hover:bg-blue-700 transition-all disabled:opacity-50"
                 >
-                  {loading ? "Saving Video..." : "Save Video"}
+                  {uploadProgress !== null ? `Uploading ${uploadProgress}%...` : loading ? "Saving Video..." : "Save Video"}
                 </button>
               </div>
             </div>
@@ -502,8 +527,10 @@ export default function ModelsPage() {
             draggable={true}
             onReorder={handleReorder}
           />
+       
         </div>
       </div>
+
     </div>
   );
 }

@@ -59,11 +59,13 @@ export const modelsAPI = {
   },
 
   // Upload video for influencer
-  async uploadVideo(id: string, formData: FormData) {
+  async uploadVideo(id: string, formData: FormData, onUploadProgress?: (progressEvent: any) => void) {
     return http.post(`${ENDPOINTS.INFLUENCER.UPLOAD_VIDEO}/${id}`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
+      onUploadProgress,
+      timeout: 300000,
     });
   },
 
