@@ -4,6 +4,7 @@ import { ENDPOINTS } from '@/constants/endpoint';
 interface LazyParams {
   page: number;
   limit: number;
+  search?: string;
 }
 
 interface ModelData {
@@ -22,6 +23,7 @@ export const modelsAPI = {
       data: {
         page: lazyParams.page,
         limit: lazyParams.limit,
+        search: lazyParams.search || '',
       }
     });
   },

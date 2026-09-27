@@ -42,11 +42,14 @@ export default function ModelsPage() {
   const [videoPreview, setVideoPreview] = useState<string>('');
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
+  const MAX_VIDEO_SIZE_MB = 30;
+  const MAX_VIDEO_SIZE_BYTES = MAX_VIDEO_SIZE_MB * 1024 * 1024;
+
   const [errors, setErrors] = useState<ModelsError>({});
 
   const initialParams = {
     page: 1,
-    limit: 50,
+    limit: 10,
     search: "",
   };
 
@@ -57,8 +60,14 @@ export default function ModelsPage() {
       setLoading(true);
       const response = await modelsAPI.getAll(lazyParams);
       if (response?.code === "OK" || response?.data) {
-        setData(response.data?.data || []);
-        setTotalRecords(response.data?.data?.length || 0);
+        const payload = response.data?.data;
+        const list = Array.isArray(payload) ? payload : (payload?.data || []);
+        const total = typeof payload?.totalRecords === 'number'
+          ? payload.totalRecords
+          : (Array.isArray(payload) ? payload.length : (list.length || 0));
+
+        setData(list);
+        setTotalRecords(total);
       }
     } catch (error) {
       toast.error(getErrorMessage(error));
@@ -66,6 +75,10 @@ export default function ModelsPage() {
       setLoading(false);
     }
   }, [lazyParams]);
+
+  const handleSearch = useCallback((search: string) => {
+    setLazyParams((p) => ({ ...p, search, page: 1 }));
+  }, []);
 
   useEffect(() => {
     const delay = setTimeout(() => {
@@ -98,6 +111,11 @@ export default function ModelsPage() {
       if (!selectedRow?._id) return;
       if (!videoFile && !videoPreview) {
         toast.error('Please select a video file to upload');
+        return;
+      }
+      if (videoFile && videoFile.size > MAX_VIDEO_SIZE_BYTES) {
+        const sizeMB = (videoFile.size / (1024 * 1024)).toFixed(1);
+        toast.error(`Video size is ${sizeMB}MB. Maximum limit is ${MAX_VIDEO_SIZE_MB}MB.`);
         return;
       }
       const toastId = toast.loading("Uploading influencer video...");
@@ -301,6 +319,15 @@ export default function ModelsPage() {
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
+                        if (file.size > MAX_VIDEO_SIZE_BYTES) {
+                          const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+                          toast.error(
+                            `Video size is ${sizeMB}MB. Maximum limit is ${MAX_VIDEO_SIZE_MB}MB for fast uploads and playback. Please choose a smaller video.`,
+                            { duration: 5000 }
+                          );
+                          e.target.value = '';
+                          return;
+                        }
                         setVideoFile(file);
                         setVideoPreview(URL.createObjectURL(file));
                       }
@@ -313,9 +340,15 @@ export default function ModelsPage() {
                     </div>
                     <div className="text-left">
                       <p className="text-xs font-bold text-slate-700">
-                        {videoFile ? videoFile.name : videoPreview ? 'Click to change video file' : 'Click to upload video file'}
+                        {videoFile
+                          ? `${videoFile.name} (${(videoFile.size / (1024 * 1024)).toFixed(1)} MB)`
+                          : videoPreview
+                          ? 'Click to change video file'
+                          : 'Click to upload video file'}
                       </p>
-                      <p className="text-[11px] text-slate-400">MP4, WebM, or QuickTime format (Max 100MB)</p>
+                      <p className="text-[11px] text-slate-400">
+                        MP4, WebM, or QuickTime format • <span className="font-semibold text-blue-600">Max {MAX_VIDEO_SIZE_MB}MB limit</span> for fast uploads
+                      </p>
                     </div>
                   </label>
                 </div>
@@ -526,8 +559,9 @@ export default function ModelsPage() {
             page={lazyParams.page}
             pageSize={lazyParams.limit}
             onPageChange={(page) => setLazyParams((p) => ({ ...p, page }))}
-            searchEnable={false}
-            draggable={true}
+            searchEnable={true}
+            onSearch={handleSearch}
+            draggable={!lazyParams.search}
             onReorder={handleReorder}
           />
        
