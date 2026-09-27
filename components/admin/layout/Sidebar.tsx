@@ -7,7 +7,6 @@ import {
   ShoppingBag,
   Layers,
   Users,
-  Settings,
   X,
   Package, // ✅ better icon for orders
 } from "lucide-react";
@@ -118,16 +117,6 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       </nav>
 
       {/* FOOTER */}
-      <div className="p-4 border-t border-slate-100">
-        <Link
-          href="/admin/settings"
-          onClick={() => setIsOpen(false)}
-          className="flex items-center gap-3 px-4 py-3 text-slate-500 hover:bg-slate-50 rounded-xl transition-all"
-        >
-          <Settings size={20} />
-          <span className="font-medium">Settings</span>
-        </Link>
-      </div>
     </div>
   );
 

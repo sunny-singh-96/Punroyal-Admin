@@ -8,7 +8,6 @@ import {
   Package,
   Layers,
   ShoppingCart,
-  Settings,
   X,
   LogOut,
   ChevronRight,
@@ -367,13 +366,6 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
 
           {/* FOOTER */}
           <div className="p-4 border-t space-y-2">
-            <Link
-              href="/settings"
-              className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-100"
-            >
-              <Settings size={18} /> Settings
-            </Link>
-
             <button
               onClick={() => setShowLogoutModal(true)}
               className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl"
