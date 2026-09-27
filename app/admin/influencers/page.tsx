@@ -347,6 +347,9 @@ export default function ModelsPage() {
                         className="h-full w-auto max-w-full object-contain"
                       />
                     </div>
+                  </div>
+                )}
+
                 {uploadProgress !== null && (
                   <div className="mt-3 p-3 bg-blue-50 rounded-xl border border-blue-100">
                     <div className="flex justify-between items-center text-xs font-bold text-blue-700 mb-1.5">
