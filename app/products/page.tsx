@@ -23,6 +23,7 @@ import { productsAPI } from "@/lib/integration/products";
 import { commonAPI } from "@/lib/integration/common";
 import DataGrid, { Header } from "@/components/admin/tables/dataTableWithGrid";
 import { categoriesAPI } from "@/lib/integration/categories";
+import { useSearchParams } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -256,11 +257,23 @@ export default function ProductsPage() {
     colors: [],
   });
 
+  const searchParams = useSearchParams();
+  const searchParam = searchParams?.get('search') || '';
+
   const [showFilters, setShowFilters] = useState(false);
-  const [appliedFilters, setAppliedFilters] =
-    useState<FilterState>(EMPTY_FILTERS);
-  const [pendingFilters, setPendingFilters] =
-    useState<FilterState>(EMPTY_FILTERS);
+  const [appliedFilters, setAppliedFilters] = useState<FilterState>(() =>
+    searchParam ? { ...EMPTY_FILTERS, search: searchParam } : EMPTY_FILTERS
+  );
+  const [pendingFilters, setPendingFilters] = useState<FilterState>(() =>
+    searchParam ? { ...EMPTY_FILTERS, search: searchParam } : EMPTY_FILTERS
+  );
+
+  useEffect(() => {
+    if (searchParam) {
+      setAppliedFilters(prev => ({ ...prev, search: searchParam }));
+      setPendingFilters(prev => ({ ...prev, search: searchParam }));
+    }
+  }, [searchParam]);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
 
   const [currentPage, setCurrentPage] = useState(1);

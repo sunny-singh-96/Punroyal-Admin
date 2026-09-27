@@ -503,14 +503,9 @@ export default function CreateProductPage() {
                 }
                 className={`w-full px-4 py-3 bg-slate-50 border-2 rounded-xl outline-none transition-all focus:bg-white ${hasError("product_type") ? "border-red-500 bg-red-50" : "border-transparent focus:border-indigo-600"}`}
               >
-                <option value="sizes">Readymade (With Sizes & Stock)</option>
-                <option value="no_sizes">Unstitched / Free Size (Single Quantity)</option>
+                <option value="sizes">Readymade</option>
+                <option value="no_sizes">Unstitched</option>
               </select>
-              {form.product_type === "sizes" && (
-                <p className="text-[11px] text-indigo-600 font-medium">
-                  ✓ Sizes & stock quantities are configured in Color Variants above
-                </p>
-              )}
               {hasError("product_type") && (
                 <p className="text-red-500 text-xs">
                   {handleError("product_type")}

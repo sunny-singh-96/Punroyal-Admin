@@ -755,7 +755,7 @@ function ColorVariantsSection({
             ) : (
               <div className="lg:col-span-5 bg-slate-50 p-6 rounded-2xl border border-slate-200 flex flex-col justify-center items-center text-center">
                 <Ruler size={24} className="text-slate-400 mb-2" />
-                <h4 className="text-xs font-bold text-slate-700">Unstitched / Free Size Mode</h4>
+                <h4 className="text-xs font-bold text-slate-700">Unstitched Mode</h4>
                 <p className="text-[11px] text-slate-400 max-w-xs mt-1">
                   Individual sizes are disabled for Unstitched products. Total quantity is entered in Basic Details.
                 </p>
@@ -765,7 +765,7 @@ function ColorVariantsSection({
                     onClick={() => onProductTypeChange("sizes")}
                     className="mt-3 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold hover:bg-indigo-100 transition-all border border-indigo-200"
                   >
-                    Enable Sizes (Switch to Readymade)
+                    Switch to Readymade
                   </button>
                 )}
               </div>

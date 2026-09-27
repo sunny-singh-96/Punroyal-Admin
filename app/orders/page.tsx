@@ -13,7 +13,7 @@ import DataGrid from '@/components/admin/tables/dataGrid';
 import { orderAPI } from '@/lib/integration/orders';
 import { getErrorMessage } from '@/lib/helpers/handlers';
 import OrderInfoModal from '@/components/admin/orders/OrderInfoModal';
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import PageHeader from '@/components/admin/head/head';
 import { ORDER_STATUS_CONFIG } from '@/components/admin/orders/utils';
 
@@ -85,8 +85,17 @@ export default function AdminOrderMaster() {
     limit: 10
   };
 
+  const searchParams = useSearchParams();
+  const searchParam = searchParams?.get('search') || '';
+
   const [lazyParams, setLazyParams] = useState(initialParams);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(searchParam);
+
+  useEffect(() => {
+    if (searchParam) {
+      setSearchTerm(searchParam);
+    }
+  }, [searchParam]);
   const [statusFilter, setStatusFilter] = useState('');
   const [dateRange, setDateRange] = useState({ from: '', to: '' });
   const [data, setData] = useState<Order[]>([]);

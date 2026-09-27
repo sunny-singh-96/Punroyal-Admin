@@ -15,6 +15,7 @@ import { inventoryAPI } from "@/lib/integration/inventory"; // ✅ your API
 import { toast } from "react-hot-toast";
 import { getErrorMessage } from "@/lib/helpers/handlers";
 import { ProductInfoModal } from "@/components/admin/inventory/ProductInfoModal";
+import { useSearchParams } from "next/navigation";
 interface Product {
   _id: string;
   title: string;
@@ -41,10 +42,19 @@ interface Product {
 }
 
 export default function InventoryCommandCenter() {
+  const searchParams = useSearchParams();
+  const searchParam = searchParams?.get('search') || '';
+
   const [loading, setLoading] = useState(true);
 
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(searchParam);
   const [stockStatus, setStockStatus] = useState("");
+
+  useEffect(() => {
+    if (searchParam) {
+      setSearchTerm(searchParam);
+    }
+  }, [searchParam]);
 
   const [lazyParams, setLazyParams] = useState({
     page: 1,
