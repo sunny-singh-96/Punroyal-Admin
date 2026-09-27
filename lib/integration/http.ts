@@ -13,7 +13,9 @@ const concatUrl = (endpoint: string) => {
   if (endpoint.startsWith('https://') || endpoint.startsWith('http://')) {
     return endpoint;
   }
-  return baseURL.concat(endpoint);
+  const cleanBase = baseURL.replace(/\/+$/, '');
+  const cleanEndpoint = endpoint.replace(/^\/+/, '');
+  return `${cleanBase}/${cleanEndpoint}`;
 }
 
 export const http = {

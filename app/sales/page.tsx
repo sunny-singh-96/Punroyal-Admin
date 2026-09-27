@@ -30,13 +30,22 @@ export default function AdminSalesMaster() {
   const fetchSalesData = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await salesAPI.getMonthlySales({
+      const response: any = await salesAPI.getMonthlySales({
         startDate: appliedStartDate,
         endDate: appliedEndDate,
       });
-      if (response?.code === "OK") {
-        setData(response?.data?.data || []);
-        setTotalRecords(response?.data?.totalRecords || 0);
+      const resData = response?.data?.data || response?.data || response;
+      const list = Array.isArray(resData?.data)
+        ? resData.data
+        : Array.isArray(resData)
+        ? resData
+        : Array.isArray(response?.data)
+        ? response.data
+        : [];
+      const total = response?.data?.totalRecords || resData?.totalRecords || list.length;
+      if (response?.code === "OK" || response?.status === 200 || Array.isArray(list)) {
+        setData(list);
+        setTotalRecords(total);
       }
     } catch (error) {
       toast.error(getErrorMessage(error));

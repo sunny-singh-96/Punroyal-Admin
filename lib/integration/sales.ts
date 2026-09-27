@@ -19,6 +19,7 @@ interface MonthlySalesData {
 export const salesAPI = {
   // Get monthly sales stats
   async getMonthlySales(params: MonthlySalesParams) {
-    return http.post(ENDPOINTS.SALES.MONTHLY_STATS, params);
+    const response: any = await http.post(ENDPOINTS.SALES.MONTHLY_STATS, params);
+    return response?.data || response;
   },
 };

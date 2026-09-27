@@ -66,14 +66,21 @@ export default function InventoryCommandCenter() {
   // ✅ FETCH INVENTORY
   const fetchInventory = useCallback(async () => {
     try {
-      const response = await inventoryAPI.getAll({
+      setLoading(true);
+      const response: any = await inventoryAPI.getAll({
         ...lazyParams,
         search: searchTerm,
         inventory_stock: stockStatus,
       });
-      if (response?.code === "OK") {
-        setData(response?.data || []);
-        setTotalRecords(response?.totalRecords || 0);
+      const resData = response?.data || response;
+      if (response?.code === "OK" || response?.status === 200 || Array.isArray(resData)) {
+        const items = Array.isArray(response?.data)
+          ? response.data
+          : Array.isArray(resData)
+          ? resData
+          : [];
+        setData(items);
+        setTotalRecords(response?.totalRecords ?? response?.data?.totalRecords ?? items.length);
       }
     } catch (err) {
       toast.error(getErrorMessage(err));
@@ -84,21 +91,22 @@ export default function InventoryCommandCenter() {
 
   const fetchInventoryStats = useCallback(async () => {
     try {
-      const response = await inventoryAPI.getInventoryStats();
-      if (response?.code === "OK") {
+      const response: any = await inventoryAPI.getInventoryStats();
+      const resData = response?.data || response;
+      if (response?.code === "OK" || resData?.totalProducts !== undefined) {
         setStats(
-          response?.data || {
-            totalProducts: 0,
-            lowStock: 0,
-            outOfStock: 0,
-            totalStockValue: 0
-          },
+          resData?.totalProducts !== undefined
+            ? resData
+            : {
+                totalProducts: 0,
+                lowStock: 0,
+                outOfStock: 0,
+                totalStockValue: 0,
+              }
         );
       }
     } catch (error) {
-      toast.error(getErrorMessage(error));
-    } finally {
-      setLoading(false);
+      console.error("fetchInventoryStats error:", error);
     }
   }, []);
 

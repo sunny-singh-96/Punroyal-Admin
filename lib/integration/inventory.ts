@@ -11,7 +11,7 @@ interface LazyParams {
 export const inventoryAPI = {
   // Get inventory list
   async getAll(params?: LazyParams) {
-    const url = `/${ENDPOINTS.INVENTORY.LIST}?page=${params?.page || 1}&limit=${params?.limit || 10}&inventory_stock=${params?.inventory_stock || ''}&search=${params?.search || ''}`;
+    const url = `${ENDPOINTS.INVENTORY.LIST}?page=${params?.page || 1}&limit=${params?.limit || 10}&inventory_stock=${params?.inventory_stock || ''}&search=${encodeURIComponent(params?.search || '')}`;
     return http.get(url);
   },
 
