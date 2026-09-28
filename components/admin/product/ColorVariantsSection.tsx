@@ -199,6 +199,19 @@ function ColorVariantsSection({
   const groupErrors = validation.errors;
   const isValid = validation.isValid;
 
+  // Auto-select first color as default when colors become available
+  useEffect(() => {
+    if (colors.length > 0 && colorGroups.length > 0 && !colorGroups[0].color_id) {
+      const firstColor = colors[0];
+      setColorGroups((prev) => {
+        const updated = [...prev];
+        updated[0] = { ...updated[0], color_id: firstColor.id };
+        return updated;
+      });
+      setPrimaryColorId(firstColor.id);
+    }
+  }, [colors]);
+
   useEffect(() => {
     onValidationChange?.(isValid);
     onChange({
