@@ -11,7 +11,7 @@ export const categoryValidate = (
     if (!image && !imageFile) {
         newErrors.image = "Image is required";
     }
-    if (image && !image.startsWith('http')) {
+    if (image && !image.startsWith('http') && !image.startsWith('/')) {
         newErrors.image = "Image must be a valid URL";
     }
     setErrors(newErrors);

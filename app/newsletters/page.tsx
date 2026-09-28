@@ -86,17 +86,34 @@ export default function NewslettersPage() {
     fetchData(lazyParams);
   }, [lazyParams, fetchData]);
 
-  const handleSearch = (search: string) => {
-    setLazyParams((prev) => ({ ...prev, page: 1, search }));
-  };
+  const handleSearch = useCallback((search: string) => {
+    setLazyParams((prev) => {
+      if (prev.search === search) return prev;
+      return { ...prev, page: 1, search };
+    });
+  }, []);
 
-  const handlePageChange = (page: number) => {
-    setLazyParams((prev) => ({ ...prev, page }));
-  };
+  const handlePageChange = useCallback((page: number) => {
+    setLazyParams((prev) => {
+      if (prev.page === page) return prev;
+      return { ...prev, page };
+    });
+  }, []);
 
-  const handleStatusFilter = (status: string) => {
+  const handleStatusFilter = useCallback((status: string) => {
     setStatusFilter(status);
     setLazyParams((prev) => ({ ...prev, page: 1, status }));
+  }, []);
+
+  const formatDateSafe = (dateStr?: string, pattern = "dd MMM yyyy, hh:mm a") => {
+    if (!dateStr) return "—";
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return "—";
+      return format(d, pattern);
+    } catch {
+      return "—";
+    }
   };
 
   const handleDelete = async (subscriber: NewsletterSubscriber) => {
@@ -104,7 +121,6 @@ export default function NewslettersPage() {
     if (!confirmed) return;
     try {
       await newsletterAPI.delete(subscriber._id);
-      toast.success("Subscriber removed successfully");
       fetchData(lazyParams);
       fetchStats();
     } catch (err) {
@@ -135,7 +151,7 @@ export default function NewslettersPage() {
     const rows = data.map((s) => [
       s.email,
       s.status,
-      format(new Date(s.createdAt), "dd MMM yyyy"),
+      formatDateSafe(s.createdAt, "dd MMM yyyy"),
     ]);
     const csv = [headers, ...rows].map((r) => r.join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -196,7 +212,7 @@ export default function NewslettersPage() {
       sortable: true,
       render: (row) => (
         <span className="text-sm text-slate-500">
-          {format(new Date(row.createdAt), "dd MMM yyyy, hh:mm a")}
+          {formatDateSafe(row.createdAt)}
         </span>
       ),
     },

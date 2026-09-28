@@ -1,5 +1,5 @@
 // ========================= DataGrid.tsx =========================
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Search, ChevronUp, ChevronDown, GripVertical } from "lucide-react";
 
 export interface Header<T = unknown> {
@@ -44,6 +44,11 @@ export default function DataGrid<T = unknown>({
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
+  const onSearchRef = useRef(onSearch);
+  useEffect(() => {
+    onSearchRef.current = onSearch;
+  }, [onSearch]);
+
   // SORT ONLY (NO PAGINATION HERE)
   const sortedData = useMemo(() => {
     if (!sortKey) return rows;
@@ -71,12 +76,12 @@ export default function DataGrid<T = unknown>({
 
   useEffect(() => {
     const delay = setTimeout(() => {
-      if (onSearch) {
-        onSearch(search);
+      if (onSearchRef.current) {
+        onSearchRef.current(search);
       }
     }, 400);
     return () => clearTimeout(delay);
-  }, [search, onSearch]);
+  }, [search]);
 
   return (
     <div className="max-w-7xl mx-auto p-4">
@@ -87,14 +92,10 @@ export default function DataGrid<T = unknown>({
           <div className="mb-4 flex items-center gap-2 w-1/4">
             <Search size={16} />
             <input
-              disabled={loading}
               value={search}
-              onChange={(e) => {
-                console.log(`e.target.value=`,e.target.value);
-                setSearch(e.target.value);
-              }}
+              onChange={(e) => setSearch(e.target.value)}
               placeholder="Search..."
-              className="border px-3 py-2 rounded-xl w-full"
+              className="border px-3 py-2 rounded-xl w-full outline-none focus:border-blue-500"
             />
           </div>
         )}

@@ -21,7 +21,7 @@ interface ProductFormData {
   display_price: number;
   price: number;
   quantity: number;
-  product_type: "sizes" | "no_sizes";
+  product_type: "sizes" | "no_sizes" | "";
   description: string;
   specifications: string;
   cat_id: string;
@@ -37,7 +37,7 @@ interface ProductFormData {
   breadth:  number;    
   length: number;
   commission?: number;
-  commission_type?: "percentage" | "flat";
+  commission_type?: "percentage" | "flat" | "";
   type?: number;
   metarial: {
     id: string;
@@ -127,7 +127,7 @@ export default function CreateProductPage() {
     display_price: 0,
     price: 0,
     quantity: 0,
-    product_type: "sizes",
+    product_type: "" as any,
     description: "",
     specifications: "",
     cat_id: "",
@@ -142,7 +142,7 @@ export default function CreateProductPage() {
     breadth: 0,
     length: 0,
     commission: 0,
-    commission_type: "percentage",
+    commission_type: "" as any,
     type: 1,
     metarial: [],
     variants: [],
@@ -498,11 +498,12 @@ export default function CreateProductPage() {
                 onChange={(e) =>
                   handleFieldChange(
                     "product_type",
-                    e.target.value as "sizes" | "no_sizes",
+                    e.target.value as "sizes" | "no_sizes" | "",
                   )
                 }
                 className={`w-full px-4 py-3 bg-slate-50 border-2 rounded-xl outline-none transition-all focus:bg-white ${hasError("product_type") ? "border-red-500 bg-red-50" : "border-transparent focus:border-indigo-600"}`}
               >
+                <option value="">Select Product Type</option>
                 <option value="sizes">Readymade</option>
                 <option value="no_sizes">Unstitched</option>
               </select>
@@ -659,15 +660,16 @@ export default function CreateProductPage() {
                     Commission Type
                   </label>
                   <select
-                    value={form.commission_type || "percentage"}
+                    value={form.commission_type || ""}
                     onChange={(e) =>
                       handleFieldChange(
                         "commission_type",
-                        e.target.value as "percentage" | "flat"
+                        e.target.value as "percentage" | "flat" | ""
                       )
                     }
                     className="w-full px-4 py-2.5 bg-white border-2 border-purple-200 rounded-xl outline-none focus:border-purple-600 text-sm font-medium"
                   >
+                    <option value="">Select Commission Type</option>
                     <option value="percentage">Percentage (%)</option>
                     <option value="flat">Flat Amount (₹)</option>
                   </select>
@@ -682,11 +684,14 @@ export default function CreateProductPage() {
                 <select
                   value={form.metarial[0]?.id || ""}
                   onChange={(e) =>
-                    handleFieldChange("metarial", [{ id: e.target.value }])
+                    handleFieldChange(
+                      "metarial",
+                      e.target.value ? [{ id: e.target.value }] : []
+                    )
                   }
                   className={`flex-1 px-4 py-3 bg-slate-50 border-2 rounded-xl outline-none transition-all focus:bg-white ${hasError("metarial") ? "border-red-500 bg-red-50" : "border-transparent focus:border-indigo-600"}`}
                 >
-                  <option value="">Select</option>
+                  <option value="">Select Fabric</option>
                   {common?.materials?.map((item) => (
                     <option key={item._id} value={item._id}>
                       {item.name}

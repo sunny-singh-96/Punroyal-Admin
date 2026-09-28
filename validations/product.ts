@@ -6,7 +6,7 @@ export interface ProductFormData {
   display_price: number;
   price: number;
   quantity: number;
-  product_type: "sizes" | "no_sizes";
+  product_type: "sizes" | "no_sizes" | "";
   description: string;
   specifications: string;
   cat_id: string;
@@ -19,7 +19,7 @@ export interface ProductFormData {
     id: string;
   }[];
   commission?: number;
-  commission_type?: "percentage" | "flat";
+  commission_type?: "percentage" | "flat" | "";
   type?: number;
   variants: {
     color_id: string;

@@ -52,8 +52,8 @@ export const ENDPOINTS = {
         DELETE: '/occations/admin/occation/delete'
     },
     ORDERS: {
-        LIST: '/order/admin/true/',
-        VIEW: '/order/admin/',
+        LIST: '/order/admin/true',
+        VIEW: '/order/admin',
         STATS: '/index/admin/dashboard/orders',
     },
     INVENTORY: {

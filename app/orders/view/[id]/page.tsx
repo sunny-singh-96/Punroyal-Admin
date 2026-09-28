@@ -85,10 +85,14 @@ export default function OrderDetailsPage() {
     if (!orderId) return;
     setLoading(true);
     try {
-      const res = await orderAPI.getOrder(orderId);
-      if (res?.code === "OK") {
-        const [ data ] = res.data;
-        setOrder(data);
+      const res: any = await orderAPI.getOrder(orderId);
+      if (res?.code === "OK" || res?.data) {
+        const data = Array.isArray(res.data) ? res.data[0] : res.data;
+        if (data) {
+          setOrder(data);
+        } else if (res && !res.data && res.order_number) {
+          setOrder(res);
+        }
       }
     } catch (err) {
       toast.error(getErrorMessage(err));
@@ -120,13 +124,14 @@ export default function OrderDetailsPage() {
   return (
     <div className="p-6 md:p-10 bg-[#f6f7fb] min-h-screen">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <PageHeader title="Order Detail" subtitle={"#" + order.order_number} />
+        <PageHeader title="Order Detail" subtitle={"#" + (order.order_number || "")} />
         {(() => {
-          const cfg = ORDER_STATUS_CONFIG[order.status?.toLowerCase()];
+          const statusKey = order.status?.toLowerCase() || '';
+          const cfg = ORDER_STATUS_CONFIG[statusKey];
           const bg = cfg?.bg || 'bg-slate-100';
           const color = cfg?.color || 'text-slate-700';
           const border = cfg?.border || 'border-slate-200';
-          const label = cfg?.label || order.status;
+          const label = cfg?.label || order.status || 'Unknown';
           return (
             <span className={`px-4 py-2 text-sm font-bold rounded-xl capitalize border ${bg} ${color} ${border} shadow-xs`}>
               Status: {label}
@@ -281,15 +286,15 @@ export default function OrderDetailsPage() {
                         {item.product?.title}
                       </p>
                       <p className="text-xs text-slate-500">
-                        रंग: {item.metadata?.color?.name || "—"}
+                        Color: {item.metadata?.color?.name || (typeof item.metadata?.color === 'string' ? item.metadata.color : ((item as any)?.color_id?.name || "—"))}
                       </p>
                       {size && (
                         <p className="text-xs text-slate-500">
-                          साइज़: {size}
+                          Size: {size}
                         </p>
                       )}
                       <p className="text-xs text-slate-500">
-                        मात्रा: {item.quantity}
+                        Quantity: {item.quantity}
                       </p>
                       <div className="flex justify-between mt-2 items-center">
                         <p className="font-semibold">

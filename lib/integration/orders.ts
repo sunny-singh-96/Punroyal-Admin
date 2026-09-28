@@ -22,7 +22,8 @@ export const orderAPI = {
 
   // Get order detail
   async getOrder(id: string) {
-    return http.get(`${ENDPOINTS.ORDERS.VIEW}/${id}/true`);
+    const cleanView = ENDPOINTS.ORDERS.VIEW.replace(/\/+$/, '');
+    return http.get(`${cleanView}/${id}/true`);
   },
 
   // Get order status

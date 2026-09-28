@@ -68,7 +68,7 @@ interface Props {
   sizes: { id: string; name: string }[];
   loading: boolean;
   onChange: (data: VariantData) => void;
-  product_type: "sizes" | "no_sizes";
+  product_type: "sizes" | "no_sizes" | "";
   onValidationChange?: (isValid: boolean) => void;
   onRefreshSizes?: () => void;
   onProductTypeChange?: (type: "sizes" | "no_sizes") => void;
@@ -752,7 +752,7 @@ function ColorVariantsSection({
                   )}
                 </div>
               </div>
-            ) : (
+            ) : product_type === "no_sizes" ? (
               <div className="lg:col-span-5 bg-slate-50 p-6 rounded-2xl border border-slate-200 flex flex-col justify-center items-center text-center">
                 <Ruler size={24} className="text-slate-400 mb-2" />
                 <h4 className="text-xs font-bold text-slate-700">Unstitched Mode</h4>
@@ -768,6 +768,14 @@ function ColorVariantsSection({
                     Switch to Readymade
                   </button>
                 )}
+              </div>
+            ) : (
+              <div className="lg:col-span-5 bg-slate-50 p-6 rounded-2xl border border-dashed border-slate-200 flex flex-col justify-center items-center text-center">
+                <Ruler size={24} className="text-slate-400 mb-2" />
+                <h4 className="text-xs font-bold text-slate-700">Select Product Type</h4>
+                <p className="text-[11px] text-slate-400 max-w-xs mt-1">
+                  Please select Product Type (Readymade or Unstitched) in Basic Details above to configure sizes.
+                </p>
               </div>
             )}
           </div>
