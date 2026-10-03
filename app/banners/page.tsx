@@ -13,6 +13,7 @@ type Banner = {
   _id: string;
   title: string;
   banner: string;
+  redirect_to?: string;
   status: boolean;
   createdAt: string;
   updatedAt: string;
@@ -97,14 +98,42 @@ export default function BannerListPage() {
               label: 'Banner',
               render: (row) => (
                 <div className="flex items-center gap-3">
-                  <img
-                    src={row.banner || '/no-image.png'}
-                    alt={row.title || 'banner'}
-                    width={100}
-                    height={60}
-                    className="rounded object-cover"
-                  />
-                  <span className="font-semibold">{row.title}</span>
+                  {row.banner ? (
+                    <img
+                      src={row.banner}
+                      alt={row.title || 'banner'}
+                      width={100}
+                      height={60}
+                      className="rounded object-cover h-14 w-24 bg-slate-100 border border-slate-200"
+                    />
+                  ) : (
+                    <div className="h-14 w-24 rounded bg-slate-100 border border-dashed border-slate-300 flex items-center justify-center text-slate-400 text-[10px] font-semibold">
+                      No Image
+                    </div>
+                  )}
+                  <span className="font-semibold text-slate-800">{row.title || 'Untitled Banner'}</span>
+                </div>
+              ),
+            },
+            {
+              key: 'redirect_to',
+              label: 'Link URL',
+              render: (row) => (
+                <div className="max-w-xs truncate">
+                  {row.redirect_to ? (
+                    <a
+                      href={row.redirect_to}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-600 hover:text-blue-800 font-mono underline inline-flex items-center gap-1"
+                      title={row.redirect_to}
+                    >
+                      <span className="truncate max-w-[200px]">{row.redirect_to}</span>
+                      <span className="text-[10px]">↗</span>
+                    </a>
+                  ) : (
+                    <span className="text-xs text-slate-400 italic">No link</span>
+                  )}
                 </div>
               ),
             },

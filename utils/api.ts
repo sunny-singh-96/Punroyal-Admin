@@ -23,16 +23,13 @@ api.interceptors.response.use(
   (error) => {
     const status = error.response?.status;
     const url = error.config?.url || '';
-    const isPublicPage = ['/admin/login'].includes(window.location.pathname);
+    const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+    const isPublicPage = ['/', '/login', '/admin/login'].includes(currentPath);
     console.log(`error===>`, error);
-    // Only redirect to login on 401 if not already on a public page
-    if (status === 401 && !url.includes('/auth/admin-login') && !isPublicPage) {
+    // Only redirect to login on 401 if not already on a public page and not auth call
+    if (status === 401 && !url.includes('/auth/admin-login') && !url.includes('/auth/login') && !isPublicPage) {
       const { logout } = useAuthStore.getState();
       logout();
-      // Avoid redirect loop by not redirecting if already on login page
-      if (!window.location.pathname.includes('/login')) {
-        window.location.href = '/login';
-      }
     }
     return Promise.reject(error);
   }
