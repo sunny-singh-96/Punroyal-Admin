@@ -138,7 +138,7 @@ export default function CategoryEditPage() {
               {/* IMAGE */}
               <div className="md:col-span-4">
                 <label className="text-xs font-bold text-slate-500 uppercase">
-                  Category Image
+                  Category Image <span className="text-slate-400 font-normal">(Optional)</span>
                 </label>
                 <div className="mt-2 border-2 border-dashed rounded-xl p-4 text-center hover:border-blue-400 transition">  
                   {previewUrl ? (

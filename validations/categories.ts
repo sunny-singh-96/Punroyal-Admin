@@ -7,11 +7,9 @@ export const categoryValidate = (
     setErrors: (errors: CategoryError) => void
 ): boolean => {
     const newErrors: CategoryError = {};
-    if (!title.trim()) newErrors.title = "Category is required";
-    if (!image && !imageFile) {
-        newErrors.image = "Image is required";
-    }
-    if (image && !image.startsWith('http') && !image.startsWith('/')) {
+    if (!title.trim()) newErrors.title = "Category title is required";
+    // Image is optional
+    if (image && !image.startsWith('http') && !image.startsWith('/') && !image.startsWith('data:')) {
         newErrors.image = "Image must be a valid URL";
     }
     setErrors(newErrors);
