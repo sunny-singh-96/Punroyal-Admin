@@ -15,7 +15,8 @@ import {
   MessageSquare,
   Mail,
   HelpCircle,
-  Quote
+  Quote,
+  FileText
 } from "lucide-react";
 import { orderAPI } from "@/lib/integration/orders";
 import { enquiryAPI } from "@/lib/integration/enquiry";
@@ -130,6 +131,16 @@ const menuItems = [
     icon: Layers,
     children: [
       { name: "All Materials", path: "/admin/materials" },
+    ],
+  },
+  {
+    name: "Pages & Content",
+    icon: FileText,
+    children: [
+      { name: "About Us", path: "/pages/about-us" },
+      { name: "Contact Us", path: "/pages/contact-us" },
+      { name: "Terms & Conditions", path: "/pages/terms" },
+      { name: "Privacy Policy", path: "/pages/privacy" },
     ],
   },
   // {

@@ -107,5 +107,30 @@ export const ENDPOINTS = {
         ADD: '/faq/admin/faq/add',
         UPDATE: '/faq/admin/faq/update',
         DELETE: '/faq/admin/faq/delete'
+    },
+    ABOUT_US: {
+        GET: '/about-us/admin/about-us',
+        UPDATE: '/about-us/admin/about-us/update',
+        ADD_TEAM: '/about-us/admin/about-us/team/add',
+        UPDATE_TEAM: (id: string) => `/about-us/admin/about-us/team/${id}`,
+        DELETE_TEAM: (id: string) => `/about-us/admin/about-us/team/${id}`,
+    },
+    CONTACT_US: {
+        GET: '/contact-us/admin/contact-us',
+        UPDATE: '/contact-us/admin/contact-us/update',
+    },
+    TERMS: {
+        GET: '/terms/admin/terms',
+        UPDATE: '/terms/admin/terms/update',
+        ADD_SECTION: '/terms/admin/terms/section/add',
+        UPDATE_SECTION: (id: string) => `/terms/admin/terms/section/${id}`,
+        DELETE_SECTION: (id: string) => `/terms/admin/terms/section/${id}`,
+    },
+    PRIVACY: {
+        GET: '/privacy/admin/privacy',
+        UPDATE: '/privacy/admin/privacy/update',
+        ADD_SECTION: '/privacy/admin/privacy/section/add',
+        UPDATE_SECTION: (id: string) => `/privacy/admin/privacy/section/${id}`,
+        DELETE_SECTION: (id: string) => `/privacy/admin/privacy/section/${id}`,
     }
 };
