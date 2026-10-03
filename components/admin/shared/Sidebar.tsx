@@ -13,7 +13,9 @@ import {
   ChevronRight,
   Boxes,
   MessageSquare,
-  Mail
+  Mail,
+  HelpCircle,
+  Quote
 } from "lucide-react";
 import { orderAPI } from "@/lib/integration/orders";
 import { enquiryAPI } from "@/lib/integration/enquiry";
@@ -83,6 +85,16 @@ const menuItems = [
     icon: Mail,
     path: "/newsletters",
     badgeKey: "newsletters" as const,
+  },
+  {
+    name: "FAQs",
+    icon: HelpCircle,
+    path: "/faqs",
+  },
+  {
+    name: "Testimonials",
+    icon: Quote,
+    path: "/testimonials",
   },
   {
     name: "Inventory",

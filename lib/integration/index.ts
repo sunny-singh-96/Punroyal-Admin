@@ -10,3 +10,5 @@ export { colorsAPI } from './colors';
 export { modelsAPI } from './models';
 export { sizesAPI } from './sizes';
 export { materialsAPI } from './materials';
+export { testimonialsAPI } from './testimonials';
+export { faqsAPI } from './faqs';

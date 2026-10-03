@@ -93,5 +93,19 @@ export const ENDPOINTS = {
         STATS: '/newsletter/admin/stats',
         TOGGLE_STATUS: '/newsletter/admin',
         DELETE: '/newsletter/admin'
+    },
+    TESTIMONIAL: {
+        LIST: '/testimonial/admin/testimonial/list',
+        GET: '/testimonial/admin/testimonial',
+        ADD: '/testimonial/admin/testimonial/add',
+        UPDATE: '/testimonial/admin/testimonial/update',
+        DELETE: '/testimonial/admin/testimonial/delete'
+    },
+    FAQ: {
+        LIST: '/faq/admin/faq/list',
+        GET: '/faq/admin/faq',
+        ADD: '/faq/admin/faq/add',
+        UPDATE: '/faq/admin/faq/update',
+        DELETE: '/faq/admin/faq/delete'
     }
 };
