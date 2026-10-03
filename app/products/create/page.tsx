@@ -298,9 +298,9 @@ export default function CreateProductPage() {
       toast.error("Please fix the errors in the form");
       return;
     }
-    if (!colorVariantsValidRef.current) {
+    if (!colorVariantsValidRef.current || variantDataRef.current.images.length === 0) {
       toast.error(
-        "Please fix color variant errors (color, at least 1 image, valid sizes & stock)"
+        "Please add at least one color variant with an image and valid sizes/stock"
       );
       return;
     }

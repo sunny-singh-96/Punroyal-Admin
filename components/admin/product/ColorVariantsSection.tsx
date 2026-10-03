@@ -166,6 +166,10 @@ function ColorVariantsSection({
     const newErrors: Record<number, ColorGroupError> = {};
     let isValid = true;
 
+    if (colorGroups.length === 0) {
+      return { isValid: false, errors: {} };
+    }
+
     colorGroups.forEach((group, gIdx) => {
       const err: ColorGroupError = {};
 
@@ -180,12 +184,17 @@ function ColorVariantsSection({
       }
 
       if (product_type === "sizes") {
-        const hasInvalidSize = group.sizes.some(
-          (s) => !s.size_id || s.stock < 0,
-        );
-        if (hasInvalidSize) {
-          err.sizes = "Each size must be selected with valid stock quantity (0 or more)";
+        if (group.sizes.length === 0) {
+          err.sizes = "At least one size variant is required for this color";
           isValid = false;
+        } else {
+          const hasInvalidSize = group.sizes.some(
+            (s) => !s.size_id || s.stock < 0,
+          );
+          if (hasInvalidSize) {
+            err.sizes = "Each size must be selected with valid stock quantity (0 or more)";
+            isValid = false;
+          }
         }
       }
 
@@ -223,27 +232,38 @@ function ColorVariantsSection({
 
   // ---------------- ADD COLOR ----------------
   const addColorVariant = useCallback(() => {
-    if (colorGroups.length >= colors.length) {
+    if (colors.length > 0 && colorGroups.length >= colors.length) {
       toast.error("No more colors available to add");
       return;
     }
     const id = Date.now();
+    const availableColor = colors.find(
+      (c) => !colorGroups.some((g) => g.color_id === c.id)
+    );
+    const defaultColorId = availableColor ? availableColor.id : "";
+
     setColorGroups((prev) => [
       ...prev,
       {
         id,
-        color_id: "",
+        color_id: defaultColorId,
         media_gallery: [],
         sizes: [{ id: id + 1, size_id: "", stock: 0, sku: "" }],
       },
     ]);
-  }, [colorGroups.length, colors.length]);
+
+    if (!primaryColorId && defaultColorId) {
+      setPrimaryColorId(defaultColorId);
+    }
+  }, [colorGroups, colors, primaryColorId]);
 
   const removeColorVariant = useCallback((id: number) => {
     setColorGroups((prev) => {
       const targetGroup = prev.find((g) => g.id === id);
       targetGroup?.media_gallery.forEach((m) => {
-        if (m.preview) URL.revokeObjectURL(m.preview);
+        if (m.preview && m.preview.startsWith("blob:")) {
+          URL.revokeObjectURL(m.preview);
+        }
       });
       const updated = prev.filter((g) => g.id !== id);
       if (primaryColorId === targetGroup?.color_id) {
@@ -251,6 +271,7 @@ function ColorVariantsSection({
       }
       return updated;
     });
+    toast.success("Color variant deleted");
   }, [primaryColorId]);
 
   // ---------------- SIZE ----------------
@@ -301,12 +322,14 @@ function ColorVariantsSection({
 
   const removeSize = useCallback((gIdx: number, sIdx: number) => {
     setColorGroups((prev) => {
+      if (!prev[gIdx]) return prev;
       const updated = [...prev];
       const newSizes = [...updated[gIdx].sizes];
       newSizes.splice(sIdx, 1);
       updated[gIdx] = { ...updated[gIdx], sizes: newSizes };
       return updated;
     });
+    toast.success("Size variant removed");
   }, []);
 
   // ---------- Helper Functions (typed) ----------
@@ -466,6 +489,7 @@ function ColorVariantsSection({
           </div>
         </div>
         <button
+          type="button"
           disabled={loading}
           onClick={addColorVariant}
           className="w-full md:w-auto bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all shadow-md"
@@ -475,7 +499,27 @@ function ColorVariantsSection({
       </div>
 
       {/* ORIGINAL UI */}
-      {colorGroups.map((group, gIdx) => (
+      {colorGroups.length === 0 ? (
+        <div className="bg-white rounded-3xl p-10 text-center border-2 border-dashed border-slate-300 shadow-sm space-y-4">
+          <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto">
+            <Box size={32} />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-lg font-bold text-slate-800">No Color Variants Added</h3>
+            <p className="text-sm text-slate-500 max-w-md mx-auto">
+              Every product requires at least one color variant. Click below to add a color variant.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={addColorVariant}
+            className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold inline-flex items-center gap-2 hover:bg-indigo-700 transition-all shadow-md"
+          >
+            <Plus size={18} /> Add Color Variant
+          </button>
+        </div>
+      ) : (
+        colorGroups.map((group, gIdx) => (
         <div
           key={group.id}
           className={`bg-white rounded-3xl shadow-sm border-2 transition-all overflow-hidden ${
@@ -511,12 +555,24 @@ function ColorVariantsSection({
                     </option>
                   ))}
               </select>
+              {group.color_id &&
+                (() => {
+                  const color = colors.find((c) => c.id === group.color_id);
+                  return color?.hex ? (
+                    <span
+                      title={color.name}
+                      className="inline-block w-6 h-6 rounded-full border-2 border-white shadow"
+                      style={{ backgroundColor: color.hex }}
+                    />
+                  ) : null;
+                })()}
               {interacted && groupErrors[gIdx]?.color_id && (
                 <span className="text-red-400 text-xs ml-2">
                   {groupErrors[gIdx].color_id}
                 </span>
               )}
               <button
+                type="button"
                 disabled={!group.color_id}
                 onClick={() => setPrimaryColorId(group.color_id)}
                 className={`px-4 py-2 rounded-xl text-xs font-bold ${
@@ -530,8 +586,13 @@ function ColorVariantsSection({
             </div>
             
             {!loading && (
-              <button onClick={() => removeColorVariant(group.id)}>
-                <Trash2 className="text-red-400" />
+              <button
+                type="button"
+                onClick={() => removeColorVariant(group.id)}
+                className="p-2 text-red-400 hover:text-red-300 hover:bg-slate-800 rounded-xl transition-colors"
+                title="Delete color variant"
+              >
+                <Trash2 className="text-red-400" size={18} />
               </button>
             )}
           </div>
@@ -569,17 +630,21 @@ function ColorVariantsSection({
                               {media.sort_order}
                             </span>
                             <button
+                              type="button"
                               onClick={() =>
                                 setAsPrimaryImage(gIdx, mediaIndex)
                               }
-                              className="absolute bottom-1 left-1 bg-yellow-400 p-1 rounded-full"
+                              className="absolute bottom-1 left-1 bg-yellow-400 p-1 rounded-full hover:bg-yellow-300 transition-colors"
+                              title="Set as primary image"
                             >
                               <Star size={12} />
                             </button>
                             {!loading && (
                               <button
+                                type="button"
                                 onClick={() => removeImage(gIdx, mediaIndex)}
-                                className="absolute top-1 right-1 bg-red-500 p-1 rounded-full text-white"
+                                className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 p-1 rounded-full text-white transition-colors"
+                                title="Remove image"
                               >
                                 <X size={12} />
                               </button>
@@ -682,82 +747,97 @@ function ColorVariantsSection({
                 <p className="text-[9px] text-slate-400 mb-3">
                   Select available sizes (e.g. S, M, L, XL) and specify stock quantity for this color variant.
                 </p>
-
                 {/* Scroll Area */}
                 <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
-                  {group.sizes.map((size, sIdx) => (
-                    <div
-                      key={size.id}
-                      className="flex flex-col gap-2 bg-white p-3 rounded-xl border border-slate-200 shadow-sm"
-                    >
-                      <div className="flex flex-col sm:flex-row gap-2">
-                        {/* Size Dropdown */}
-                        <select
-                          disabled={loading}
-                          value={size.size_id}
-                          onChange={(e) =>
-                            updateSizeField(
-                              gIdx,
-                              sIdx,
-                              "size_id",
-                              e.target.value,
-                            )
-                          }
-                          className="flex-1 p-2.5 bg-slate-50 rounded-lg text-xs font-bold border-2 border-transparent focus:border-indigo-500 outline-none"
-                        >
-                          <option value="">
-                            {sizes.length === 0 ? "Loading sizes..." : "Select Size"}
-                          </option>
-                          {sizes
-                            .filter(
-                              (sz) =>
-                                !group.sizes.some(
-                                  (s, i) => i !== sIdx && s.size_id === sz.id,
-                                ),
-                            )
-                            .map((sz) => (
-                              <option key={sz.id} value={sz.id}>
-                                {sz.name}
-                              </option>
-                            ))}
-                        </select>
-
-                        {/* Stock Input */}
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          min={0}
-                          placeholder="Stock"
-                          value={size.stock || ""}
-                          readOnly={loading}
-                          onChange={(e) =>
-                            handleStockChange(gIdx, sIdx, e.target.value)
-                          }
-                          className="w-full sm:w-24 p-2.5 bg-slate-50 rounded-lg text-xs font-bold border-2 border-transparent focus:border-indigo-500 outline-none"
-                        />
-
-                        {/* Remove */}
-                        {!loading && group.sizes.length > 1 && (
-                          <button
-                            onClick={() => removeSize(gIdx, sIdx)}
-                            className="text-slate-400 hover:text-red-500 p-2"
-                            title="Remove size row"
+                  {group.sizes.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center p-6 bg-white rounded-xl border border-dashed border-slate-300 text-center space-y-2">
+                      <p className="text-xs text-slate-500 font-medium">
+                        No size variants added for this color
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => addSizeToGroup(gIdx)}
+                        className="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold hover:bg-indigo-100 transition-all border border-indigo-200 flex items-center gap-1"
+                      >
+                        <Plus size={14} /> Add Size Row
+                      </button>
+                    </div>
+                  ) : (
+                    group.sizes.map((size, sIdx) => (
+                      <div
+                        key={size.id}
+                        className="flex flex-col gap-2 bg-white p-3 rounded-xl border border-slate-200 shadow-sm"
+                      >
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          {/* Size Dropdown */}
+                          <select
+                            disabled={loading}
+                            value={size.size_id}
+                            onChange={(e) =>
+                              updateSizeField(
+                                gIdx,
+                                sIdx,
+                                "size_id",
+                                e.target.value,
+                              )
+                            }
+                            className="flex-1 p-2.5 bg-slate-50 rounded-lg text-xs font-bold border-2 border-transparent focus:border-indigo-500 outline-none"
                           >
-                            <X size={16} />
-                          </button>
+                            <option value="">
+                              {sizes.length === 0 ? "Loading sizes..." : "Select Size"}
+                            </option>
+                            {sizes
+                              .filter(
+                                (sz) =>
+                                  !group.sizes.some(
+                                    (s, i) => i !== sIdx && s.size_id === sz.id,
+                                  ),
+                              )
+                              .map((sz) => (
+                                <option key={sz.id} value={sz.id}>
+                                  {sz.name}
+                                </option>
+                              ))}
+                          </select>
+
+                          {/* Stock Input */}
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            min={0}
+                            placeholder="Stock"
+                            value={size.stock || ""}
+                            readOnly={loading}
+                            onChange={(e) =>
+                              handleStockChange(gIdx, sIdx, e.target.value)
+                            }
+                            className="w-full sm:w-24 p-2.5 bg-slate-50 rounded-lg text-xs font-bold border-2 border-transparent focus:border-indigo-500 outline-none"
+                          />
+
+                          {/* Remove */}
+                          {!loading && (
+                            <button
+                              type="button"
+                              onClick={() => removeSize(gIdx, sIdx)}
+                              className="text-slate-400 hover:text-red-500 p-2 rounded-lg hover:bg-red-50 transition-colors"
+                              title="Remove size row"
+                            >
+                              <X size={16} />
+                            </button>
+                          )}
+                        </div>
+
+                        {/* SKU */}
+                        {size.sku && (
+                          <div className="mt-1 p-2 bg-indigo-50 rounded-lg border border-indigo-100">
+                            <p className="text-[10px] font-mono text-indigo-700 font-bold break-all">
+                              🔑 SKU: {size.sku}
+                            </p>
+                          </div>
                         )}
                       </div>
-
-                      {/* SKU */}
-                      {size.sku && (
-                        <div className="mt-1 p-2 bg-indigo-50 rounded-lg border border-indigo-100">
-                          <p className="text-[10px] font-mono text-indigo-700 font-bold break-all">
-                            🔑 SKU: {size.sku}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    ))
+                  )}
                   {interacted && groupErrors[gIdx]?.sizes && (
                     <p className="text-red-500 text-xs mt-2 flex items-center gap-1">
                       <AlertCircle size={12} /> {groupErrors[gIdx].sizes}
@@ -793,7 +873,8 @@ function ColorVariantsSection({
             )}
           </div>
         </div>
-      ))}
+        ))
+      )}
     </div>
   );
 }
