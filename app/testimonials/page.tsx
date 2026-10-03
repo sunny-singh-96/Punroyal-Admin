@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import Image from "next/image";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { Plus, Edit2, Trash2, Search, Quote, CheckCircle, XCircle, X, Star, Upload, Video } from "lucide-react";
+import { Plus, Edit2, Trash2, Search, Quote, CheckCircle, XCircle, Star, Video } from "lucide-react";
 import PageHeader from "@/components/admin/head/head";
 import { testimonialsAPI } from "@/lib/integration/testimonials";
 import { confirmDelete } from "@/lib/sweetAlert";
@@ -24,28 +24,11 @@ interface Testimonial {
 }
 
 export default function TestimonialsPage() {
+  const router = useRouter();
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [totalRecords, setTotalRecords] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [lazyParams, setLazyParams] = useState({ page: 1, limit: 15, search: "" });
-
-  // Modal State
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingTestimonial, setEditingTestimonial] = useState<Testimonial | null>(null);
-  const [formData, setFormData] = useState({
-    name: "",
-    designation: "Customer",
-    content: "",
-    rating: 5,
-    avatar: "",
-    video_url: "",
-    order: 0,
-    status: true,
-  });
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string>("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchTestimonials = useCallback(async () => {
     try {
@@ -68,104 +51,6 @@ export default function TestimonialsPage() {
     }, 250);
     return () => clearTimeout(timer);
   }, [fetchTestimonials]);
-
-  const handleOpenModal = (item?: Testimonial) => {
-    setAvatarFile(null);
-    if (item) {
-      setEditingTestimonial(item);
-      setFormData({
-        name: item.name,
-        designation: item.designation || "Customer",
-        content: item.content,
-        rating: item.rating || 5,
-        avatar: item.avatar || "",
-        video_url: item.video_url || "",
-        order: item.order || 0,
-        status: item.status,
-      });
-      setAvatarPreview(item.avatar || "");
-    } else {
-      setEditingTestimonial(null);
-      setFormData({
-        name: "",
-        designation: "Verified Buyer",
-        content: "",
-        rating: 5,
-        avatar: "",
-        video_url: "",
-        order: testimonials.length + 1,
-        status: true,
-      });
-      setAvatarPreview("");
-    }
-    setIsModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setEditingTestimonial(null);
-    setAvatarFile(null);
-    setAvatarPreview("");
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setAvatarFile(file);
-      const url = URL.createObjectURL(file);
-      setAvatarPreview(url);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.name.trim()) return toast.error("Client name is required");
-    if (!formData.content.trim()) return toast.error("Testimonial content is required");
-
-    try {
-      setSaving(true);
-      let payload: FormData | Record<string, any>;
-
-      if (avatarFile) {
-        const fd = new FormData();
-        fd.append("name", formData.name.trim());
-        fd.append("designation", formData.designation.trim());
-        fd.append("content", formData.content.trim());
-        fd.append("rating", String(formData.rating));
-        fd.append("video_url", formData.video_url.trim());
-        fd.append("order", String(formData.order));
-        fd.append("status", String(formData.status));
-        fd.append("avatar", avatarFile);
-        payload = fd;
-      } else {
-        payload = {
-          name: formData.name.trim(),
-          designation: formData.designation.trim(),
-          content: formData.content.trim(),
-          rating: formData.rating,
-          avatar: formData.avatar.trim(),
-          video_url: formData.video_url.trim(),
-          order: formData.order,
-          status: formData.status,
-        };
-      }
-
-      if (editingTestimonial) {
-        await testimonialsAPI.update(editingTestimonial._id, payload);
-        toast.success("Testimonial updated successfully");
-      } else {
-        await testimonialsAPI.create(payload);
-        toast.success("Testimonial added successfully");
-      }
-
-      handleCloseModal();
-      fetchTestimonials();
-    } catch (error) {
-      toast.error(getErrorMessage(error));
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const handleToggleStatus = async (id: string, currentStatus: boolean) => {
     try {
@@ -253,8 +138,8 @@ export default function TestimonialsPage() {
           </div>
 
           <button
-            onClick={() => handleOpenModal()}
-            className="flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-xs transition transform active:scale-95"
+            onClick={() => router.push("/testimonials/create")}
+            className="flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-xs transition transform active:scale-95 cursor-pointer"
           >
             <Plus size={18} />
             <span>Add Testimonial</span>
@@ -278,8 +163,8 @@ export default function TestimonialsPage() {
                 Add happy customer reviews, bridal testimonials, and ratings to build credibility.
               </p>
               <button
-                onClick={() => handleOpenModal()}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700"
+                onClick={() => router.push("/testimonials/create")}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700 cursor-pointer"
               >
                 <Plus size={16} /> Add Testimonial
               </button>
@@ -348,7 +233,7 @@ export default function TestimonialsPage() {
                       <td className="py-4 px-4 text-center">
                         <button
                           onClick={() => handleToggleStatus(item._id, item.status)}
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition ${
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition cursor-pointer ${
                             item.status
                               ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
                               : "bg-rose-50 text-rose-700 hover:bg-rose-100"
@@ -368,15 +253,15 @@ export default function TestimonialsPage() {
                       <td className="py-4 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           <button
-                            onClick={() => handleOpenModal(item)}
-                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                            onClick={() => router.push(`/testimonials/edit/${item._id}`)}
+                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition cursor-pointer"
                             title="Edit"
                           >
                             <Edit2 size={16} />
                           </button>
                           <button
                             onClick={() => handleDelete(item._id)}
-                            className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                            className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
                             title="Delete"
                           >
                             <Trash2 size={16} />
@@ -417,225 +302,6 @@ export default function TestimonialsPage() {
           )}
         </div>
       </div>
-
-      {/* CREATE / EDIT MODAL */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-xl w-full shadow-2xl border border-slate-100 overflow-hidden my-8">
-            <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50/50">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center font-bold">
-                  <Quote size={20} />
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg text-slate-800">
-                    {editingTestimonial ? "Edit Testimonial" : "Add New Testimonial"}
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    Fill in client details and their feedback
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={handleCloseModal}
-                className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              {/* AVATAR UPLOAD */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">
-                  Client Avatar / Photo
-                </label>
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-full border-2 border-dashed border-slate-300 overflow-hidden bg-slate-50 flex items-center justify-center shrink-0 relative">
-                    {avatarPreview ? (
-                      <img src={avatarPreview} alt="Preview" className="w-full h-full object-cover" />
-                    ) : (
-                      <Quote size={24} className="text-slate-300" />
-                    )}
-                  </div>
-                  <div className="space-y-1.5 flex-1">
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleFileChange}
-                      accept="image/*"
-                      className="hidden"
-                    />
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition"
-                      >
-                        <Upload size={14} /> Upload Photo
-                      </button>
-                      {avatarPreview && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setAvatarFile(null);
-                            setAvatarPreview("");
-                            setFormData((p) => ({ ...p, avatar: "" }));
-                          }}
-                          className="px-2.5 py-1.5 text-xs text-rose-600 hover:bg-rose-50 rounded-lg transition"
-                        >
-                          Remove
-                        </button>
-                      )}
-                    </div>
-                    <input
-                      type="text"
-                      placeholder="Or enter image URL..."
-                      value={formData.avatar}
-                      onChange={(e) => {
-                        setFormData({ ...formData, avatar: e.target.value });
-                        if (!avatarFile) setAvatarPreview(e.target.value);
-                      }}
-                      className="w-full px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* CLIENT NAME & DESIGNATION */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-                    Client Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Jaspreet Kaur"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:bg-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-                    Designation / Title
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Bride / Verified Buyer / Fashion Blogger"
-                    value={formData.designation}
-                    onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:bg-white"
-                  />
-                </div>
-              </div>
-
-              {/* RATING & ORDER */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-                    Rating (Stars)
-                  </label>
-                  <div className="flex items-center gap-1.5 py-1">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        key={star}
-                        type="button"
-                        onClick={() => setFormData({ ...formData, rating: star })}
-                        className="p-1 hover:scale-110 transition"
-                      >
-                        <Star
-                          size={22}
-                          className={
-                            star <= formData.rating
-                              ? "fill-amber-400 text-amber-400"
-                              : "text-slate-300"
-                          }
-                        />
-                      </button>
-                    ))}
-                    <span className="text-xs font-bold text-slate-600 ml-2">
-                      {formData.rating} / 5
-                    </span>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-                    Display Order
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.order}
-                    onChange={(e) => setFormData({ ...formData, order: Number(e.target.value) })}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:bg-white"
-                  />
-                </div>
-              </div>
-
-              {/* TESTIMONIAL CONTENT */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-                  Testimonial / Review Content *
-                </label>
-                <textarea
-                  required
-                  rows={4}
-                  placeholder="Share the customer's experience with Punroyal..."
-                  value={formData.content}
-                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:bg-white leading-relaxed"
-                />
-              </div>
-
-              {/* VIDEO URL */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-                  Video Review URL (Optional)
-                </label>
-                <input
-                  type="text"
-                  placeholder="https://youtube.com/... or video link"
-                  value={formData.video_url}
-                  onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:bg-white"
-                />
-              </div>
-
-              {/* STATUS CHECKBOX */}
-              <div className="flex items-center gap-3 pt-2">
-                <input
-                  type="checkbox"
-                  id="testimonial-status"
-                  checked={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.checked })}
-                  className="w-4 h-4 text-blue-600 rounded-md focus:ring-blue-500"
-                />
-                <label htmlFor="testimonial-status" className="text-sm font-semibold text-slate-700 select-none cursor-pointer">
-                  Active (saved in database, ready for display)
-                </label>
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={handleCloseModal}
-                  className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm shadow-xs transition disabled:opacity-50"
-                >
-                  {saving ? "Saving..." : editingTestimonial ? "Save Changes" : "Add Testimonial"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

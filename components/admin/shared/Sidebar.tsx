@@ -94,7 +94,10 @@ const menuItems = [
   {
     name: "Testimonials",
     icon: Quote,
-    path: "/testimonials",
+    children: [
+      { name: "Add Testimonial", path: "/testimonials/create" },
+      { name: "All Testimonials", path: "/testimonials" },
+    ],
   },
   {
     name: "Inventory",
