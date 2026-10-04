@@ -231,7 +231,7 @@ export default function EditBannerPage() {
                   )}
                 </div>
 
-                {/* Banner Link URL (redirect_to) - Commented out from UI as requested
+                {/* Banner Link URL (redirect_to) */}
                 <div>
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                     Banner Link URL <span className="text-blue-600 font-semibold">(Editable Link)</span>
@@ -248,7 +248,6 @@ export default function EditBannerPage() {
                     Enter the URL or internal path where the user will be directed upon clicking the banner.
                   </p>
                 </div>
-                */}
 
                 {/* Banner Status */}
                 <div>

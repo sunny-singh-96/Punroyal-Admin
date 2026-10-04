@@ -115,7 +115,6 @@ export default function BannerListPage() {
                 </div>
               ),
             },
-            /* Commented out from UI as requested
             {
               key: 'redirect_to',
               label: 'Link URL',
@@ -138,7 +137,6 @@ export default function BannerListPage() {
                 </div>
               ),
             },
-            */
             {
               key: 'status',
               label: 'Status',
