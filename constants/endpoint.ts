@@ -132,5 +132,10 @@ export const ENDPOINTS = {
         ADD_SECTION: '/privacy/admin/privacy/section/add',
         UPDATE_SECTION: (id: string) => `/privacy/admin/privacy/section/${id}`,
         DELETE_SECTION: (id: string) => `/privacy/admin/privacy/section/${id}`,
+    },
+    GLOBAL_SETTINGS: {
+        GET: '/global-settings',
+        ADMIN_GET: '/global-settings/admin',
+        UPDATE: '/global-settings/admin/update'
     }
 };

@@ -13,3 +13,4 @@ export { materialsAPI } from './materials';
 export { testimonialsAPI } from './testimonials';
 export { faqsAPI } from './faqs';
 export { aboutUsAPI, contactUsAPI, termsAPI, privacyAPI } from './pages';
+export { globalSettingsAPI } from './globalSettings';

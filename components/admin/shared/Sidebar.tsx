@@ -16,7 +16,8 @@ import {
   Mail,
   HelpCircle,
   Quote,
-  FileText
+  FileText,
+  Settings
 } from "lucide-react";
 import { orderAPI } from "@/lib/integration/orders";
 import { enquiryAPI } from "@/lib/integration/enquiry";
@@ -142,6 +143,11 @@ const menuItems = [
       { name: "Terms & Conditions", path: "/pages/terms" },
       { name: "Privacy Policy", path: "/pages/privacy" },
     ],
+  },
+  {
+    name: "Global Settings",
+    icon: Settings,
+    path: "/settings",
   },
   // {
   //   name: "Coupons",
