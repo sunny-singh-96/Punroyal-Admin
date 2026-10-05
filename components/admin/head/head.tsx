@@ -20,7 +20,7 @@ export default function PageHeader({
           
           {/* Left */}
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-transparent">
+            <h1 className="text-3xl font-normal tracking-tight bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-transparent">
               {title}
             </h1>
 

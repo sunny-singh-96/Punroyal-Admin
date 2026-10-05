@@ -8,27 +8,22 @@ import {
   Cell,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from "recharts";
 import {
   Package,
   Layers,
-  MessageSquare,
-  Mail,
-  Eye,
-  RefreshCw,
   ShoppingBag,
   Clock,
   CheckCircle2,
   XCircle,
-  Truck,
+  Eye,
+  RefreshCw,
   ArrowRight,
 } from "lucide-react";
 import { format } from "date-fns";
 import toast from "react-hot-toast";
 import { getErrorMessage } from "@/lib/helpers/handlers";
 import { dashboardAPI } from "@/lib/integration/dashboard";
-import PageHeader from "@/components/admin/head/head";
 
 interface LatestOrder {
   _id: string;
@@ -59,18 +54,18 @@ interface OrderChartItem {
 
 interface OrderStats {
   totalOrders: number;
-  completed: number;
+  delivered: number;
   cancelled: number;
   pending: number;
-  shipped: number;
-  returned?: number;
 }
 
 interface DashboardData {
   totalProducts: number;
   totalCategories: number;
-  totalEnquiries: number;
-  totalNewsletters: number;
+  totalOrders: number;
+  totalCancelledOrders: number;
+  totalPendingOrders: number;
+  totalDeliveredOrders: number;
   orderStats: OrderStats;
   orderChart: OrderChartItem[];
   latestOrders: LatestOrder[];
@@ -88,7 +83,7 @@ const STATUS_COLORS: Record<string, { bg: string; text: string; border: string }
   out_for_delivery: { bg: "bg-indigo-50", text: "text-indigo-700", border: "border-indigo-200" },
   cancelled: { bg: "bg-rose-50", text: "text-rose-700", border: "border-rose-200" },
   payment_failed: { bg: "bg-rose-50", text: "text-rose-700", border: "border-rose-200" },
-  returned: { bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-200" },
+  returned: { bg: "bg-rose-50", text: "text-rose-700", border: "border-rose-200" },
 };
 
 export default function AdminDashboard() {
@@ -133,32 +128,26 @@ export default function AdminDashboard() {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-8">
         <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-        <p className="mt-4 text-sm font-semibold text-slate-600">Loading dashboard...</p>
+        <p className="mt-4 text-sm font-normal text-slate-600">Loading dashboard...</p>
       </div>
     );
   }
 
   const totalProducts = data?.totalProducts ?? 0;
   const totalCategories = data?.totalCategories ?? 0;
-  const totalEnquiries = data?.totalEnquiries ?? 0;
-  const totalNewsletters = data?.totalNewsletters ?? 0;
+  const totalOrders = data?.totalOrders ?? (data?.orderStats?.totalOrders ?? 0);
+  const totalCancelledOrders = data?.totalCancelledOrders ?? (data?.orderStats?.cancelled ?? 0);
+  const totalPendingOrders = data?.totalPendingOrders ?? (data?.orderStats?.pending ?? 0);
+  const totalDeliveredOrders = data?.totalDeliveredOrders ?? (data?.orderStats?.delivered ?? 0);
 
-  const orderStats = data?.orderStats || {
-    totalOrders: 0,
-    completed: 0,
-    cancelled: 0,
-    pending: 0,
-    shipped: 0,
-    returned: 0,
-  };
+  // Exactly 3 states in the chart: Order Delivered, Order Pending, Order Cancelled
+  const chartData = [
+    { name: "Order Delivered", count: totalDeliveredOrders, color: "#10B981" },
+    { name: "Order Pending", count: totalPendingOrders, color: "#F59E0B" },
+    { name: "Order Cancelled", count: totalCancelledOrders, color: "#EF4444" },
+  ];
 
-  const chartData = (data?.orderChart || [
-    { name: "Completed", count: orderStats.completed, color: "#10B981" },
-    { name: "Pending", count: orderStats.pending, color: "#F59E0B" },
-    { name: "Shipped", count: orderStats.shipped, color: "#3B82F6" },
-    { name: "Cancelled", count: orderStats.cancelled, color: "#EF4444" },
-  ]).filter((item) => item.count > 0);
-
+  const chartHasData = chartData.some((item) => item.count > 0);
   const latestOrders = data?.latestOrders || [];
 
   return (
@@ -166,144 +155,167 @@ export default function AdminDashboard() {
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-normal text-slate-900 tracking-tight">
             Dashboard
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Overview of store catalog, customer inquiries, newsletters, and order status
+          <p className="text-sm font-normal text-slate-500 mt-1">
+            Store performance metrics, order statistics, and recent customer activity
           </p>
         </div>
         <button
           onClick={fetchDashboardData}
           disabled={loading}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-sm font-semibold rounded-xl transition shadow-xs disabled:opacity-50"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-sm font-normal rounded-xl transition shadow-xs disabled:opacity-50"
         >
           <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
           <span>Refresh</span>
         </button>
       </div>
 
-      {/* 4 Core Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {/* Total Products */}
+      {/* 5 Core Metric Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        {/* 1. Total Products */}
         <Link
           href="/products"
-          className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm hover:shadow-md transition group"
+          className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition group"
         >
           <div className="flex items-center justify-between">
-            <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Package size={24} />
+            <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+              <Package size={22} />
             </div>
-            <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">
+            <span className="text-[11px] font-normal text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
               Catalog
             </span>
           </div>
           <div className="mt-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            <p className="text-xs font-normal uppercase tracking-wider text-slate-400">
               Total Products
             </p>
-            <p className="text-3xl font-extrabold text-slate-900 mt-1">
+            <p className="text-2xl font-normal text-slate-900 mt-1">
               {totalProducts.toLocaleString()}
             </p>
           </div>
         </Link>
 
-        {/* Total Categories */}
+        {/* 2. Total Categories */}
         <Link
           href="/categories"
-          className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm hover:shadow-md transition group"
+          className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition group"
         >
           <div className="flex items-center justify-between">
-            <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Layers size={24} />
+            <div className="w-11 h-11 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+              <Layers size={22} />
             </div>
-            <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full">
-              Hierarchy
+            <span className="text-[11px] font-normal text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+              Categories
             </span>
           </div>
           <div className="mt-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            <p className="text-xs font-normal uppercase tracking-wider text-slate-400">
               Total Categories
             </p>
-            <p className="text-3xl font-extrabold text-slate-900 mt-1">
+            <p className="text-2xl font-normal text-slate-900 mt-1">
               {totalCategories.toLocaleString()}
             </p>
           </div>
         </Link>
 
-        {/* Total Inquiries */}
+        {/* 3. Total Orders */}
         <Link
-          href="/enquiries"
-          className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm hover:shadow-md transition group"
+          href="/orders"
+          className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition group"
         >
           <div className="flex items-center justify-between">
-            <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-              <MessageSquare size={24} />
+            <div className="w-11 h-11 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+              <ShoppingBag size={22} />
             </div>
-            <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">
-              Support
+            <span className="text-[11px] font-normal text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full">
+              Orders
             </span>
           </div>
           <div className="mt-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-              Total Inquiries
+            <p className="text-xs font-normal uppercase tracking-wider text-slate-400">
+              Total Orders
             </p>
-            <p className="text-3xl font-extrabold text-slate-900 mt-1">
-              {totalEnquiries.toLocaleString()}
+            <p className="text-2xl font-normal text-slate-900 mt-1">
+              {totalOrders.toLocaleString()}
             </p>
           </div>
         </Link>
 
-        {/* Total Newsletters */}
+        {/* 4. Total Cancelled Orders */}
         <Link
-          href="/newsletters"
-          className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm hover:shadow-md transition group"
+          href="/orders"
+          className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition group"
         >
           <div className="flex items-center justify-between">
-            <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Mail size={24} />
+            <div className="w-11 h-11 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+              <XCircle size={22} />
             </div>
-            <span className="text-xs font-semibold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full">
-              Subscribers
+            <span className="text-[11px] font-normal text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full">
+              Cancelled
             </span>
           </div>
           <div className="mt-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-              Total Newsletters
+            <p className="text-xs font-normal uppercase tracking-wider text-slate-400">
+              Total Cancelled Orders
             </p>
-            <p className="text-3xl font-extrabold text-slate-900 mt-1">
-              {totalNewsletters.toLocaleString()}
+            <p className="text-2xl font-normal text-slate-900 mt-1">
+              {totalCancelledOrders.toLocaleString()}
+            </p>
+          </div>
+        </Link>
+
+        {/* 5. Total Pending Orders */}
+        <Link
+          href="/orders"
+          className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition group"
+        >
+          <div className="flex items-center justify-between">
+            <div className="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+              <Clock size={22} />
+            </div>
+            <span className="text-[11px] font-normal text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+              Pending
+            </span>
+          </div>
+          <div className="mt-4">
+            <p className="text-xs font-normal uppercase tracking-wider text-slate-400">
+              Total Pending Orders
+            </p>
+            <p className="text-2xl font-normal text-slate-900 mt-1">
+              {totalPendingOrders.toLocaleString()}
             </p>
           </div>
         </Link>
       </div>
 
-      {/* Orders Status Chart & Breakdown */}
+      {/* Single Orders Chart (Order Delivered, Order Pending, Order Cancelled) */}
       <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-6 border-b border-slate-100 gap-2">
           <div>
-            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+            <h2 className="text-lg font-normal text-slate-900 flex items-center gap-2">
               <ShoppingBag size={20} className="text-blue-600" />
-              <span>Order Status Distribution</span>
+              <span>Orders Status Chart</span>
             </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Live breakdown of customer orders by completion, transit, pending, and cancellation status
+            <p className="text-xs font-normal text-slate-500 mt-0.5">
+              Live breakdown of Delivered, Pending, and Cancelled orders
             </p>
           </div>
-          <div className="text-xs font-semibold text-slate-700 bg-slate-100 px-3 py-1.5 rounded-lg w-fit">
-            Total Orders: <span className="font-bold text-slate-900">{orderStats.totalOrders}</span>
+          <div className="text-xs font-normal text-slate-700 bg-slate-100 px-3 py-1.5 rounded-lg w-fit">
+            Total Orders: <span className="font-normal text-slate-900">{totalOrders}</span>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center mt-6">
-          {/* Donut Chart */}
+          {/* Chart Graphic */}
           <div className="lg:col-span-6 flex flex-col items-center justify-center min-h-[280px]">
-            {chartData.length > 0 ? (
+            {chartHasData ? (
               <div className="relative w-full h-[260px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={chartData}
+                      data={chartData.filter((d) => d.count > 0)}
                       dataKey="count"
                       nameKey="name"
                       cx="50%"
@@ -312,13 +324,13 @@ export default function AdminDashboard() {
                       outerRadius={95}
                       paddingAngle={4}
                     >
-                      {chartData.map((entry, index) => (
+                      {chartData.filter((d) => d.count > 0).map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
                     <Tooltip
                       formatter={(value: any, name: any) => [
-                        `${value} orders (${((Number(value) / (orderStats.totalOrders || 1)) * 100).toFixed(1)}%)`,
+                        `${value} orders (${((Number(value) / (totalOrders || 1)) * 100).toFixed(1)}%)`,
                         name,
                       ]}
                       contentStyle={{
@@ -334,10 +346,10 @@ export default function AdminDashboard() {
                 </ResponsiveContainer>
                 {/* Center Total */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <span className="text-2xl font-extrabold text-slate-800">
-                    {orderStats.totalOrders}
+                  <span className="text-2xl font-normal text-slate-800">
+                    {totalOrders}
                   </span>
-                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                  <span className="text-[11px] font-normal text-slate-400 uppercase tracking-wider">
                     Total
                   </span>
                 </div>
@@ -345,90 +357,70 @@ export default function AdminDashboard() {
             ) : (
               <div className="text-center py-10">
                 <ShoppingBag size={36} className="mx-auto text-slate-300 mb-2" />
-                <p className="text-sm font-semibold text-slate-600">No order data yet</p>
-                <p className="text-xs text-slate-400 mt-1">Orders will appear here once placed</p>
+                <p className="text-sm font-normal text-slate-600">No order data yet</p>
+                <p className="text-xs font-normal text-slate-400 mt-1">Orders will appear here once placed</p>
               </div>
             )}
           </div>
 
-          {/* Status Breakdown Cards */}
-          <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Completed / Delivered */}
+          {/* 3 Status Cards (Delivered, Pending, Cancelled) */}
+          <div className="lg:col-span-6 flex flex-col gap-4">
+            {/* 1. Order Delivered */}
             <div className="bg-emerald-50/60 border border-emerald-100 rounded-xl p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center">
                   <CheckCircle2 size={20} />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-emerald-800">Delivered / Completed</p>
-                  <p className="text-xl font-bold text-emerald-950 mt-0.5">
-                    {orderStats.completed}
+                  <p className="text-xs font-normal text-emerald-800">Order Delivered</p>
+                  <p className="text-xl font-normal text-emerald-950 mt-0.5">
+                    {totalDeliveredOrders}
                   </p>
                 </div>
               </div>
-              <span className="text-xs font-bold text-emerald-700 bg-white px-2 py-1 rounded-md border border-emerald-200">
-                {orderStats.totalOrders > 0
-                  ? `${Math.round((orderStats.completed / orderStats.totalOrders) * 100)}%`
+              <span className="text-xs font-normal text-emerald-700 bg-white px-2.5 py-1 rounded-md border border-emerald-200">
+                {totalOrders > 0
+                  ? `${Math.round((totalDeliveredOrders / totalOrders) * 100)}%`
                   : "0%"}
               </span>
             </div>
 
-            {/* Pending / Processing */}
+            {/* 2. Order Pending */}
             <div className="bg-amber-50/60 border border-amber-100 rounded-xl p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center">
                   <Clock size={20} />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-amber-800">Pending / Processing</p>
-                  <p className="text-xl font-bold text-amber-950 mt-0.5">
-                    {orderStats.pending}
+                  <p className="text-xs font-normal text-amber-800">Order Pending</p>
+                  <p className="text-xl font-normal text-amber-950 mt-0.5">
+                    {totalPendingOrders}
                   </p>
                 </div>
               </div>
-              <span className="text-xs font-bold text-amber-700 bg-white px-2 py-1 rounded-md border border-amber-200">
-                {orderStats.totalOrders > 0
-                  ? `${Math.round((orderStats.pending / orderStats.totalOrders) * 100)}%`
+              <span className="text-xs font-normal text-amber-700 bg-white px-2.5 py-1 rounded-md border border-amber-200">
+                {totalOrders > 0
+                  ? `${Math.round((totalPendingOrders / totalOrders) * 100)}%`
                   : "0%"}
               </span>
             </div>
 
-            {/* Shipped / In Transit */}
-            <div className="bg-sky-50/60 border border-sky-100 rounded-xl p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center">
-                  <Truck size={20} />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-sky-800">Shipped / In Transit</p>
-                  <p className="text-xl font-bold text-sky-950 mt-0.5">
-                    {orderStats.shipped}
-                  </p>
-                </div>
-              </div>
-              <span className="text-xs font-bold text-sky-700 bg-white px-2 py-1 rounded-md border border-sky-200">
-                {orderStats.totalOrders > 0
-                  ? `${Math.round((orderStats.shipped / orderStats.totalOrders) * 100)}%`
-                  : "0%"}
-              </span>
-            </div>
-
-            {/* Cancelled */}
+            {/* 3. Order Cancelled */}
             <div className="bg-rose-50/60 border border-rose-100 rounded-xl p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center">
                   <XCircle size={20} />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-rose-800">Cancelled</p>
-                  <p className="text-xl font-bold text-rose-950 mt-0.5">
-                    {orderStats.cancelled}
+                  <p className="text-xs font-normal text-rose-800">Order Cancelled</p>
+                  <p className="text-xl font-normal text-rose-950 mt-0.5">
+                    {totalCancelledOrders}
                   </p>
                 </div>
               </div>
-              <span className="text-xs font-bold text-rose-700 bg-white px-2 py-1 rounded-md border border-rose-200">
-                {orderStats.totalOrders > 0
-                  ? `${Math.round((orderStats.cancelled / orderStats.totalOrders) * 100)}%`
+              <span className="text-xs font-normal text-rose-700 bg-white px-2.5 py-1 rounded-md border border-rose-200">
+                {totalOrders > 0
+                  ? `${Math.round((totalCancelledOrders / totalOrders) * 100)}%`
                   : "0%"}
               </span>
             </div>
@@ -440,14 +432,14 @@ export default function AdminDashboard() {
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold text-slate-900">5 Latest Orders</h2>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <h2 className="text-lg font-normal text-slate-900">5 Latest Orders</h2>
+            <p className="text-xs font-normal text-slate-500 mt-0.5">
               Most recent customer orders placed on the store
             </p>
           </div>
           <Link
             href="/orders"
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline"
+            className="inline-flex items-center gap-1.5 text-xs font-normal text-blue-600 hover:text-blue-700 hover:underline"
           >
             <span>View All Orders</span>
             <ArrowRight size={14} />
@@ -456,14 +448,14 @@ export default function AdminDashboard() {
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 text-slate-500 uppercase text-[11px] font-bold tracking-wider border-b border-slate-100">
+            <thead className="bg-slate-50 text-slate-500 uppercase text-[11px] font-normal tracking-wider border-b border-slate-100">
               <tr>
-                <th className="px-6 py-3.5">Order Number</th>
-                <th className="px-6 py-3.5">Customer</th>
-                <th className="px-6 py-3.5">Amount</th>
-                <th className="px-6 py-3.5">Status</th>
-                <th className="px-6 py-3.5">Placed On</th>
-                <th className="px-6 py-3.5 text-right">Action</th>
+                <th className="px-6 py-3.5 font-normal">Order Number</th>
+                <th className="px-6 py-3.5 font-normal">Customer</th>
+                <th className="px-6 py-3.5 font-normal">Amount</th>
+                <th className="px-6 py-3.5 font-normal">Status</th>
+                <th className="px-6 py-3.5 font-normal">Placed On</th>
+                <th className="px-6 py-3.5 text-right font-normal">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -487,32 +479,32 @@ export default function AdminDashboard() {
 
                   return (
                     <tr key={order._id} className="hover:bg-slate-50/80 transition">
-                      <td className="px-6 py-4 font-bold text-slate-900">
+                      <td className="px-6 py-4 font-normal text-slate-900">
                         {order.order_number || `#${order._id.slice(-6)}`}
                       </td>
                       <td className="px-6 py-4">
-                        <div className="font-semibold text-slate-800">{customerName}</div>
+                        <div className="font-normal text-slate-800">{customerName}</div>
                         {customerContact && (
                           <div className="text-xs text-slate-400 mt-0.5">{customerContact}</div>
                         )}
                       </td>
-                      <td className="px-6 py-4 font-bold text-slate-900">
+                      <td className="px-6 py-4 font-normal text-slate-900">
                         {formatCurrency(order.total_amount)}
                       </td>
                       <td className="px-6 py-4">
                         <span
-                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border capitalize ${badgeStyle.bg} ${badgeStyle.text} ${badgeStyle.border}`}
+                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-normal border capitalize ${badgeStyle.bg} ${badgeStyle.text} ${badgeStyle.border}`}
                         >
                           {order.status ? order.status.replace(/_/g, " ") : "created"}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-xs text-slate-500">
+                      <td className="px-6 py-4 text-xs font-normal text-slate-500">
                         {formatDateSafe(order.createdAt)}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <Link
                           href={`/orders/view/${order._id}`}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold rounded-lg transition"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-normal rounded-lg transition"
                         >
                           <Eye size={13} />
                           <span>View</span>
@@ -525,8 +517,8 @@ export default function AdminDashboard() {
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
                     <ShoppingBag size={32} className="mx-auto mb-2 text-slate-300" />
-                    <p className="text-sm font-semibold text-slate-600">No orders found</p>
-                    <p className="text-xs text-slate-400 mt-1">
+                    <p className="text-sm font-normal text-slate-600">No orders found</p>
+                    <p className="text-xs font-normal text-slate-400 mt-1">
                       New orders will be displayed here automatically
                     </p>
                   </td>
