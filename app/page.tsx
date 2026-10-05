@@ -121,15 +121,15 @@ export default function LoginPage() {
   return (
     <div className="h-screen w-screen overflow-hidden bg-white flex items-center justify-center p-4">
       <div className="w-full max-w-[380px] bg-white border border-slate-200/90 p-6 rounded-2xl shadow-sm">
-        {/* LOGO & TITLE: Flex layout, compact */}
+        {/* LOGO & TITLE: Flex layout, compact, no background color behind logo */}
         <div className="flex items-center gap-3 mb-4 pb-3 border-b border-slate-100">
-          <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center overflow-hidden shrink-0 shadow-xs">
+          <div className="w-10 h-10 flex items-center justify-center shrink-0">
             <Image
               src="/punroyal-logo.png"
               alt="Punroyal Logo"
               width={40}
               height={40}
-              className="w-full h-full object-cover rounded-xl"
+              className="w-full h-full object-contain"
               priority
               unoptimized
             />

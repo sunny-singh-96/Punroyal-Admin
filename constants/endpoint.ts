@@ -50,7 +50,9 @@ export const ENDPOINTS = {
     OCCASION: {
         LIST: '/occations/admin/list',
         ADD: '/occations/admin/occation/add',
-        DELETE: '/occations/admin/occation/delete'
+        UPDATE: '/occations/admin/occation/update',
+        DELETE: '/occations/admin/occation/delete',
+        ASSIGNED_CATEGORIES: '/occations/admin/assigned-categories'
     },
     ORDERS: {
         LIST: '/order/admin/true',
