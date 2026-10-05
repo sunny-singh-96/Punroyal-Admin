@@ -12,9 +12,6 @@ import {
   AlertCircle,
   Sparkles,
   User,
-  Phone,
-  ArrowRight,
-  CheckCircle2,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import Image from "next/image";
@@ -35,13 +32,10 @@ export default function LoginPage() {
   const searchParams = useSearchParams();
   const { user, setAuth } = useAuthStore();
 
-  // Role Selection (Admin vs Influencer)
   const [selectedRole, setSelectedRole] = useState<UserRole>("admin");
-
-  // Form Fields
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [identifier, setIdentifier] = useState(""); // For influencer login (email or username)
+  const [identifier, setIdentifier] = useState("");
 
   const [errors, setErrors] = useState<LoginErrors>({});
   const [loading, setLoading] = useState(false);
@@ -49,7 +43,6 @@ export default function LoginPage() {
 
   const redirectTo = searchParams.get("redirect");
 
-  // Automatic redirect if already authenticated
   useEffect(() => {
     if (user && user?._id) {
       if (user.role === "influencer") {
@@ -60,13 +53,11 @@ export default function LoginPage() {
     }
   }, [user, redirectTo, router]);
 
-  // Clear errors when switching roles or modes
   const handleRoleChange = (role: UserRole) => {
     setSelectedRole(role);
     setErrors({});
   };
 
-  // 1. Handle Admin Login
   const handleAdminLogin = async () => {
     if (!adminLogin(email, password, setErrors)) return;
     setLoading(true);
@@ -97,7 +88,6 @@ export default function LoginPage() {
     }
   };
 
-  // 2. Handle Influencer Login
   const handleInfluencerLogin = async () => {
     if (!influencerLoginValidation(identifier, password, setErrors)) return;
     setLoading(true);
@@ -129,85 +119,77 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.25),rgba(255,255,255,0))] flex items-center justify-center p-4 selection:bg-indigo-500 selection:text-white">
-      <div className="w-full max-w-md bg-white/95 backdrop-blur-xl p-8 rounded-3xl shadow-2xl border border-slate-100/80 transition-all duration-300">
-        {/* LOGO & TITLE */}
-        <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-slate-900 border-2 border-amber-300/70 shadow-xl shadow-amber-500/10 mb-3 overflow-hidden p-0.5">
+    <div className="h-screen w-screen overflow-hidden bg-white flex items-center justify-center p-4">
+      <div className="w-full max-w-[380px] bg-white border border-slate-200/90 p-6 rounded-2xl shadow-sm">
+        {/* LOGO & TITLE: Flex layout, compact */}
+        <div className="flex items-center gap-3 mb-4 pb-3 border-b border-slate-100">
+          <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center overflow-hidden shrink-0 shadow-xs">
             <Image
               src="/punroyal-logo.png"
               alt="Punroyal Logo"
-              width={76}
-              height={76}
-              className="w-full h-full object-cover rounded-full"
+              width={40}
+              height={40}
+              className="w-full h-full object-cover rounded-xl"
               priority
               unoptimized
             />
           </div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-            Punroyal Portal
-          </h1>
-          <p className="text-slate-500 text-sm mt-1">
-            Select your account type to proceed
-          </p>
-        </div>
-
-        {/* ROLE SELECTION RADIO TABS */}
-        <div className="mb-6">
-          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">
-            Login As
-          </label>
-          <div className="grid grid-cols-2 gap-3 p-1.5 bg-slate-100 rounded-2xl">
-            {/* Admin Radio Button */}
-            <button
-              type="button"
-              onClick={() => handleRoleChange("admin")}
-              className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm transition-all duration-200 ${
-                selectedRole === "admin"
-                  ? "bg-white text-indigo-700 shadow-md shadow-indigo-100 scale-[1.02]"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              <Shield size={18} className={selectedRole === "admin" ? "text-indigo-600" : "text-slate-400"} />
-              <span>Admin</span>
-              {selectedRole === "admin" && (
-                <CheckCircle2 size={15} className="text-indigo-600 ml-auto" />
-              )}
-            </button>
-
-            {/* Influencer Radio Button */}
-            <button
-              type="button"
-              onClick={() => handleRoleChange("influencer")}
-              className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm transition-all duration-200 ${
-                selectedRole === "influencer"
-                  ? "bg-white text-purple-700 shadow-md shadow-purple-100 scale-[1.02]"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              <Sparkles size={18} className={selectedRole === "influencer" ? "text-purple-600" : "text-slate-400"} />
-              <span>Influencer</span>
-              {selectedRole === "influencer" && (
-                <CheckCircle2 size={15} className="text-purple-600 ml-auto" />
-              )}
-            </button>
+          <div>
+            <h1 className="text-lg font-normal text-slate-900 tracking-tight leading-none">
+              Punroyal Portal
+            </h1>
+            <p className="text-xs font-normal text-slate-400 mt-1">
+              Sign in to manage your account
+            </p>
           </div>
         </div>
 
-        {/* ======================================================= */}
+        {/* ROLE SELECTION TABS */}
+        <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 rounded-xl mb-4">
+          <button
+            type="button"
+            onClick={() => handleRoleChange("admin")}
+            className={`flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-normal transition ${
+              selectedRole === "admin"
+                ? "bg-white text-slate-900 shadow-xs"
+                : "text-slate-500 hover:text-slate-800"
+            }`}
+          >
+            <Shield size={14} className={selectedRole === "admin" ? "text-blue-600" : "text-slate-400"} />
+            <span>Admin</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleRoleChange("influencer")}
+            className={`flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-normal transition ${
+              selectedRole === "influencer"
+                ? "bg-white text-slate-900 shadow-xs"
+                : "text-slate-500 hover:text-slate-800"
+            }`}
+          >
+            <Sparkles size={14} className={selectedRole === "influencer" ? "text-purple-600" : "text-slate-400"} />
+            <span>Influencer</span>
+          </button>
+        </div>
+
         {/* ADMIN FORM */}
-        {/* ======================================================= */}
         {selectedRole === "admin" && (
-          <form onSubmit={(e) => { e.preventDefault(); handleAdminLogin(); }} className="space-y-4">
-            {/* EMAIL */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleAdminLogin();
+            }}
+            className="space-y-3"
+          >
             <div>
-              <label className="text-sm font-semibold text-slate-700 block mb-1">
+              <label className="text-xs font-normal text-slate-600 block mb-1">
                 Admin Email
               </label>
               <div className="relative">
                 <Mail
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-                  size={18}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  size={15}
                 />
                 <input
                   type="email"
@@ -216,31 +198,30 @@ export default function LoginPage() {
                     setEmail(e.target.value);
                     setErrors((prev) => ({ ...prev, email: undefined }));
                   }}
-                  className={`w-full pl-11 pr-4 py-3 rounded-xl border-2 outline-none transition text-slate-800 text-sm font-medium ${
+                  className={`w-full pl-9 pr-3 py-2 rounded-lg border outline-none transition text-slate-800 text-xs font-normal ${
                     errors.email
-                      ? "border-red-500 bg-red-50/50"
-                      : "border-slate-200 focus:border-indigo-600 focus:ring-4 focus:ring-indigo-500/10"
+                      ? "border-red-400 bg-red-50/40"
+                      : "border-slate-200 focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10"
                   }`}
                   placeholder="admin@punroyal.com"
                   autoComplete="email"
                 />
               </div>
               {errors.email && (
-                <p className="text-red-500 text-xs mt-1.5 flex items-center gap-1">
-                  <AlertCircle size={13} /> {errors.email}
+                <p className="text-red-500 text-[11px] font-normal mt-1 flex items-center gap-1">
+                  <AlertCircle size={11} /> {errors.email}
                 </p>
               )}
             </div>
 
-            {/* PASSWORD */}
             <div>
-              <label className="text-sm font-semibold text-slate-700 block mb-1">
+              <label className="text-xs font-normal text-slate-600 block mb-1">
                 Password
               </label>
               <div className="relative">
                 <Lock
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-                  size={18}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  size={15}
                 />
                 <input
                   type={showPassword ? "text" : "password"}
@@ -249,10 +230,10 @@ export default function LoginPage() {
                     setPassword(e.target.value);
                     setErrors((prev) => ({ ...prev, password: undefined }));
                   }}
-                  className={`w-full pl-11 pr-12 py-3 rounded-xl border-2 outline-none transition text-slate-800 text-sm font-medium ${
+                  className={`w-full pl-9 pr-9 py-2 rounded-lg border outline-none transition text-slate-800 text-xs font-normal ${
                     errors.password
-                      ? "border-red-500 bg-red-50/50"
-                      : "border-slate-200 focus:border-indigo-600 focus:ring-4 focus:ring-indigo-500/10"
+                      ? "border-red-400 bg-red-50/40"
+                      : "border-slate-200 focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10"
                   }`}
                   placeholder="••••••••"
                   autoComplete="current-password"
@@ -260,52 +241,55 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
               {errors.password && (
-                <p className="text-red-500 text-xs mt-1.5 flex items-center gap-1">
-                  <AlertCircle size={13} /> {errors.password}
+                <p className="text-red-500 text-[11px] font-normal mt-1 flex items-center gap-1">
+                  <AlertCircle size={11} /> {errors.password}
                 </p>
               )}
             </div>
 
-            {/* SUBMIT BUTTON */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:from-indigo-700 hover:to-indigo-800 transition shadow-lg shadow-indigo-600/25 active:scale-[0.99] disabled:opacity-70 mt-2"
+              className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-normal text-xs flex items-center justify-center gap-1.5 transition shadow-xs disabled:opacity-60 mt-1"
             >
               {loading ? (
                 <>
-                  <Loader2 className="animate-spin" size={18} />
-                  Verifying Admin...
+                  <Loader2 className="animate-spin" size={14} />
+                  <span>Verifying...</span>
                 </>
               ) : (
                 <>
-                  <Shield size={18} />
-                  Sign In as Admin
+                  <Shield size={14} />
+                  <span>Sign In as Admin</span>
                 </>
               )}
             </button>
           </form>
         )}
 
-        {/* ======================================================= */}
-        {/* INFLUENCER FORM (LOGIN ONLY) */}
-        {/* ======================================================= */}
+        {/* INFLUENCER FORM */}
         {selectedRole === "influencer" && (
-          <form onSubmit={(e) => { e.preventDefault(); handleInfluencerLogin(); }} className="space-y-4">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleInfluencerLogin();
+            }}
+            className="space-y-3"
+          >
             <div>
-              <label className="text-sm font-semibold text-slate-700 block mb-1">
+              <label className="text-xs font-normal text-slate-600 block mb-1">
                 Username or Email
               </label>
               <div className="relative">
                 <User
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-                  size={18}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  size={15}
                 />
                 <input
                   type="text"
@@ -314,29 +298,29 @@ export default function LoginPage() {
                     setIdentifier(e.target.value);
                     setErrors((prev) => ({ ...prev, identifier: undefined }));
                   }}
-                  className={`w-full pl-11 pr-4 py-3 rounded-xl border-2 outline-none transition text-slate-800 text-sm font-medium ${
+                  className={`w-full pl-9 pr-3 py-2 rounded-lg border outline-none transition text-slate-800 text-xs font-normal ${
                     errors.identifier
-                      ? "border-red-500 bg-red-50/50"
-                      : "border-slate-200 focus:border-purple-600 focus:ring-4 focus:ring-purple-500/10"
+                      ? "border-red-400 bg-red-50/40"
+                      : "border-slate-200 focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10"
                   }`}
-                  placeholder="e.g., john_doe or influencer@example.com"
+                  placeholder="e.g. username or email"
                 />
               </div>
               {errors.identifier && (
-                <p className="text-red-500 text-xs mt-1.5 flex items-center gap-1">
-                  <AlertCircle size={13} /> {errors.identifier}
+                <p className="text-red-500 text-[11px] font-normal mt-1 flex items-center gap-1">
+                  <AlertCircle size={11} /> {errors.identifier}
                 </p>
               )}
             </div>
 
             <div>
-              <label className="text-sm font-semibold text-slate-700 block mb-1">
+              <label className="text-xs font-normal text-slate-600 block mb-1">
                 Password
               </label>
               <div className="relative">
                 <Lock
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-                  size={18}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  size={15}
                 />
                 <input
                   type={showPassword ? "text" : "password"}
@@ -345,10 +329,10 @@ export default function LoginPage() {
                     setPassword(e.target.value);
                     setErrors((prev) => ({ ...prev, password: undefined }));
                   }}
-                  className={`w-full pl-11 pr-12 py-3 rounded-xl border-2 outline-none transition text-slate-800 text-sm font-medium ${
+                  className={`w-full pl-9 pr-9 py-2 rounded-lg border outline-none transition text-slate-800 text-xs font-normal ${
                     errors.password
-                      ? "border-red-500 bg-red-50/50"
-                      : "border-slate-200 focus:border-purple-600 focus:ring-4 focus:ring-purple-500/10"
+                      ? "border-red-400 bg-red-50/40"
+                      : "border-slate-200 focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10"
                   }`}
                   placeholder="••••••••"
                   autoComplete="current-password"
@@ -356,14 +340,14 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
               {errors.password && (
-                <p className="text-red-500 text-xs mt-1.5 flex items-center gap-1">
-                  <AlertCircle size={13} /> {errors.password}
+                <p className="text-red-500 text-[11px] font-normal mt-1 flex items-center gap-1">
+                  <AlertCircle size={11} /> {errors.password}
                 </p>
               )}
             </div>
@@ -371,36 +355,30 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:from-purple-700 hover:to-indigo-700 transition shadow-lg shadow-purple-600/25 active:scale-[0.99] disabled:opacity-70 mt-2"
+              className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-normal text-xs flex items-center justify-center gap-1.5 transition shadow-xs disabled:opacity-60 mt-1"
             >
               {loading ? (
                 <>
-                  <Loader2 className="animate-spin" size={18} />
-                  Signing In...
+                  <Loader2 className="animate-spin" size={14} />
+                  <span>Signing In...</span>
                 </>
               ) : (
                 <>
-                  <Sparkles size={18} />
-                  Sign In as Influencer
+                  <Sparkles size={14} />
+                  <span>Sign In as Influencer</span>
                 </>
               )}
             </button>
-
-            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-xs text-blue-700">
-                <strong>Note:</strong> Influencer accounts are created by admins. Contact your administrator to create your account.
-              </p>
-            </div>
           </form>
         )}
 
         {/* FOOTER */}
-        <div className="mt-6 pt-4 border-t border-slate-100 flex justify-center items-center gap-4 text-xs text-slate-400 font-medium">
+        <div className="mt-4 pt-3 border-t border-slate-100 flex justify-center items-center gap-3 text-[11px] font-normal text-slate-400">
           <span className="flex items-center gap-1">
-            <Shield size={13} className="text-emerald-500" /> 256-Bit Encrypted
+            <Shield size={12} className="text-emerald-500" /> Secure Login
           </span>
           <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-          <span>Punroyal v1.0</span>
+          <span>Punroyal Admin</span>
         </div>
       </div>
     </div>
