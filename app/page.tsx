@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Mail,
@@ -41,6 +41,11 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  const emailInputRef = useRef<HTMLInputElement>(null);
+  const passwordInputRef = useRef<HTMLInputElement>(null);
+  const identifierInputRef = useRef<HTMLInputElement>(null);
+  const influencerPasswordInputRef = useRef<HTMLInputElement>(null);
+
   const redirectTo = searchParams.get("redirect");
 
   useEffect(() => {
@@ -53,13 +58,25 @@ export default function LoginPage() {
     }
   }, [user, redirectTo, router]);
 
+  useEffect(() => {
+    if (selectedRole === "admin") {
+      emailInputRef.current?.focus();
+    } else {
+      identifierInputRef.current?.focus();
+    }
+  }, [selectedRole]);
+
   const handleRoleChange = (role: UserRole) => {
     setSelectedRole(role);
     setErrors({});
   };
 
   const handleAdminLogin = async () => {
-    if (!adminLogin(email, password, setErrors)) return;
+    if (!adminLogin(email, password, setErrors)) {
+      if (!email.trim()) emailInputRef.current?.focus();
+      else if (!password) passwordInputRef.current?.focus();
+      return;
+    }
     setLoading(true);
     const toastId = toast.loading("Verifying Admin credentials...");
     try {
@@ -89,7 +106,11 @@ export default function LoginPage() {
   };
 
   const handleInfluencerLogin = async () => {
-    if (!influencerLoginValidation(identifier, password, setErrors)) return;
+    if (!influencerLoginValidation(identifier, password, setErrors)) {
+      if (!identifier.trim()) identifierInputRef.current?.focus();
+      else if (!password) influencerPasswordInputRef.current?.focus();
+      return;
+    }
     setLoading(true);
     const toastId = toast.loading("Logging in as Influencer...");
     try {
@@ -192,6 +213,7 @@ export default function LoginPage() {
                   size={15}
                 />
                 <input
+                  ref={emailInputRef}
                   type="email"
                   value={email}
                   onChange={(e) => {
@@ -224,6 +246,7 @@ export default function LoginPage() {
                   size={15}
                 />
                 <input
+                  ref={passwordInputRef}
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => {
@@ -292,6 +315,7 @@ export default function LoginPage() {
                   size={15}
                 />
                 <input
+                  ref={identifierInputRef}
                   type="text"
                   value={identifier}
                   onChange={(e) => {
@@ -323,6 +347,7 @@ export default function LoginPage() {
                   size={15}
                 />
                 <input
+                  ref={influencerPasswordInputRef}
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => {
