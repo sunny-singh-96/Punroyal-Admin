@@ -119,6 +119,34 @@ type ApiMedia = {
   color_name?: string;
 };
 
+/**
+ * Calculates volumetric weight and applied (billable) weight based on actual weight and dimensions.
+ * Formula:
+ * Volumetric Weight (kg) = (Length * Breadth * Height) / 5000
+ * Applied Weight (kg) = Math.max(Actual Weight, Volumetric Weight)
+ * Note: Used only for frontend display to show total applied weight to user; NOT saved to database.
+ */
+export const calculateAppliedWeight = (
+  weight: number | string = 0,
+  length: number | string = 0,
+  breadth: number | string = 0,
+  height: number | string = 0
+) => {
+  const actualWeight = parseFloat(String(weight)) || 0;
+  const l = parseFloat(String(length)) || 0;
+  const b = parseFloat(String(breadth)) || 0;
+  const h = parseFloat(String(height)) || 0;
+
+  const volumetricWeight = Number(((l * b * h) / 5000).toFixed(3));
+  const appliedWeight = Number(Math.max(actualWeight, volumetricWeight).toFixed(3));
+
+  return {
+    actualWeight,
+    volumetricWeight,
+    appliedWeight,
+  };
+};
+
 // ---------- Component ----------
 export default function CreateProductPage() {
   const router = useRouter();
@@ -192,6 +220,15 @@ export default function CreateProductPage() {
   }
 
   const [errors, setErrors] = useState<ProductError>({});
+
+  const { volumetricWeight, appliedWeight } = useMemo(() => {
+    return calculateAppliedWeight(
+      form.weight,
+      form.length,
+      form.breadth,
+      form.height
+    );
+  }, [form.weight, form.length, form.breadth, form.height]);
 
   const fetchProduct = useCallback(async (id: string) => {
     try {
@@ -825,9 +862,20 @@ export default function CreateProductPage() {
 
         {/* Dimensions */}
         <div className="bg-white p-6 md:p-10 rounded-3xl shadow-sm border border-slate-200 space-y-6">
-          <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em]">
-            Dimensions
-          </h3>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em]">
+                Dimensions &amp; Weight
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Enter weight and dimensions (used to calculate shipment applied weight)
+              </p>
+            </div>
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-50 border border-indigo-100 text-xs text-indigo-700">
+              <span className="font-medium text-slate-500">Total Applied Weight:</span>
+              <span className="font-extrabold text-indigo-900">{appliedWeight} kg</span>
+            </div>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="space-y-1">
               <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider ml-1">
@@ -896,6 +944,43 @@ export default function CreateProductPage() {
               {hasError("length") && (
                 <p className="text-red-500 text-xs">{handleError("length")}</p>
               )}
+            </div>
+          </div>
+
+          {/* Applied Weight Summary Card (Frontend display only - Not saved to DB) */}
+          <div className="mt-4 p-4 rounded-2xl bg-gradient-to-r from-slate-50 to-indigo-50/50 border border-slate-200/80 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+              <div>
+                <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Actual Weight
+                </span>
+                <span className="text-sm font-extrabold text-slate-700">
+                  {Number(form.weight || 0).toFixed(2)} kg
+                </span>
+              </div>
+              <div className="hidden sm:block h-7 w-px bg-slate-200" />
+              <div>
+                <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Volumetric Weight ((L×B×H)/5000)
+                </span>
+                <span className="text-sm font-extrabold text-slate-700">
+                  {volumetricWeight} kg
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 bg-indigo-600 px-4 py-2.5 rounded-xl text-white shadow-sm">
+              <div>
+                <span className="block text-[10px] font-bold uppercase tracking-wider text-indigo-100">
+                  Total Applied Weight
+                </span>
+                <span className="text-base sm:text-lg font-black leading-tight">
+                  {appliedWeight} kg
+                </span>
+              </div>
+              <span className="text-[10px] text-indigo-200 ml-2 hidden md:inline">
+                (Max of Actual &amp; Volumetric)
+              </span>
             </div>
           </div>
         </div>
