@@ -39,7 +39,7 @@ export default function NewslettersPage() {
 
   const [lazyParams, setLazyParams] = useState<NewsletterLazyParams>({
     page: 1,
-    limit: 20,
+    limit: 10,
     search: "",
     status: "all",
   });

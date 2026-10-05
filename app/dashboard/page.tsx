@@ -1,90 +1,109 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import {
-  AreaChart,
-  Area,
   PieChart,
   Pie,
   Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Legend,
 } from "recharts";
 import {
-  TrendingUp,
-  TrendingDown,
-  Users,
-  ShoppingCart,
-  DollarSign,
+  Package,
+  Layers,
+  MessageSquare,
+  Mail,
   Eye,
+  RefreshCw,
+  ShoppingBag,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  Truck,
+  ArrowRight,
 } from "lucide-react";
+import { format } from "date-fns";
 import toast from "react-hot-toast";
 import { getErrorMessage } from "@/lib/helpers/handlers";
 import { dashboardAPI } from "@/lib/integration/dashboard";
-import { orderAPI } from "@/lib/integration/orders";
-interface DashboardData {
-  totalSales: number;
-  totalOrders: number;
-  totalReturns: number;
-  totalVisitors?: number;
-  salesTrend?: number;
-  ordersTrend?: number;
-  visitorsTrend?: number;
-  revenueAnalytics: Array<{
-    _id: string;
-    revenue: number;
-    orderCount: number;
-  }>;
-  monthlyTarget: {
-    percentage: number;
-    current: number;
-    target: number;
+import PageHeader from "@/components/admin/head/head";
+
+interface LatestOrder {
+  _id: string;
+  order_number: string;
+  user_id?: {
+    name?: string;
+    email?: string;
+    phone?: string;
   };
-  topCategories: Array<{
-    _id: string;
-    categoryName: string;
-    totalSales: number;
-    orderCount: number;
-  }>;
+  shipping_address?: {
+    name?: string;
+    phone?: string;
+    city?: string;
+    state?: string;
+  };
+  payment_method?: string;
+  payment_status?: string;
+  total_amount: number;
+  status: string;
+  createdAt: string;
 }
+
+interface OrderChartItem {
+  name: string;
+  count: number;
+  color: string;
+}
+
+interface OrderStats {
+  totalOrders: number;
+  completed: number;
+  cancelled: number;
+  pending: number;
+  shipped: number;
+  returned?: number;
+}
+
+interface DashboardData {
+  totalProducts: number;
+  totalCategories: number;
+  totalEnquiries: number;
+  totalNewsletters: number;
+  orderStats: OrderStats;
+  orderChart: OrderChartItem[];
+  latestOrders: LatestOrder[];
+}
+
+const STATUS_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  delivered: { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" },
+  completed: { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" },
+  confirmed: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" },
+  processing: { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200" },
+  pending: { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200" },
+  created: { bg: "bg-slate-100", text: "text-slate-700", border: "border-slate-200" },
+  shipped: { bg: "bg-sky-50", text: "text-sky-700", border: "border-sky-200" },
+  in_transit: { bg: "bg-sky-50", text: "text-sky-700", border: "border-sky-200" },
+  out_for_delivery: { bg: "bg-indigo-50", text: "text-indigo-700", border: "border-indigo-200" },
+  cancelled: { bg: "bg-rose-50", text: "text-rose-700", border: "border-rose-200" },
+  payment_failed: { bg: "bg-rose-50", text: "text-rose-700", border: "border-rose-200" },
+  returned: { bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-200" },
+};
 
 export default function AdminDashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [orderStats, setOrderStats] = useState({ totalOrders: 0, pending: 0, completed: 0, cancelled: 0, revenue: 0 });
-
-  // Smart number formatter: show raw number if < 1000, otherwise show K
-  const formatNum = (num: number, decimals = 0) => {
-    if (num >= 1000) return `${(num / 1000).toFixed(decimals)}K`;
-    return String(num);
-  };
-
-  const formatCurrency = (num: number) => {
-    if (num >= 100000) return `₹${(num / 100000).toFixed(1)}L`;
-    if (num >= 1000) return `₹${(num / 1000).toFixed(0)}K`;
-    return `₹${num}`;
-  };
 
   const fetchDashboardData = useCallback(async () => {
     setLoading(true);
     try {
-      const [dashResponse, orderResponse] = await Promise.all([
-        dashboardAPI.getAll(),
-        orderAPI.getOrderStatus(),
-      ]);
-
-      if (dashResponse?.code === "OK") {
-        setData(dashResponse?.data ?? null);
-      }
-
-      if (orderResponse?.code === "OK") {
-        setOrderStats(orderResponse?.data || { totalOrders: 0, pending: 0, completed: 0, cancelled: 0, revenue: 0 });
+      const response = await dashboardAPI.getAll();
+      if (response?.code === "OK" && response.data) {
+        setData(response.data);
       }
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      toast.error(getErrorMessage(error) || "Failed to load dashboard data");
     } finally {
       setLoading(false);
     }
@@ -94,321 +113,428 @@ export default function AdminDashboard() {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
-  if (loading)
+  const formatDateSafe = (dateStr?: string) => {
+    if (!dateStr) return "—";
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return "—";
+      return format(d, "dd MMM yyyy, hh:mm a");
+    } catch {
+      return "—";
+    }
+  };
+
+  const formatCurrency = (num?: number) => {
+    const val = Number(num) || 0;
+    return `₹${val.toLocaleString("en-IN")}`;
+  };
+
+  if (loading && !data) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-8">
+        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        <p className="mt-4 text-sm font-semibold text-slate-600">Loading dashboard...</p>
       </div>
     );
+  }
 
-  if (!data)
-    return (
-      <div className="min-h-[70vh] bg-slate-50 flex flex-col items-center justify-center p-8 text-center">
-        <ShoppingCart className="w-12 h-12 text-slate-300 mb-3" />
-        <h3 className="text-lg font-bold text-slate-700">Unable to load dashboard data</h3>
-        <p className="text-slate-500 text-sm mt-1 mb-4">Please check connection or click retry</p>
-        <button
-          onClick={() => fetchDashboardData()}
-          className="px-5 py-2.5 bg-blue-600 text-white font-bold rounded-xl shadow-xs hover:bg-blue-700 transition"
-        >
-          Retry
-        </button>
-      </div>
-    );
+  const totalProducts = data?.totalProducts ?? 0;
+  const totalCategories = data?.totalCategories ?? 0;
+  const totalEnquiries = data?.totalEnquiries ?? 0;
+  const totalNewsletters = data?.totalNewsletters ?? 0;
 
-  const COLORS = ["#3B82F6", "#60A5FA", "#93C5FD", "#DBEAFE"];
+  const orderStats = data?.orderStats || {
+    totalOrders: 0,
+    completed: 0,
+    cancelled: 0,
+    pending: 0,
+    shipped: 0,
+    returned: 0,
+  };
+
+  const chartData = (data?.orderChart || [
+    { name: "Completed", count: orderStats.completed, color: "#10B981" },
+    { name: "Pending", count: orderStats.pending, color: "#F59E0B" },
+    { name: "Shipped", count: orderStats.shipped, color: "#3B82F6" },
+    { name: "Cancelled", count: orderStats.cancelled, color: "#EF4444" },
+  ]).filter((item) => item.count > 0);
+
+  const latestOrders = data?.latestOrders || [];
 
   return (
-    <div className="min-h-screen bg-slate-50 p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-slate-900">Dashboard</h1>
-          <p className="text-slate-600 mt-2">Welcome back, Super Admin</p>
+    <div className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8 space-y-8">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            Dashboard
+          </h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Overview of store catalog, customer inquiries, newsletters, and order status
+          </p>
         </div>
+        <button
+          onClick={fetchDashboardData}
+          disabled={loading}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-sm font-semibold rounded-xl transition shadow-xs disabled:opacity-50"
+        >
+          <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
+          <span>Refresh</span>
+        </button>
+      </div>
 
-        {/* Top Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          {/* Total Sales */}
-          <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-slate-500 text-sm font-medium">
-                  Total Sales
-                </p>
-                <p className="text-3xl font-bold text-slate-900 mt-2">
-                  {formatCurrency(data?.totalSales || 0)}
-                </p>
-                <div className={`flex items-center mt-2 ${(data?.salesTrend ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {(data?.salesTrend ?? 0) >= 0 ? (
-                    <TrendingUp className="w-4 h-4 mr-1" />
-                  ) : (
-                    <TrendingDown className="w-4 h-4 mr-1" />
-                  )}
-                  <span className="text-sm font-medium">
-                    {(data?.salesTrend ?? 0) >= 0 ? '+' : ''}{(data?.salesTrend ?? 0).toFixed(2)}% vs last week
-                  </span>
-                </div>
-              </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <DollarSign className="w-6 h-6 text-blue-600" />
-              </div>
+      {/* 4 Core Metric Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {/* Total Products */}
+        <Link
+          href="/products"
+          className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm hover:shadow-md transition group"
+        >
+          <div className="flex items-center justify-between">
+            <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Package size={24} />
             </div>
+            <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">
+              Catalog
+            </span>
           </div>
+          <div className="mt-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Total Products
+            </p>
+            <p className="text-3xl font-extrabold text-slate-900 mt-1">
+              {totalProducts.toLocaleString()}
+            </p>
+          </div>
+        </Link>
 
-          {/* Total Orders */}
-          <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-slate-500 text-sm font-medium">
-                  Total Orders
-                </p>
-                <p className="text-3xl font-bold text-slate-900 mt-2">
-                  {formatNum(orderStats.totalOrders || data?.totalOrders || 0)}
-                </p>
-                <div className={`flex items-center mt-2 ${(data?.ordersTrend ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {(data?.ordersTrend ?? 0) >= 0 ? (
-                    <TrendingUp className="w-4 h-4 mr-1" />
-                  ) : (
-                    <TrendingDown className="w-4 h-4 mr-1" />
-                  )}
-                  <span className="text-sm font-medium">
-                    {(data?.ordersTrend ?? 0) >= 0 ? '+' : ''}{(data?.ordersTrend ?? 0).toFixed(2)}% vs last week
-                  </span>
-                </div>
-              </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <ShoppingCart className="w-6 h-6 text-blue-600" />
-              </div>
+        {/* Total Categories */}
+        <Link
+          href="/categories"
+          className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm hover:shadow-md transition group"
+        >
+          <div className="flex items-center justify-between">
+            <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Layers size={24} />
             </div>
+            <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full">
+              Hierarchy
+            </span>
           </div>
+          <div className="mt-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Total Categories
+            </p>
+            <p className="text-3xl font-extrabold text-slate-900 mt-1">
+              {totalCategories.toLocaleString()}
+            </p>
+          </div>
+        </Link>
 
-          {/* Pending Orders */}
-          <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-slate-500 text-sm font-medium">
-                  Pending Orders
-                </p>
-                <p className="text-3xl font-bold text-slate-900 mt-2">
-                  {formatNum(orderStats.pending || 0)}
-                </p>
-                <div className="flex items-center mt-2 text-amber-600">
-                  <span className="text-sm font-medium">Awaiting action</span>
-                </div>
-              </div>
-              <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
-                <Eye className="w-6 h-6 text-amber-600" />
-              </div>
+        {/* Total Inquiries */}
+        <Link
+          href="/enquiries"
+          className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm hover:shadow-md transition group"
+        >
+          <div className="flex items-center justify-between">
+            <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <MessageSquare size={24} />
             </div>
+            <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">
+              Support
+            </span>
           </div>
+          <div className="mt-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Total Inquiries
+            </p>
+            <p className="text-3xl font-extrabold text-slate-900 mt-1">
+              {totalEnquiries.toLocaleString()}
+            </p>
+          </div>
+        </Link>
 
-          {/* Cancelled Orders */}
-          <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-slate-500 text-sm font-medium">
-                  Cancelled Orders
-                </p>
-                <p className="text-3xl font-bold text-slate-900 mt-2">
-                  {formatNum(orderStats.cancelled || data?.totalReturns || 0)}
-                </p>
-                <div className="flex items-center mt-2 text-red-500">
-                  <span className="text-sm font-medium">
-                    {orderStats.completed ? `${orderStats.completed} completed` : "Status: Active"}
-                  </span>
-                </div>
-              </div>
-              <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                <Users className="w-6 h-6 text-red-500" />
-              </div>
+        {/* Total Newsletters */}
+        <Link
+          href="/newsletters"
+          className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm hover:shadow-md transition group"
+        >
+          <div className="flex items-center justify-between">
+            <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Mail size={24} />
             </div>
+            <span className="text-xs font-semibold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full">
+              Subscribers
+            </span>
           </div>
-        </div>
-
-        {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          {/* Revenue Analytics - Full Width */}
-          <div className="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-lg font-bold text-slate-900">
-                  Revenue Analytics
-                </h2>
-                <p className="text-slate-500 text-sm">Last 7 days</p>
-              </div>
-              <button className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg text-sm font-medium hover:bg-blue-100 transition">
-                Last 8 Days
-              </button>
-            </div>
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={data.revenueAnalytics || []}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis
-                  dataKey="_id"
-                  stroke="#94a3b8"
-                  style={{ fontSize: "12px" }}
-                />
-                <YAxis stroke="#94a3b8" style={{ fontSize: "12px" }} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#fff",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "8px",
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="revenue"
-                  stroke="#3B82F6"
-                  fill="#DBEAFE"
-                  strokeWidth={2}
-                  dot={{ fill: "#3B82F6", r: 4 }}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+          <div className="mt-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Total Newsletters
+            </p>
+            <p className="text-3xl font-extrabold text-slate-900 mt-1">
+              {totalNewsletters.toLocaleString()}
+            </p>
           </div>
+        </Link>
+      </div>
 
-          {/* Monthly Target */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-lg font-bold text-slate-900 mb-6">
-              Monthly Target
+      {/* Orders Status Chart & Breakdown */}
+      <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-6 border-b border-slate-100 gap-2">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <ShoppingBag size={20} className="text-blue-600" />
+              <span>Order Status Distribution</span>
             </h2>
-            <div className="flex flex-col items-center">
-              <div className="relative w-40 h-40 mb-6">
-                <svg
-                  className="w-full h-full transform -rotate-90"
-                  viewBox="0 0 100 100"
-                >
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="45"
-                    fill="none"
-                    stroke="#e2e8f0"
-                    strokeWidth="8"
-                  />
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="45"
-                    fill="none"
-                    stroke="#3B82F6"
-                    strokeWidth="8"
-                    strokeDasharray={`${(data?.monthlyTarget?.percentage || 0) * 2.83} 283`}
-                    strokeLinecap="round"
-                  />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center">
-                    <p className="text-3xl font-bold text-blue-600">
-                      {(data?.monthlyTarget?.percentage || 0)}%
-                    </p>
-                    <p className="text-xs text-slate-500">Progress</p>
-                  </div>
-                </div>
-              </div>
-              <div className="w-full text-center">
-                <p className="text-sm text-slate-600">Great Progress!</p>
-                <p className="text-xs text-slate-500 mt-2">
-                  Our achievement increased by ₹500,000. Lets reach 100% next
-                  month
-                </p>
-              </div>
-              <div className="w-full mt-4 pt-4 border-t border-slate-200">
-                <div className="flex justify-between text-sm mb-2">
-                  <span className="text-slate-600">Target:</span>
-                  <span className="font-bold text-slate-900">
-                    {formatCurrency(data?.monthlyTarget?.target || 0)}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-600">Current:</span>
-                  <span className="font-bold text-slate-900">
-                    {formatCurrency(data?.monthlyTarget?.current || 0)}
-                  </span>
-                </div>
-              </div>
-            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Live breakdown of customer orders by completion, transit, pending, and cancellation status
+            </p>
+          </div>
+          <div className="text-xs font-semibold text-slate-700 bg-slate-100 px-3 py-1.5 rounded-lg w-fit">
+            Total Orders: <span className="font-bold text-slate-900">{orderStats.totalOrders}</span>
           </div>
         </div>
 
-        {/* Bottom Section */}
-        {data?.topCategories && data.topCategories.length > 0 ? (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Top Categories */}
-            <div className="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-lg font-bold text-slate-900 mb-6">
-                Top Categories
-              </h2>
-              <div className="space-y-4">
-                {data?.topCategories?.map((category, index) => (
-                  <div key={category._id} className="flex items-center">
-                    <div
-                      className="w-2 h-10 rounded"
-                      style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                    ></div>
-                    <div className="flex-1 ml-4">
-                      <div className="flex items-center justify-between mb-1">
-                        <p className="font-medium text-slate-900">
-                          {category.categoryName}
-                        </p>
-                        <p className="text-sm font-bold text-slate-900">
-                          ₹{(category.totalSales / 1000).toFixed(0)}K
-                        </p>
-                      </div>
-                      <div className="w-full bg-slate-200 rounded-full h-2">
-                        <div
-                          className="h-2 rounded-full"
-                          style={{
-                            width: `${(category.totalSales / (data.topCategories[0]?.totalSales || 1)) * 100}%`,
-                            backgroundColor: COLORS[index % COLORS.length],
-                          }}
-                        ></div>
-                      </div>
-                      <p className="text-xs text-slate-500 mt-1">
-                        {category.orderCount} orders
-                      </p>
-                    </div>
-                  </div>
-                ))}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center mt-6">
+          {/* Donut Chart */}
+          <div className="lg:col-span-6 flex flex-col items-center justify-center min-h-[280px]">
+            {chartData.length > 0 ? (
+              <div className="relative w-full h-[260px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={chartData}
+                      dataKey="count"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={65}
+                      outerRadius={95}
+                      paddingAngle={4}
+                    >
+                      {chartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value: any, name: any) => [
+                        `${value} orders (${((Number(value) / (orderStats.totalOrders || 1)) * 100).toFixed(1)}%)`,
+                        name,
+                      ]}
+                      contentStyle={{
+                        backgroundColor: "#1e293b",
+                        border: "none",
+                        borderRadius: "8px",
+                        color: "#fff",
+                        fontSize: "12px",
+                      }}
+                      itemStyle={{ color: "#fff" }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                {/* Center Total */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <span className="text-2xl font-extrabold text-slate-800">
+                    {orderStats.totalOrders}
+                  </span>
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                    Total
+                  </span>
+                </div>
               </div>
+            ) : (
+              <div className="text-center py-10">
+                <ShoppingBag size={36} className="mx-auto text-slate-300 mb-2" />
+                <p className="text-sm font-semibold text-slate-600">No order data yet</p>
+                <p className="text-xs text-slate-400 mt-1">Orders will appear here once placed</p>
+              </div>
+            )}
+          </div>
+
+          {/* Status Breakdown Cards */}
+          <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Completed / Delivered */}
+            <div className="bg-emerald-50/60 border border-emerald-100 rounded-xl p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                  <CheckCircle2 size={20} />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-emerald-800">Delivered / Completed</p>
+                  <p className="text-xl font-bold text-emerald-950 mt-0.5">
+                    {orderStats.completed}
+                  </p>
+                </div>
+              </div>
+              <span className="text-xs font-bold text-emerald-700 bg-white px-2 py-1 rounded-md border border-emerald-200">
+                {orderStats.totalOrders > 0
+                  ? `${Math.round((orderStats.completed / orderStats.totalOrders) * 100)}%`
+                  : "0%"}
+              </span>
             </div>
 
-            {/* Category Pie Chart */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-lg font-bold text-slate-900 mb-6">
-                Sales Distribution
-              </h2>
-              <ResponsiveContainer width="100%" height={250}>
-                <PieChart>
-                  <Pie
-                    data={data?.topCategories}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={(entry: any) =>
-                      `${(entry.percent * 100).toFixed(0)}%`
-                    }
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="totalSales"
-                  >
-                    {data?.topCategories?.map((_, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={COLORS[index % COLORS.length]}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    formatter={(value: any) => `₹${(value / 1000).toFixed(0)}K`}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+            {/* Pending / Processing */}
+            <div className="bg-amber-50/60 border border-amber-100 rounded-xl p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center">
+                  <Clock size={20} />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-amber-800">Pending / Processing</p>
+                  <p className="text-xl font-bold text-amber-950 mt-0.5">
+                    {orderStats.pending}
+                  </p>
+                </div>
+              </div>
+              <span className="text-xs font-bold text-amber-700 bg-white px-2 py-1 rounded-md border border-amber-200">
+                {orderStats.totalOrders > 0
+                  ? `${Math.round((orderStats.pending / orderStats.totalOrders) * 100)}%`
+                  : "0%"}
+              </span>
+            </div>
+
+            {/* Shipped / In Transit */}
+            <div className="bg-sky-50/60 border border-sky-100 rounded-xl p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center">
+                  <Truck size={20} />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-sky-800">Shipped / In Transit</p>
+                  <p className="text-xl font-bold text-sky-950 mt-0.5">
+                    {orderStats.shipped}
+                  </p>
+                </div>
+              </div>
+              <span className="text-xs font-bold text-sky-700 bg-white px-2 py-1 rounded-md border border-sky-200">
+                {orderStats.totalOrders > 0
+                  ? `${Math.round((orderStats.shipped / orderStats.totalOrders) * 100)}%`
+                  : "0%"}
+              </span>
+            </div>
+
+            {/* Cancelled */}
+            <div className="bg-rose-50/60 border border-rose-100 rounded-xl p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center">
+                  <XCircle size={20} />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-rose-800">Cancelled</p>
+                  <p className="text-xl font-bold text-rose-950 mt-0.5">
+                    {orderStats.cancelled}
+                  </p>
+                </div>
+              </div>
+              <span className="text-xs font-bold text-rose-700 bg-white px-2 py-1 rounded-md border border-rose-200">
+                {orderStats.totalOrders > 0
+                  ? `${Math.round((orderStats.cancelled / orderStats.totalOrders) * 100)}%`
+                  : "0%"}
+              </span>
             </div>
           </div>
-        ) : null}
+        </div>
+      </div>
+
+      {/* 5 Latest Orders Table */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">5 Latest Orders</h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Most recent customer orders placed on the store
+            </p>
+          </div>
+          <Link
+            href="/orders"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline"
+          >
+            <span>View All Orders</span>
+            <ArrowRight size={14} />
+          </Link>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-slate-50 text-slate-500 uppercase text-[11px] font-bold tracking-wider border-b border-slate-100">
+              <tr>
+                <th className="px-6 py-3.5">Order Number</th>
+                <th className="px-6 py-3.5">Customer</th>
+                <th className="px-6 py-3.5">Amount</th>
+                <th className="px-6 py-3.5">Status</th>
+                <th className="px-6 py-3.5">Placed On</th>
+                <th className="px-6 py-3.5 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-slate-700">
+              {latestOrders.length > 0 ? (
+                latestOrders.map((order) => {
+                  const statusKey = (order.status || "created").toLowerCase();
+                  const badgeStyle = STATUS_COLORS[statusKey] || {
+                    bg: "bg-slate-100",
+                    text: "text-slate-700",
+                    border: "border-slate-200",
+                  };
+                  const customerName =
+                    order.shipping_address?.name ||
+                    order.user_id?.name ||
+                    "Customer";
+                  const customerContact =
+                    order.shipping_address?.phone ||
+                    order.user_id?.phone ||
+                    order.user_id?.email ||
+                    "";
+
+                  return (
+                    <tr key={order._id} className="hover:bg-slate-50/80 transition">
+                      <td className="px-6 py-4 font-bold text-slate-900">
+                        {order.order_number || `#${order._id.slice(-6)}`}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="font-semibold text-slate-800">{customerName}</div>
+                        {customerContact && (
+                          <div className="text-xs text-slate-400 mt-0.5">{customerContact}</div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 font-bold text-slate-900">
+                        {formatCurrency(order.total_amount)}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border capitalize ${badgeStyle.bg} ${badgeStyle.text} ${badgeStyle.border}`}
+                        >
+                          {order.status ? order.status.replace(/_/g, " ") : "created"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-xs text-slate-500">
+                        {formatDateSafe(order.createdAt)}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <Link
+                          href={`/orders/view/${order._id}`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold rounded-lg transition"
+                        >
+                          <Eye size={13} />
+                          <span>View</span>
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                    <ShoppingBag size={32} className="mx-auto mb-2 text-slate-300" />
+                    <p className="text-sm font-semibold text-slate-600">No orders found</p>
+                    <p className="text-xs text-slate-400 mt-1">
+                      New orders will be displayed here automatically
+                    </p>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

@@ -37,7 +37,8 @@ export const ENDPOINTS = {
         GET: '/category/admin/category',
         ADD: '/category/admin/category/add',
         UPDATE: '/category/admin/category/update',
-        DELETE: '/category/admin/category/delete'
+        DELETE: '/category/admin/category/delete',
+        REORDER: '/category/admin/category/reorder'
     },
     BANNER: {
         LIST: '/banner/admin/banner/list',

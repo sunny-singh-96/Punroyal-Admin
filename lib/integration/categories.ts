@@ -48,4 +48,14 @@ export const categoriesAPI = {
   async delete(id: string) {
     return http.delete(`${ENDPOINTS.CATEGORY.DELETE}/${id}`);
   },
+
+  // Reorder categories
+  async reorder(orders: Array<{ id: string; order: number }>) {
+    return http.put(`${ENDPOINTS.CATEGORY.REORDER}`, { orders });
+  },
+
+  // Update single category order
+  async updateOrder(id: string, order: number) {
+    return http.put(`${ENDPOINTS.CATEGORY.UPDATE}/${id}`, { order });
+  },
 };
