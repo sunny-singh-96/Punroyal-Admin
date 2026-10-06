@@ -10,7 +10,6 @@ export interface ProductFormData {
   description: string;
   specifications: string;
   cat_id: string;
-  cat_ids?: string[];
   status: boolean;
   video: File[];
   video_link: string;
@@ -52,9 +51,8 @@ export const productValidate = (
   if (!form.display_price || form.display_price <= 0) {
     newErrors.display_price = "Display price must be greater than 0";
   }
-  const hasCategory = (form.cat_ids && form.cat_ids.length > 0) || Boolean(form.cat_id && form.cat_id.trim());
-  if (!hasCategory) {
-    newErrors.cat_id = "Please select at least one category";
+  if (!form.cat_id) {
+    newErrors.cat_id = "Category is required";
   }
   if (!form.description.trim()) {
     newErrors.description = "Description is required";

@@ -78,11 +78,6 @@ interface ProductData {
     title: string;
     image: string;
   };
-  categories?: Array<{
-    _id: string;
-    title: string;
-    image?: string;
-  }>;
   model: {
     _id: string;
     name: string;
@@ -379,13 +374,11 @@ export default function ProductViewPage() {
                   <div className="flex items-center gap-2 mb-2">
                     <Layers className="w-4 h-4 text-purple-600" />
                     <p className="text-xs font-semibold text-purple-600 uppercase tracking-wide">
-                      {product.categories && product.categories.length > 1 ? "Categories" : "Category"}
+                      Category
                     </p>
                   </div>
                   <p className="text-lg font-bold text-slate-900">
-                    {product.categories && product.categories.length > 0
-                      ? product.categories.map((c) => c.title).join(", ")
-                      : (product.category?.title || "N/A")}
+                    {product.category?.title || "N/A"}
                   </p>
                 </div>
 

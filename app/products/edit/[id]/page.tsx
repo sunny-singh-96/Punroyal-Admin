@@ -19,7 +19,6 @@ interface ProductFormData {
   description: string;
   specifications: string;
   cat_id: string;
-  cat_ids: string[];
   status: boolean;
   video: File[];
   video_link: string;
@@ -158,7 +157,6 @@ export default function CreateProductPage() {
   const [colorVariantsValid, setColorVariantsValid] = useState(false);
   const [redirectTo, setRedirectTo] = useState("");
   const [productImages, setProductImages] = useState<ProductImage[]>([]);
-  const [initialCategoryOptions, setInitialCategoryOptions] = useState<{ label: string; value: string }[]>([]);
 
   const [common, setCommon] = useState<CommonData>({
     models: [],
@@ -250,20 +248,6 @@ export default function CreateProductPage() {
           color_name: "",
         }));
 
-        const rawCatIds: string[] = Array.isArray(product?.cat_ids) && product.cat_ids.length > 0
-          ? product.cat_ids.map((c: any) => String(c?._id || c))
-          : (product?.cat_id ? [String(product.cat_id?._id || product.cat_id)] : []);
-
-        const initialCats: { label: string; value: string }[] = [];
-        if (Array.isArray(product?.categories) && product.categories.length > 0) {
-          product.categories.forEach((c: any) => {
-            if (c?._id && c?.title) initialCats.push({ label: c.title, value: String(c._id) });
-          });
-        } else if (product?.category?._id && product?.category?.title) {
-          initialCats.push({ label: product.category.title, value: String(product.category._id) });
-        }
-        setInitialCategoryOptions(initialCats);
-
         setForm({
           title: product?.title || "",
           display_price: product?.display_price || 0,
@@ -272,8 +256,7 @@ export default function CreateProductPage() {
           product_type: product?.product_type || "sizes",
           description: product?.description || "",
           specifications: product?.specifications || "",
-          cat_id: rawCatIds[0] || "",
-          cat_ids: rawCatIds,
+          cat_id: product?.cat_id || "",
           status: product?.status ?? true,
           video: product?.video ? [product.video] : [],
           video_link: product?.video_link || "",
@@ -365,16 +348,6 @@ export default function CreateProductPage() {
       if (value === null || value === undefined) return;
       formData.append(key, String(value));
     });
-
-    if (data.cat_ids && data.cat_ids.length > 0) {
-      data.cat_ids.forEach((id) => {
-        formData.append("cat_ids", id);
-      });
-      formData.set("cat_id", data.cat_ids[0]);
-    } else if (data.cat_id) {
-      formData.append("cat_ids", data.cat_id);
-      formData.set("cat_id", data.cat_id);
-    }
 
     if (data.product_type === "no_sizes") {
       const parsedQty = parseInt(String(data.quantity), 10);
@@ -664,28 +637,14 @@ export default function CreateProductPage() {
             )}
             <div className="space-y-1">
               <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider ml-1">
-                Categories <span className="text-red-500">*</span>
+                Category<span className="text-red-500">*</span>
               </label>
               <AsyncSelect
-                isMulti
-                className={`w-full px-1 py-1 bg-slate-50 border-2 rounded-xl outline-none transition-all focus:bg-white ${hasError("cat_id") ? "border-red-500 bg-red-50" : "border-transparent focus:border-indigo-600"}`}
-                value={form.cat_ids}
-                onChange={(vals: string[]) => {
-                  setForm((prev) => ({
-                    ...prev,
-                    cat_ids: vals,
-                    cat_id: vals.length > 0 ? vals[0] : "",
-                  }));
-                  setErrors((prev) => {
-                    if (!prev.cat_id) return prev;
-                    const newErrs = { ...prev };
-                    delete newErrs.cat_id;
-                    return newErrs;
-                  });
-                }}
-                placeholder="Select one or more categories"
-                limit={50}
-                initialOptions={initialCategoryOptions}
+                className={`w-full px-1 py-1 bg-slate-50 border-2 rounded-xl outline-none transition-all focus:bg-white ${hasError("product_type") ? "border-red-500 bg-red-50" : "border-transparent focus:border-indigo-600"}`}
+                value={form.cat_id}
+                onChange={(val) => setForm({ ...form, cat_id: val })}
+                placeholder="Select Category"
+                limit={10}
                 fetchOptions={({ page, limit, search }) =>
                   categoriesAPI.getAll({ page, limit, search })
                 }
@@ -695,9 +654,7 @@ export default function CreateProductPage() {
                 })}
               />
               {hasError("cat_id") && (
-                <p className="text-red-500 text-xs flex items-center gap-1">
-                  <AlertCircle size={12} /> {handleError("cat_id")}
-                </p>
+                <p className="text-red-500 text-xs">{handleError("cat_id")}</p>
               )}
             </div>
             <div className="space-y-1">
