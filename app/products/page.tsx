@@ -142,6 +142,8 @@ interface Product {
   createdAt: string;
   updatedAt: string;
   category: Category;
+  cat_ids?: string[];
+  categories?: Category[];
   avgStars: number | null;
   model: Model;
   materials: Material[];
@@ -321,7 +323,9 @@ export default function ProductsPage() {
               ...p,
               id: p._id,
               name: p.title,
-              category: p.category?.title || "General",
+              category: Array.isArray(p.categories) && p.categories.length > 0
+                ? p.categories.map((c: any) => c.title).filter(Boolean).join(", ")
+                : (p.category?.title || "General"),
               base_price: p.price || 0,
               sale_price: p.display_price || p.price || 0,
               status: p.status === true || p.status === 1 ? 1 : 0,

@@ -25,6 +25,7 @@ interface ProductFormData {
   description: string;
   specifications: string;
   cat_id: string;
+  cat_ids: string[];
   status: boolean;
   video: File[];
   video_link: string;
@@ -159,6 +160,7 @@ export default function CreateProductPage() {
     description: "",
     specifications: "",
     cat_id: "",
+    cat_ids: [],
     status: true,
     video: [],
     video_link: "",
@@ -270,6 +272,16 @@ export default function CreateProductPage() {
       if (value === null || value === undefined) return;
       formData.append(key, String(value));
     });
+
+    if (data.cat_ids && data.cat_ids.length > 0) {
+      data.cat_ids.forEach((id) => {
+        formData.append("cat_ids", id);
+      });
+      formData.set("cat_id", data.cat_ids[0]);
+    } else if (data.cat_id) {
+      formData.append("cat_ids", data.cat_id);
+      formData.set("cat_id", data.cat_id);
+    }
 
     if (data.product_type === "no_sizes") {
       const parsedQty = parseInt(String(data.quantity), 10);
@@ -461,11 +473,21 @@ export default function CreateProductPage() {
     []
   );
 
-  const handleCatIdChange = useCallback(
-    (val: string) => {
-      handleFieldChange("cat_id", val);
+  const handleCatIdsChange = useCallback(
+    (vals: string[]) => {
+      setForm((prev) => ({
+        ...prev,
+        cat_ids: vals,
+        cat_id: vals.length > 0 ? vals[0] : "",
+      }));
+      setErrors((prev) => {
+        if (!prev.cat_id) return prev;
+        const newErrs = { ...prev };
+        delete newErrs.cat_id;
+        return newErrs;
+      });
     },
-    [handleFieldChange]
+    []
   );
 
   const mappedColors = useMemo(
@@ -572,19 +594,22 @@ export default function CreateProductPage() {
             )}
             <div className="space-y-1">
               <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider ml-1">
-                Category<span className="text-red-500">*</span>
+                Categories <span className="text-red-500">*</span>
               </label>
               <AsyncSelect
-                className={`w-full px-1 py-1 bg-slate-50 border-2 rounded-xl outline-none transition-all focus:bg-white ${hasError("product_type") ? "border-red-500 bg-red-50" : "border-transparent focus:border-indigo-600"}`}
-                value={form.cat_id}
-                onChange={handleCatIdChange}
-                placeholder="Select Category"
-                limit={10}
+                isMulti
+                className={`w-full px-1 py-1 bg-slate-50 border-2 rounded-xl outline-none transition-all focus:bg-white ${hasError("cat_id") ? "border-red-500 bg-red-50" : "border-transparent focus:border-indigo-600"}`}
+                value={form.cat_ids}
+                onChange={handleCatIdsChange}
+                placeholder="Select one or more categories"
+                limit={50}
                 fetchOptions={fetchCategoryOptions}
                 mapOption={mapCategoryOption}
               />
               {hasError("cat_id") && (
-                <p className="text-red-500 text-xs">{handleError("cat_id")}</p>
+                <p className="text-red-500 text-xs flex items-center gap-1">
+                  <AlertCircle size={12} /> {handleError("cat_id")}
+                </p>
               )}
             </div>
             <div className="space-y-1">
