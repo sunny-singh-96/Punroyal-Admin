@@ -17,6 +17,7 @@ import {
   ChevronUp,
   View,
   Eye,
+  Trash2,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { productsAPI } from "@/lib/integration/products";
@@ -663,9 +664,14 @@ export default function ProductsPage() {
           >
             <Eye size={15} className="text-amber-500" />
           </Link>
-          {/* <button className="p-1.5 rounded-lg hover:bg-slate-100">
-            <Trash2 size={15} className="text-red-400" />
-          </button> */}
+          <button
+            type="button"
+            onClick={() => deleteProduct(row._id, row.title)}
+            className="p-1.5 rounded-lg hover:bg-red-50 text-red-500 hover:text-red-700 transition-colors"
+            title="Delete product permanently"
+          >
+            <Trash2 size={15} />
+          </button>
         </div>
       ),
     },
@@ -702,12 +708,39 @@ export default function ProductsPage() {
     }
   };
 
+  // ── Single Product Delete ──────────────────────────────────────────────────────
+  const deleteProduct = async (productId: string, title?: string) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to permanently delete "${title || 'this product'}"?\nThis will remove it from the database and Cloudflare storage.`
+    );
+    if (!confirmed) return;
+    try {
+      setLoading(true);
+      const response = await productsAPI.bulkDelete([productId]);
+      const res = response?.data || response;
+      if (res?.code === "OK") {
+        toast.success("Product deleted successfully");
+        setProducts((prev) =>
+          prev.filter((product) => product._id !== productId),
+        );
+        setTotalRecords((prev) => Math.max(0, prev - 1));
+        setSelectedProducts((prev) => prev.filter((id) => id !== productId));
+      } else {
+        toast.error(res?.message || "Failed to delete product");
+      }
+    } catch (e) {
+      toast.error(getErrorMessage(e));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // ── Bulk Delete ───────────────────────────────────────────────────────────────
 
   const bulkDelete = async () => {
     if (selectedProducts.length === 0) return;
     const confirmed = window.confirm(
-      `Are you sure you want to delete ${selectedProducts.length} product(s)?`,
+      `Are you sure you want to permanently delete ${selectedProducts.length} product(s)?\nThis will remove them from the database and Cloudflare storage.`,
     );
     if (!confirmed) return;
     try {

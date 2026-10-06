@@ -29,6 +29,7 @@ export const ENDPOINTS = {
         VIEW: '/product/admin',
         LIST: '/product/admin/products',
         DELETE_COLOR_GROUP: '/product/admin/products',
+        DELETE: '/product/admin/product',
         BULK_DELETE: '/product/admin/products/bulk-delete',
         BULK_UPDATE_STATUS: '/product/admin/products/bulk-update-status'
     },
