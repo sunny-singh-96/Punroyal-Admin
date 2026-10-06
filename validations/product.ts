@@ -19,6 +19,7 @@ export interface ProductFormData {
   metarial: {
     id: string;
   }[];
+  weight?: number;
   commission?: number;
   commission_type?: "percentage" | "flat" | "";
   type?: number;
@@ -64,8 +65,14 @@ export const productValidate = (
   }
   if (form.product_type === "no_sizes") {
     const qty = Number(form.quantity);
-    if (!form.quantity || isNaN(qty) || qty <= 0) {
-      newErrors.quantity = "Quantity must be greater than 0";
+    if (!form.quantity || isNaN(qty) || qty < 1) {
+      newErrors.quantity = "Quantity must be at least 1";
+    }
+  }
+  if (form.weight !== undefined && form.weight !== null) {
+    const wt = Number(form.weight);
+    if (!form.weight || isNaN(wt) || wt < 1) {
+      newErrors.weight = "Weight must be at least 1 kg";
     }
   }
   if (form.video_link && !form.video_link.startsWith("http")) {

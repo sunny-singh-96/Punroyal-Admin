@@ -268,7 +268,7 @@ export default function CreateProductPage() {
           title: product?.title || "",
           display_price: product?.display_price || 0,
           price: product?.price || 0,
-          quantity: product?.quantity || 0,
+          quantity: Math.max(1, product?.quantity || 1),
           product_type: product?.product_type || "sizes",
           description: product?.description || "",
           specifications: product?.specifications || "",
@@ -290,7 +290,7 @@ export default function CreateProductPage() {
             : [],
           variants: product?.variants || [],
           media: transformedMedia,
-          weight: product?.weight || 0,
+          weight: Math.max(1, product?.weight || 1),
           height: product?.height || 0,
           breadth: product?.breadth || 0,
           length: product?.length || 0,
@@ -378,11 +378,15 @@ export default function CreateProductPage() {
 
     if (data.product_type === "no_sizes") {
       const parsedQty = parseInt(String(data.quantity), 10);
-      const qty = isNaN(parsedQty) || parsedQty < 0 ? 0 : parsedQty;
+      const qty = isNaN(parsedQty) || parsedQty < 1 ? 1 : parsedQty;
       formData.set("quantity", String(qty));
     } else {
       formData.set("quantity", "0");
     }
+
+    const parsedWeight = parseFloat(String(data.weight));
+    const finalWeight = isNaN(parsedWeight) || parsedWeight < 1 ? 1 : parsedWeight;
+    formData.set("weight", String(finalWeight));
 
     const finalInfluencer = data.influencer_id || data.model_id || "";
     if (finalInfluencer) {
