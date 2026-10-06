@@ -165,7 +165,7 @@ export default function CreateProductPage() {
     primaryColorId: null,
     isPrimary: false,
     model_id: "",
-    weight: 0,
+    weight: 1,
     height: 0,
     breadth: 0,
     length: 0,
