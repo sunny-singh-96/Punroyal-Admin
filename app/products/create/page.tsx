@@ -155,7 +155,7 @@ export default function CreateProductPage() {
     title: "",
     display_price: 0,
     price: 0,
-    quantity: 1,
+    quantity: 0,
     product_type: "" as any,
     description: "",
     specifications: "",
@@ -167,7 +167,7 @@ export default function CreateProductPage() {
     primaryColorId: null,
     isPrimary: false,
     model_id: "",
-    weight: 1,
+    weight: 0,
     height: 0,
     breadth: 0,
     length: 0,
@@ -285,15 +285,11 @@ export default function CreateProductPage() {
 
     if (data.product_type === "no_sizes") {
       const parsedQty = parseInt(String(data.quantity), 10);
-      const qty = isNaN(parsedQty) || parsedQty < 1 ? 1 : parsedQty;
+      const qty = isNaN(parsedQty) || parsedQty < 0 ? 0 : parsedQty;
       formData.set("quantity", String(qty));
     } else {
       formData.set("quantity", "0");
     }
-
-    const parsedWeight = parseFloat(String(data.weight));
-    const finalWeight = isNaN(parsedWeight) || parsedWeight < 1 ? 1 : parsedWeight;
-    formData.set("weight", String(finalWeight));
 
     const finalInfluencer = data.influencer_id || data.model_id || "";
     if (finalInfluencer) {
