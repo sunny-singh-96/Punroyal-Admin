@@ -247,21 +247,23 @@ export default function InfluencerSalesPage() {
           <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs space-y-4">
             <div className="flex flex-col lg:flex-row gap-4 justify-between items-stretch lg:items-center">
               {/* Search Bar */}
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <div className="relative flex-1 max-w-md group">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors pointer-events-none" size={17} />
                 <input
                   type="text"
                   placeholder="Search by Order #, product name, or customer..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-10 py-2.5 bg-slate-50 focus:bg-white border border-slate-200 rounded-xl text-xs font-medium outline-none focus:border-indigo-600 transition"
+                  className="w-full pl-10 pr-9 py-2.5 bg-slate-50/90 hover:bg-white focus:bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 shadow-xs focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-600 outline-none transition-all duration-200"
                 />
                 {searchQuery && (
                   <button
+                    type="button"
                     onClick={() => setSearchQuery("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                    title="Clear search"
                   >
-                    <X size={14} />
+                    <X size={14} className="bg-slate-200/70 hover:bg-slate-300 rounded-full p-0.5" />
                   </button>
                 )}
               </div>

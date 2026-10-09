@@ -19,6 +19,7 @@ import {
   Eye,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { confirmDelete } from "@/lib/sweetAlert";
 import { productsAPI } from "@/lib/integration/products";
 import { freelancerAPI } from "@/lib/integration/freelancer";
 import { commonAPI } from "@/lib/integration/common";
@@ -732,10 +733,10 @@ export default function ProductsPage() {
 
   const bulkDelete = async () => {
     if (selectedProducts.length === 0) return;
-    const confirmed = window.confirm(
-      `Are you sure you want to delete ${selectedProducts.length} product(s)?`,
+    const isConfirmed = await confirmDelete(
+      `Delete ${selectedProducts.length} selected product${selectedProducts.length > 1 ? "s" : ""}?`
     );
-    if (!confirmed) return;
+    if (!isConfirmed) return;
     try {
       setLoading(true);
       const response = await productsAPI.bulkDelete(selectedProducts);
@@ -1014,9 +1015,9 @@ export default function ProductsPage() {
                 </span>
               )}
             </button>
-            <div className="relative flex-1">
+            <div className="relative flex-1 group">
               <Search
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors pointer-events-none"
                 size={16}
               />
               <input
@@ -1024,16 +1025,18 @@ export default function ProductsPage() {
                 placeholder="Search by name, ID, SKU…"
                 value={pendingFilters.search}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border-0 rounded-xl text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                className="w-full pl-10 pr-10 py-2.5 bg-slate-50/90 hover:bg-white focus:bg-white border border-slate-200/90 rounded-xl text-sm text-slate-800 placeholder-slate-400 shadow-xs focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all duration-200"
               />
               {pendingFilters.search && (
                 <button
+                  type="button"
                   onClick={() => handleSearchChange("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  title="Clear search"
                 >
                   <X
                     size={14}
-                    className="text-slate-400 hover:text-slate-600"
+                    className="bg-slate-200/70 hover:bg-slate-300 rounded-full p-0.5"
                   />
                 </button>
               )}

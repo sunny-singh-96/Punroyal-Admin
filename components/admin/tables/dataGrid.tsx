@@ -1,6 +1,6 @@
 // ========================= DataGrid.tsx =========================
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Search, ChevronUp, ChevronDown, GripVertical } from "lucide-react";
+import { Search, ChevronUp, ChevronDown, GripVertical, X } from "lucide-react";
 
 export interface Header<T = unknown> {
   key: keyof T | string;
@@ -89,14 +89,27 @@ export default function DataGrid<T = unknown>({
       <div className="mb-4 flex items-center justify-between">
 
         {searchEnable && (
-          <div className="mb-4 flex items-center gap-2 w-1/4">
-            <Search size={16} />
+          <div className="relative w-full sm:w-72 md:w-80 group">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 group-focus-within:text-blue-600 transition-colors">
+              <Search size={16} />
+            </div>
             <input
+              type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search..."
-              className="border px-3 py-2 rounded-xl w-full outline-none focus:border-blue-500"
+              className="w-full pl-10 pr-9 py-2 bg-gray-50/80 hover:bg-white focus:bg-white text-sm text-gray-800 placeholder-gray-400 rounded-xl border border-gray-200 shadow-xs focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all duration-200"
             />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                title="Clear search"
+              >
+                <X size={15} className="bg-gray-200/80 hover:bg-gray-300 rounded-full p-0.5" />
+              </button>
+            )}
           </div>
         )}
         <div>
