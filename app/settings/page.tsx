@@ -620,15 +620,18 @@ export default function SettingsPage() {
 
               <div>
                 <label className="text-xs font-black text-slate-600 uppercase tracking-wider block mb-2">
-                  WhatsApp Link / Phone
+                  WhatsApp Number / Link <span className="text-slate-400 font-normal lowercase">(Store Floating Button)</span>
                 </label>
                 <input
                   type="text"
                   value={socialLinks.whatsapp}
                   onChange={(e) => setSocialLinks({ ...socialLinks, whatsapp: e.target.value })}
-                  placeholder="https://wa.me/+919816787333"
+                  placeholder={phone ? `e.g. ${phone} or https://wa.me/...` : "e.g. +91 9816787333 or 9816787333"}
                   className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500"
                 />
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Floating WhatsApp button on store will connect directly to this number. If empty, Support Phone ({phone || "+91 9816787333"}) is used.
+                </p>
               </div>
             </div>
           </div>
