@@ -80,23 +80,32 @@ export default function LoginPage() {
     setLoading(true);
     const toastId = toast.loading("Verifying Admin credentials...");
     try {
-      const response = await http.post(
+      const response: any = await http.post(
         ENDPOINTS.LOGIN,
         { email: email.trim(), password },
         {},
         false
       );
-      if (response?.message && !response?.data?.data?.token) {
-        toast.error(response.message, { id: toastId });
+
+      // Support direct token/user or nested under data / data.data
+      const token = response?.data?.token || response?.data?.data?.token || response?.token;
+      const user = response?.data?.user || response?.data?.data?.user || response?.user;
+
+      if (!token || !user) {
+        const errorMsg = response?.message || response?.data?.message || "Invalid credentials or response from server";
+        toast.error(errorMsg, { id: toastId });
         return;
       }
-      if (response?.data?.data?.token && response?.data?.data?.user) {
-        setAuth(response.data.data.token, response.data.data.user);
-        toast.success(response?.data?.message || "Admin login successful!", { id: toastId });
-        router.push(redirectTo || "/dashboard");
-      } else {
-        toast.error("Invalid response from server", { id: toastId });
-      }
+
+      setAuth(token, user);
+      toast.success(response?.message || response?.data?.message || "Admin login successful!", { id: toastId });
+      const target = redirectTo || "/dashboard";
+      router.push(target);
+      setTimeout(() => {
+        if (typeof window !== "undefined" && (window.location.pathname === "/" || window.location.pathname === "/login")) {
+          window.location.href = target;
+        }
+      }, 500);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Authentication failed";
       toast.error(errorMessage, { id: toastId });
@@ -119,18 +128,25 @@ export default function LoginPage() {
         ? { email: identifier.trim(), password }
         : { username: identifier.trim(), password };
 
-      const response = await influencerAPI.login(payload);
-      if (response?.message && !response?.data?.data?.token) {
-        toast.error(response.message, { id: toastId });
+      const response: any = await influencerAPI.login(payload);
+      const token = response?.data?.token || response?.data?.data?.token || response?.token;
+      const user = response?.data?.user || response?.data?.data?.user || response?.user;
+
+      if (!token || !user) {
+        const errorMsg = response?.message || response?.data?.message || "Invalid credentials or response from server";
+        toast.error(errorMsg, { id: toastId });
         return;
       }
-      if (response?.data?.data?.token && response?.data?.data?.user) {
-        setAuth(response.data.data.token, response.data.data.user);
-        toast.success(response?.data?.message || "Welcome back to your dashboard!", { id: toastId });
-        router.push(redirectTo || "/influencer/dashboard");
-      } else {
-        toast.error("Invalid response from server", { id: toastId });
-      }
+
+      setAuth(token, user);
+      toast.success(response?.message || response?.data?.message || "Welcome back to your dashboard!", { id: toastId });
+      const target = redirectTo || "/influencer/dashboard";
+      router.push(target);
+      setTimeout(() => {
+        if (typeof window !== "undefined" && (window.location.pathname === "/" || window.location.pathname === "/login")) {
+          window.location.href = target;
+        }
+      }, 500);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Influencer login failed";
       toast.error(errorMessage, { id: toastId });

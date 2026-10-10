@@ -27,7 +27,7 @@ api.interceptors.response.use(
     const isPublicPage = ['/', '/login', '/admin/login'].includes(currentPath);
     console.log(`error===>`, error);
     // Only redirect to login on 401 if not already on a public page and not auth call
-    if (status === 401 && !url.includes('/auth/admin-login') && !url.includes('/auth/login') && !isPublicPage) {
+    if (status === 401 && !url.includes('/auth/admin-login') && !url.includes('/auth/login') && !url.includes('/auth/influencer-login') && !isPublicPage) {
       const { logout } = useAuthStore.getState();
       logout();
     }

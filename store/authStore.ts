@@ -32,9 +32,11 @@ export const useAuthStore = create<AuthState>()(
         storageUtils.setToken(token);
         storageUtils.setUser(user);
 
-        // Set cookie for middleware
+        // Set cookie for middleware (support both auth-token and token, HTTPS-aware)
         if (typeof window !== 'undefined') {
-          document.cookie = `auth-token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+          const isSecure = window.location.protocol === 'https:' ? '; Secure' : '';
+          document.cookie = `auth-token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax${isSecure}`;
+          document.cookie = `token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax${isSecure}`;
         }
       },
 
@@ -73,7 +75,9 @@ export const useAuthStore = create<AuthState>()(
 
         // 2. Keep the Next.js middleware cookie fresh
         if (storedToken && typeof window !== 'undefined') {
-          document.cookie = `auth-token=${storedToken}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+          const isSecure = window.location.protocol === 'https:' ? '; Secure' : '';
+          document.cookie = `auth-token=${storedToken}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax${isSecure}`;
+          document.cookie = `token=${storedToken}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax${isSecure}`;
         }
 
         // 3. If no token exists at all, handle public/protected redirect

@@ -18,7 +18,7 @@ export function middleware(request: NextRequest) {
   }
 
   // Check for token in cookies or headers
-  const token = request.cookies.get('auth-token')?.value;
+  const token = request.cookies.get('auth-token')?.value || request.cookies.get('token')?.value;
 
   // If not token and trying to access protected route, redirect to home
   if (!token && !PUBLIC_ROUTES.includes(pathname)) {
