@@ -31,6 +31,7 @@ export default function TermsAdminPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [initialLoad, setInitialLoad] = useState(true);
 
   useEffect(() => {
     setMounted(true);
@@ -53,9 +54,9 @@ export default function TermsAdminPage() {
   const [sectionForm, setSectionForm] = useState({ title: "", content: "" });
   const [sectionSaving, setSectionSaving] = useState(false);
 
-  const fetchTermsData = useCallback(async () => {
+  const fetchTermsData = useCallback(async (isRefresh = false) => {
     try {
-      setLoading(true);
+      if (!isRefresh) setLoading(true);
       const res: any = await termsAPI.get();
       const data = res?.data?.terms || res?.terms || {};
 
@@ -78,6 +79,7 @@ export default function TermsAdminPage() {
       toast.error(err?.response?.data?.message || err?.message || "Failed to load Terms & Conditions");
     } finally {
       setLoading(false);
+      setInitialLoad(false);
     }
   }, []);
 
@@ -90,16 +92,11 @@ export default function TermsAdminPage() {
     e.preventDefault();
     try {
       setSaving(true);
-      const res: any = await termsAPI.update({
+      await termsAPI.update({
         ...formData,
       });
-
-      if (res?.code === "OK" || res?.success || res?.status === 200) {
-        toast.success("Terms & Conditions page details updated!");
-        fetchTermsData();
-      } else {
-        toast.error(res?.message || "Failed to update terms");
-      }
+      toast.success("Terms & Conditions page details updated!");
+      await fetchTermsData(true);
     } catch (err: any) {
       toast.error(err?.response?.data?.message || err?.message || "Error saving terms");
     } finally {
@@ -137,7 +134,7 @@ export default function TermsAdminPage() {
         toast.success("New section added!");
       }
       setIsModalOpen(false);
-      fetchTermsData();
+      await fetchTermsData(true);
     } catch (err: any) {
       toast.error(err?.response?.data?.message || err?.message || "Failed to save section");
     } finally {
@@ -150,7 +147,7 @@ export default function TermsAdminPage() {
     try {
       await termsAPI.deleteSection(id);
       toast.success("Section deleted!");
-      fetchTermsData();
+      await fetchTermsData(true);
     } catch (err: any) {
       toast.error(err?.response?.data?.message || err?.message || "Failed to delete section");
     }

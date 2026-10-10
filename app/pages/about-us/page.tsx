@@ -51,6 +51,7 @@ export default function AboutUsAdminPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [initialLoad, setInitialLoad] = useState(true);
   const [activeTab, setActiveTab] = useState<"general" | "stats" | "values" | "team" | "seo">("general");
 
   useEffect(() => {
@@ -101,9 +102,9 @@ export default function AboutUsAdminPage() {
   const [teamSaving, setTeamSaving] = useState(false);
 
   // Fetch page data
-  const fetchAboutUsData = useCallback(async () => {
+  const fetchAboutUsData = useCallback(async (isRefresh = false) => {
     try {
-      setLoading(true);
+      if (!isRefresh) setLoading(true);
       const res: any = await aboutUsAPI.get();
       const data = res?.data?.aboutUs || res?.aboutUs || {};
 
@@ -132,6 +133,7 @@ export default function AboutUsAdminPage() {
       toast.error(err?.response?.data?.message || err?.message || "Failed to load About Us content");
     } finally {
       setLoading(false);
+      setInitialLoad(false);
     }
   }, []);
 
@@ -154,13 +156,9 @@ export default function AboutUsAdminPage() {
       if (heroImageFile) data.append("heroImage", heroImageFile);
       if (storyImageFile) data.append("storyImage", storyImageFile);
 
-      const res: any = await aboutUsAPI.update(data);
-      if (res?.code === "OK" || res?.success || res?.status === 200) {
-        toast.success("About Us page updated successfully!");
-        fetchAboutUsData();
-      } else {
-        toast.error(res?.message || "Failed to update page");
-      }
+      await aboutUsAPI.update(data);
+      toast.success("About Us page updated successfully!");
+      await fetchAboutUsData(true);
     } catch (err: any) {
       toast.error(err?.response?.data?.message || err?.message || "Error saving About Us page");
     } finally {
@@ -241,7 +239,7 @@ export default function AboutUsAdminPage() {
       }
 
       setIsTeamModalOpen(false);
-      fetchAboutUsData();
+      await fetchAboutUsData(true);
     } catch (err: any) {
       toast.error(err?.response?.data?.message || err?.message || "Failed to save team member");
     } finally {
@@ -254,7 +252,7 @@ export default function AboutUsAdminPage() {
     try {
       await aboutUsAPI.deleteTeamMember(id);
       toast.success("Team member deleted!");
-      fetchAboutUsData();
+      await fetchAboutUsData(true);
     } catch (err: any) {
       toast.error(err?.response?.data?.message || err?.message || "Failed to delete team member");
     }

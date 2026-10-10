@@ -29,6 +29,7 @@ export default function PrivacyAdminPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [initialLoad, setInitialLoad] = useState(true);
 
   useEffect(() => {
     setMounted(true);
@@ -51,9 +52,9 @@ export default function PrivacyAdminPage() {
   const [sectionForm, setSectionForm] = useState({ title: "", content: "" });
   const [sectionSaving, setSectionSaving] = useState(false);
 
-  const fetchPrivacyData = useCallback(async () => {
+  const fetchPrivacyData = useCallback(async (isRefresh = false) => {
     try {
-      setLoading(true);
+      if (!isRefresh) setLoading(true);
       const res: any = await privacyAPI.get();
       const data = res?.data?.privacyPolicy || res?.privacyPolicy || {};
 
@@ -76,6 +77,7 @@ export default function PrivacyAdminPage() {
       toast.error(err?.response?.data?.message || err?.message || "Failed to load Privacy Policy");
     } finally {
       setLoading(false);
+      setInitialLoad(false);
     }
   }, []);
 
@@ -88,16 +90,11 @@ export default function PrivacyAdminPage() {
     e.preventDefault();
     try {
       setSaving(true);
-      const res: any = await privacyAPI.update({
+      await privacyAPI.update({
         ...formData,
       });
-
-      if (res?.code === "OK" || res?.success || res?.status === 200) {
-        toast.success("Privacy Policy page details updated!");
-        fetchPrivacyData();
-      } else {
-        toast.error(res?.message || "Failed to update privacy policy");
-      }
+      toast.success("Privacy Policy page details updated!");
+      await fetchPrivacyData(true);
     } catch (err: any) {
       toast.error(err?.response?.data?.message || err?.message || "Error saving privacy policy");
     } finally {
@@ -135,7 +132,7 @@ export default function PrivacyAdminPage() {
         toast.success("New section added!");
       }
       setIsModalOpen(false);
-      fetchPrivacyData();
+      await fetchPrivacyData(true);
     } catch (err: any) {
       toast.error(err?.response?.data?.message || err?.message || "Failed to save section");
     } finally {
@@ -148,7 +145,7 @@ export default function PrivacyAdminPage() {
     try {
       await privacyAPI.deleteSection(id);
       toast.success("Section deleted!");
-      fetchPrivacyData();
+      await fetchPrivacyData(true);
     } catch (err: any) {
       toast.error(err?.response?.data?.message || err?.message || "Failed to delete section");
     }
