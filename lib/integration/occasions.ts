@@ -19,7 +19,8 @@ export interface OccasionPayload {
 export const occasionsAPI = {
   // Get all occasions
   async getAll(lazyParams: LazyParams) {
-    return http.get(`${ENDPOINTS.OCCASION.LIST}?page=${lazyParams.page}&limit=${lazyParams.limit}`);
+    const searchParam = lazyParams.search ? `&search=${encodeURIComponent(lazyParams.search)}` : '';
+    return http.get(`${ENDPOINTS.OCCASION.LIST}?page=${lazyParams.page}&limit=${lazyParams.limit}${searchParam}`);
   },
 
   // Get assigned categories map
@@ -29,12 +30,12 @@ export const occasionsAPI = {
   },
 
   // Create occasion
-  async create(data: OccasionPayload) {
+  async create(data: OccasionPayload | FormData) {
     return http.post(`${ENDPOINTS.OCCASION.ADD}`, data);
   },
 
   // Update occasion
-  async update(id: string, data: Partial<OccasionPayload>) {
+  async update(id: string, data: Partial<OccasionPayload> | FormData) {
     return http.put(`${ENDPOINTS.OCCASION.UPDATE}/${id}`, data);
   },
 

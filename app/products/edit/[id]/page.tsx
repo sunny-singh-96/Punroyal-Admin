@@ -4,7 +4,7 @@ import RichTextEditor from "@/components/RichTextEditor";
 import toast from "react-hot-toast";
 import { Loader2, AlertCircle, Save, Link } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
-import { categoriesAPI, productsAPI, commonAPI } from "@/lib/integration";
+import { categoriesAPI, productsAPI, commonAPI, occasionsAPI } from "@/lib/integration";
 import AsyncSelect from "@/components/admin/select/select";
 import ColorVariantsSection from "@/components/admin/product/EditColorVariantsSection";
 import { getErrorMessage } from "@/lib/helpers/handlers";
@@ -19,6 +19,7 @@ interface ProductFormData {
   description: string;
   specifications: string;
   cat_id: string;
+  occasion_id?: string;
   status: boolean;
   video: File[];
   video_link: string;
@@ -180,6 +181,7 @@ export default function CreateProductPage() {
     description: "",
     specifications: "",
     cat_id: "",
+    occasion_id: "",
     status: true,
     video: [],
     video_link: "",
@@ -257,6 +259,7 @@ export default function CreateProductPage() {
           description: product?.description || "",
           specifications: product?.specifications || "",
           cat_id: product?.cat_id || "",
+          occasion_id: product?.occasion_id || "",
           status: product?.status ?? true,
           video: product?.video ? [product.video] : [],
           video_link: product?.video_link || "",
@@ -331,6 +334,7 @@ export default function CreateProductPage() {
       "description",
       "specifications",
       "cat_id",
+      "occasion_id",
       "status",
       "video_link",
       "primaryColorId",
@@ -656,6 +660,26 @@ export default function CreateProductPage() {
               {hasError("cat_id") && (
                 <p className="text-red-500 text-xs">{handleError("cat_id")}</p>
               )}
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider ml-1">
+                Occasion <span className="text-slate-400 font-normal">(Optional)</span>
+              </label>
+              <AsyncSelect
+                className="w-full px-1 py-1 bg-slate-50 border-2 rounded-xl outline-none transition-all focus:bg-white border-transparent focus:border-indigo-600"
+                value={form.occasion_id || ""}
+                onChange={(val) => setForm({ ...form, occasion_id: val })}
+                placeholder="Select Occasion (Optional)"
+                limit={10}
+                fetchOptions={({ page, limit, search }) =>
+                  occasionsAPI.getAll({ page, limit, search })
+                }
+                mapOption={(item) => ({
+                  label: item.title,
+                  value: item._id,
+                })}
+              />
             </div>
             <div className="space-y-1">
               <div className="w-full">
