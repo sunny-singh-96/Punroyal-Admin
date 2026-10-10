@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import toast from "react-hot-toast";
 import {
   Save,
@@ -29,6 +30,11 @@ interface TermSection {
 export default function TermsAdminPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const [formData, setFormData] = useState({
     pageTitle: "Terms & Conditions",
@@ -351,16 +357,22 @@ export default function TermsAdminPage() {
       </div>
 
       {/* SECTION MODAL */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-2xl w-full max-w-xl overflow-hidden animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-              <h3 className="font-bold text-lg text-slate-800">
-                {editingSection ? "Edit Clause / Section" : "Add New Clause / Section"}
-              </h3>
+      {mounted && isModalOpen && createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4 w-screen h-screen">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-2xl w-full max-w-xl overflow-hidden animate-in fade-in zoom-in-95 my-auto">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <FileText size={18} />
+                </div>
+                <h3 className="font-bold text-lg text-slate-800">
+                  {editingSection ? "Edit Clause / Section" : "Add New Clause / Section"}
+                </h3>
+              </div>
               <button
+                type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+                className="text-slate-400 hover:text-slate-600 p-1.5 hover:bg-slate-100 rounded-lg transition"
               >
                 <X size={20} />
               </button>
@@ -368,26 +380,26 @@ export default function TermsAdminPage() {
 
             <form onSubmit={handleSaveSection} className="p-6 space-y-4">
               <div>
-                <label className="text-xs font-bold text-slate-600 uppercase block mb-1">Section Title *</label>
+                <label className="text-xs font-bold text-slate-600 uppercase block mb-1.5">Section Title *</label>
                 <input
                   type="text"
                   required
                   value={sectionForm.title}
                   onChange={(e) => setSectionForm({ ...sectionForm, title: e.target.value })}
                   placeholder="e.g. 1. Order Acceptance and Pricing"
-                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500 transition"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-600 uppercase block mb-1">Section Content *</label>
+                <label className="text-xs font-bold text-slate-600 uppercase block mb-1.5">Section Content *</label>
                 <textarea
                   rows={8}
                   required
                   value={sectionForm.content}
                   onChange={(e) => setSectionForm({ ...sectionForm, content: e.target.value })}
                   placeholder="Detail the terms, obligations, rights, and policies for this section..."
-                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500 transition"
                 />
               </div>
 
@@ -402,14 +414,23 @@ export default function TermsAdminPage() {
                 <button
                   type="submit"
                   disabled={sectionSaving}
-                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm shadow-md transition disabled:opacity-50"
+                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm shadow-md transition disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  {sectionSaving ? "Saving..." : editingSection ? "Update Section" : "Add Section"}
+                  {sectionSaving ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" /> Saving...
+                    </>
+                  ) : editingSection ? (
+                    "Update Section"
+                  ) : (
+                    "Add Section"
+                  )}
                 </button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

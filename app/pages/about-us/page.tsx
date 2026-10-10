@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import toast from "react-hot-toast";
 import {
   Save,
@@ -49,7 +50,12 @@ interface TeamMember {
 export default function AboutUsAdminPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<"general" | "stats" | "values" | "team" | "seo">("general");
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -777,16 +783,22 @@ export default function AboutUsAdminPage() {
       </div>
 
       {/* TEAM MEMBER MODAL */}
-      {isTeamModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-              <h3 className="font-bold text-lg text-slate-800">
-                {editingMember ? "Edit Team Member" : "Add New Team Member"}
-              </h3>
+      {mounted && isTeamModalOpen && createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4 w-screen h-screen">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 my-auto">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <Users size={18} />
+                </div>
+                <h3 className="font-bold text-lg text-slate-800">
+                  {editingMember ? "Edit Team Member" : "Add New Team Member"}
+                </h3>
+              </div>
               <button
+                type="button"
                 onClick={() => setIsTeamModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+                className="text-slate-400 hover:text-slate-600 p-1.5 hover:bg-slate-100 rounded-lg transition"
               >
                 <X size={20} />
               </button>
@@ -794,7 +806,7 @@ export default function AboutUsAdminPage() {
 
             <form onSubmit={handleSaveTeamMember} className="p-6 space-y-4">
               <div className="flex flex-col items-center mb-4">
-                <div className="w-20 h-20 rounded-full overflow-hidden bg-slate-100 border-2 border-slate-200 mb-2">
+                <div className="w-20 h-20 rounded-full overflow-hidden bg-slate-100 border-2 border-slate-200 mb-2 shadow-xs">
                   {teamAvatarPreview ? (
                     <img src={teamAvatarPreview} alt="Avatar" className="w-full h-full object-cover" />
                   ) : (
@@ -825,7 +837,7 @@ export default function AboutUsAdminPage() {
                   value={teamMemberForm.name}
                   onChange={(e) => setTeamMemberForm({ ...teamMemberForm, name: e.target.value })}
                   placeholder="e.g. Manpreet Singh"
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
@@ -836,7 +848,7 @@ export default function AboutUsAdminPage() {
                   value={teamMemberForm.designation}
                   onChange={(e) => setTeamMemberForm({ ...teamMemberForm, designation: e.target.value })}
                   placeholder="e.g. Founder & Creative Director"
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
@@ -847,7 +859,7 @@ export default function AboutUsAdminPage() {
                   value={teamMemberForm.bio}
                   onChange={(e) => setTeamMemberForm({ ...teamMemberForm, bio: e.target.value })}
                   placeholder="A brief sentence about background and craft..."
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
@@ -895,14 +907,23 @@ export default function AboutUsAdminPage() {
                 <button
                   type="submit"
                   disabled={teamSaving}
-                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm shadow-md transition disabled:opacity-50"
+                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm shadow-md transition disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  {teamSaving ? "Saving..." : editingMember ? "Update Member" : "Add Member"}
+                  {teamSaving ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" /> Saving...
+                    </>
+                  ) : editingMember ? (
+                    "Update Member"
+                  ) : (
+                    "Add Member"
+                  )}
                 </button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -44,7 +44,7 @@ export const http = {
       }
 
       const response = await api.post(concatUrl(endpoint), data, config);
-      return response as unknown as T;
+      return (response?.data !== undefined ? response.data : response) as unknown as T;
     } catch (error: any) {
       if (!requireAuth) {
         return error.response?.data || { message: 'Request failed' };
