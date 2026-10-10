@@ -3,26 +3,16 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import toast from "react-hot-toast";
 import { confirmDelete } from "@/lib/sweetAlert";
-import { categoriesAPI } from "@/lib/integration/categories";
-import { occasionsAPI, OccasionPayload } from "@/lib/integration/occasions";
+import { occasionsAPI } from "@/lib/integration/occasions";
 import PageHeader from "@/components/admin/head/head";
 import DataGrid from "@/components/admin/tables/dataGrid";
 import { getErrorMessage } from "@/lib/helpers/handlers";
-import { Plus, Check, X, Edit2, Trash2, Layers, Search, Image as ImageIcon, UploadCloud } from "lucide-react";
-
-interface CategoryItem {
-  _id: string;
-  title: string;
-  image?: string;
-  status?: boolean;
-}
+import { Edit2, Trash2, Search, X, Image as ImageIcon, UploadCloud } from "lucide-react";
 
 interface OccasionItem {
   _id: string;
   title: string;
   image?: string;
-  categories: CategoryItem[];
-  cat_id?: CategoryItem;
   status: boolean;
   createdAt?: string;
 }
@@ -33,17 +23,11 @@ export default function OccasionPage() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // All available categories
-  const [allCategories, setAllCategories] = useState<CategoryItem[]>([]);
-  // Map of categoryId -> occasionTitle (categories already assigned to other occasions)
-  const [assignedMap, setAssignedMap] = useState<Record<string, string>>({});
-
-  // Editing state
+  // Form editing state
   const [editingId, setEditingId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
-  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [status, setStatus] = useState(true);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -62,30 +46,6 @@ export default function OccasionPage() {
     }
   }, [imageFile]);
 
-  // Fetch all categories for selector
-  const fetchAllCategories = useCallback(async () => {
-    try {
-      const res = await categoriesAPI.getAll({ page: 1, limit: 100 });
-      if (res?.code === "OK" && res.data) {
-        setAllCategories(res.data);
-      }
-    } catch (err) {
-      console.error("Failed to load categories:", err);
-    }
-  }, []);
-
-  // Fetch assigned categories map
-  const fetchAssignedCategories = useCallback(async (excludeId: string | null = null) => {
-    try {
-      const res = await occasionsAPI.getAssignedCategories(excludeId || undefined);
-      if (res?.code === "OK" && res.data?.assigned) {
-        setAssignedMap(res.data.assigned);
-      }
-    } catch (err) {
-      console.error("Failed to load assigned categories map:", err);
-    }
-  }, []);
-
   // Fetch occasions list
   const fetchOccasions = useCallback(async () => {
     setLoading(true);
@@ -103,13 +63,8 @@ export default function OccasionPage() {
   }, [lazyParams]);
 
   useEffect(() => {
-    fetchAllCategories();
-  }, [fetchAllCategories]);
-
-  useEffect(() => {
     fetchOccasions();
-    fetchAssignedCategories(editingId);
-  }, [fetchOccasions, fetchAssignedCategories, editingId]);
+  }, [fetchOccasions]);
 
   const resetForm = () => {
     setEditingId(null);
@@ -117,9 +72,7 @@ export default function OccasionPage() {
     setImageFile(null);
     setPreviewUrl("");
     if (fileInputRef.current) fileInputRef.current.value = "";
-    setSelectedCategoryIds([]);
     setStatus(true);
-    fetchAssignedCategories(null);
   };
 
   const handleStartEdit = (occ: OccasionItem) => {
@@ -128,23 +81,8 @@ export default function OccasionPage() {
     setImageFile(null);
     setPreviewUrl(occ.image || "");
     if (fileInputRef.current) fileInputRef.current.value = "";
-
-    const ids = (occ.categories || []).map((c) => c._id || (c as any));
-    if (ids.length === 0 && occ.cat_id) {
-      ids.push(occ.cat_id._id || (occ.cat_id as any));
-    }
-    setSelectedCategoryIds(ids);
     setStatus(occ.status !== false);
-    fetchAssignedCategories(occ._id);
     window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const handleToggleCategory = (catId: string) => {
-    if (selectedCategoryIds.includes(catId)) {
-      setSelectedCategoryIds((prev) => prev.filter((id) => id !== catId));
-    } else {
-      setSelectedCategoryIds((prev) => [...prev, catId]);
-    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -185,13 +123,6 @@ export default function OccasionPage() {
         payload.append("image", "");
       }
 
-      selectedCategoryIds.forEach((catId) => {
-        payload.append("categories", catId);
-      });
-      if (selectedCategoryIds.length > 0) {
-        payload.append("cat_id", selectedCategoryIds[0]);
-      }
-
       if (editingId) {
         await occasionsAPI.update(editingId, payload);
         toast.success("Occasion updated successfully!", { id: toastId });
@@ -202,7 +133,6 @@ export default function OccasionPage() {
 
       resetForm();
       fetchOccasions();
-      fetchAssignedCategories(null);
     } catch (error) {
       toast.error(getErrorMessage(error) || "Failed to save occasion", { id: toastId });
     } finally {
@@ -221,7 +151,6 @@ export default function OccasionPage() {
         setData((prev) => prev.filter((item) => item._id !== id));
         toast.success("Occasion deleted successfully");
         if (editingId === id) resetForm();
-        fetchAssignedCategories(null);
       }
     } catch (error) {
       toast.error(getErrorMessage(error) || "Failed to delete occasion");
@@ -246,7 +175,7 @@ export default function OccasionPage() {
     <div className="min-h-screen bg-slate-50">
       <PageHeader
         title="Occasions"
-        subtitle="Manage seasonal, festive & cultural occasions with images and assign them to products"
+        subtitle="Manage seasonal, festive & cultural occasions. Assign products directly to any occasion."
       />
 
       <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
@@ -257,8 +186,8 @@ export default function OccasionPage() {
               <h2 className="text-lg font-semibold text-slate-900">
                 {editingId ? "Edit Occasion" : "Create New Occasion"}
               </h2>
-              <p className="text-xs font-normal text-slate-500 mt-0.5">
-                Set occasion title (Required) and banner image (Optional). Products can be assigned to this occasion.
+              <p className="text-xs text-slate-500 mt-0.5">
+                Set occasion title (Required) and banner image (Optional). Products are assigned to occasions in the product form.
               </p>
             </div>
             {editingId && (
@@ -303,59 +232,6 @@ export default function OccasionPage() {
                     <span>Active on store (Display to customers)</span>
                   </label>
                 </div>
-
-                {/* Optional Categories Selector (if user wants to link categories as well) */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-xs font-medium text-slate-700">
-                      Link Categories <span className="text-slate-400 font-normal">(Optional - {selectedCategoryIds.length} selected)</span>
-                    </label>
-                    <span className="text-[11px] font-normal text-slate-400">
-                      Click to toggle linked categories
-                    </span>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-3 bg-slate-50 rounded-xl border border-slate-200/70">
-                    {allCategories.map((cat) => {
-                      const isSelected = selectedCategoryIds.includes(cat._id);
-                      const assignedToOther = assignedMap[cat._id];
-
-                      if (assignedToOther && !isSelected) {
-                        return (
-                          <span
-                            key={cat._id}
-                            title={`Already assigned to "${assignedToOther}"`}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-normal bg-slate-200/60 text-slate-400 border border-slate-200 cursor-not-allowed select-none"
-                          >
-                            <X size={12} className="text-slate-400" />
-                            <span>{cat.title}</span>
-                            <span className="text-[10px] text-slate-400 italic">({assignedToOther})</span>
-                          </span>
-                        );
-                      }
-
-                      return (
-                        <button
-                          key={cat._id}
-                          type="button"
-                          onClick={() => handleToggleCategory(cat._id)}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-normal border transition ${
-                            isSelected
-                              ? "bg-slate-900 text-white border-slate-900 shadow-xs"
-                              : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
-                          }`}
-                        >
-                          {isSelected ? <Check size={13} /> : <Plus size={13} className="text-slate-400" />}
-                          <span>{cat.title}</span>
-                        </button>
-                      );
-                    })}
-
-                    {allCategories.length === 0 && (
-                      <p className="text-xs font-normal text-slate-400 py-1">No categories available.</p>
-                    )}
-                  </div>
-                </div>
               </div>
 
               {/* Right Column: Image Upload (Optional) */}
@@ -363,9 +239,9 @@ export default function OccasionPage() {
                 <label className="text-xs font-medium text-slate-700 block mb-1">
                   Occasion Image <span className="text-slate-400 font-normal">(Optional)</span>
                 </label>
-                <div className="border-2 border-dashed border-slate-200 rounded-2xl p-4 text-center hover:border-slate-400 transition bg-slate-50 flex flex-col items-center justify-center min-h-[190px]">
+                <div className="border-2 border-dashed border-slate-200 rounded-2xl p-4 text-center hover:border-slate-400 transition bg-slate-50 flex flex-col items-center justify-center min-h-[170px]">
                   {previewUrl ? (
-                    <div className="relative w-full aspect-video max-h-40 rounded-xl overflow-hidden border border-slate-200 bg-white group">
+                    <div className="relative w-full aspect-video max-h-36 rounded-xl overflow-hidden border border-slate-200 bg-white group">
                       <img
                         src={previewUrl}
                         alt="Occasion Preview"
@@ -507,30 +383,6 @@ export default function OccasionPage() {
                     </div>
                   </div>
                 ),
-              },
-              {
-                key: "categories",
-                label: "Linked Categories",
-                render: (row) => {
-                  const cats = row.categories && row.categories.length > 0
-                    ? row.categories
-                    : row.cat_id ? [row.cat_id] : [];
-                  return (
-                    <div className="flex flex-wrap gap-1.5 max-w-md py-1">
-                      {cats.map((c, i) => (
-                        <span
-                          key={c._id || i}
-                          className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-normal bg-slate-100 text-slate-700 border border-slate-200"
-                        >
-                          {c.title || "Category"}
-                        </span>
-                      ))}
-                      {cats.length === 0 && (
-                        <span className="text-xs text-slate-400 italic">None</span>
-                      )}
-                    </div>
-                  );
-                },
               },
               {
                 key: "status",
