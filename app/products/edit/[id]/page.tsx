@@ -31,7 +31,7 @@ interface ProductFormData {
   commission_type?: "percentage" | "flat";
   weight: number;
   height: number;
-  breadth: number;    
+  breadth: number;
   length: number;
   metarial: {
     id: string;
@@ -271,8 +271,8 @@ export default function CreateProductPage() {
           commission_type: (product?.commission_type || product?.commission_Type || "percentage") as "percentage" | "flat",
           metarial: product?.materials
             ? product.materials.map((m: Material) => ({
-                id: m._id,
-              }))
+              id: m._id,
+            }))
             : [],
           variants: product?.variants || [],
           media: transformedMedia,
@@ -670,7 +670,7 @@ export default function CreateProductPage() {
                 className="w-full px-1 py-1 bg-slate-50 border-2 rounded-xl outline-none transition-all focus:bg-white border-transparent focus:border-indigo-600"
                 value={form.occasion_id || ""}
                 onChange={(val) => setForm({ ...form, occasion_id: val })}
-                placeholder="Select Occasion (Optional)"
+                placeholder="Select Occasion"
                 limit={10}
                 fetchOptions={({ page, limit, search }) =>
                   occasionsAPI.getAll({ page, limit, search })
@@ -790,8 +790,8 @@ export default function CreateProductPage() {
                     className="w-full px-4 py-2.5 bg-white border-2 border-purple-200 rounded-xl outline-none focus:border-purple-600 text-sm font-medium"
                   />
                   <p className="text-xs text-purple-600 mt-1">
-                    {form.commission_type === 'flat' 
-                      ? 'Flat commission amount in ₹ per item' 
+                    {form.commission_type === 'flat'
+                      ? 'Flat commission amount in ₹ per item'
                       : 'Commission percentage (%) of product price'}
                   </p>
                 </div>
