@@ -408,8 +408,8 @@ export default function ProductsPage() {
 
   const fetchCommon = useCallback(async () => {
     try {
-      const res = await commonAPI.getAll();
-      const raw = res?.data?.data;
+      const res: any = await commonAPI.getAll();
+      const raw = res?.data?.data || res?.data || res;
       setCommon({
         models: raw?.models || [],
         materials: raw?.materials || [],

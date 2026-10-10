@@ -309,12 +309,28 @@ export default function ProductsPage() {
       setLoading(true);
       try {
         console.log("Fetching products with params:", f);
-        let response = await productsAPI.getAll(buildParams(f, page));
-        response = response?.data;
-        if (response?.code === "OK") {
-          const enriched: EnrichedProduct[] = (
-            response?.data?.products || []
-          ).map((p: Product) => {
+        const response: any = await productsAPI.getAll(buildParams(f, page));
+        const resData = response?.data?.data || response?.data || response;
+        const rawProducts: any[] = Array.isArray(resData?.products)
+          ? resData.products
+          : Array.isArray(response?.data?.products)
+          ? response.data.products
+          : Array.isArray(resData)
+          ? resData
+          : Array.isArray(response?.products)
+          ? response.products
+          : [];
+
+        const isSuccess =
+          response?.code === "OK" ||
+          response?.data?.code === "OK" ||
+          response?.status === 200 ||
+          rawProducts.length > 0 ||
+          resData?.total !== undefined ||
+          response?.totalProducts !== undefined;
+
+        if (isSuccess) {
+          const enriched: EnrichedProduct[] = rawProducts.map((p: Product) => {
             const primaryMedia =
               (p.media || []).find((m: Media) => m.isPrimary) ||
               p.media?.[0] ||
@@ -335,13 +351,16 @@ export default function ProductsPage() {
             } as EnrichedProduct;
           });
           setProducts(enriched);
-          setTotalRecords(
+          const total =
+            resData?.total ??
+            resData?.totalProducts ??
+            response?.totalProducts ??
             response?.data?.total ??
-              response?.data?.totalProducts ??
-              enriched.length,
-          );
+            response?.data?.totalProducts ??
+            enriched.length;
+          setTotalRecords(total);
         } else {
-          toast.error(response?.message || "Failed to load products");
+          toast.error(response?.message || response?.data?.message || "Failed to load products");
           setProducts([]);
           setTotalRecords(0);
         }
@@ -394,8 +413,8 @@ export default function ProductsPage() {
 
   const fetchCommon = useCallback(async () => {
     try {
-      const res = await commonAPI.getAll();
-      const raw = res?.data?.data;
+      const res: any = await commonAPI.getAll();
+      const raw = res?.data?.data || res?.data || res;
       setCommon({
         models: raw?.models || [],
         materials: raw?.materials || [],

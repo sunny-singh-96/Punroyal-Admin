@@ -44,7 +44,36 @@ export const http = {
       }
 
       const response = await api.post(concatUrl(endpoint), data, config);
-      return (response?.data !== undefined ? response.data : response) as unknown as T;
+      const resData: any = response?.data !== undefined ? response.data : response;
+
+      // Compatibility bridge:
+      // If resData is an API response object (e.g. { code: 'OK', data: [...] }),
+      // ensure callers expecting Axios-like response.data?.data or res.data work without breaking.
+      if (resData && typeof resData === 'object') {
+        const inner = resData.data;
+        if (inner && (typeof inner === 'object' || Array.isArray(inner))) {
+          if (!('data' in inner)) {
+            try {
+              Object.defineProperty(inner, 'data', {
+                value: inner,
+                enumerable: false,
+                configurable: true,
+              });
+            } catch (_) {}
+          }
+          if (!('code' in inner) && resData.code) {
+            try {
+              Object.defineProperty(inner, 'code', {
+                value: resData.code,
+                enumerable: false,
+                configurable: true,
+              });
+            } catch (_) {}
+          }
+        }
+      }
+
+      return resData as unknown as T;
     } catch (error: any) {
       if (!requireAuth) {
         return error.response?.data || { message: 'Request failed' };

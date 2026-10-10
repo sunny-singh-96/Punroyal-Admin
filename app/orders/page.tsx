@@ -110,10 +110,19 @@ export default function AdminOrderMaster() {
 
   const fetchOrders = useCallback(async () => {
     try {
-      const response = await orderAPI.getAll(lazyParams, searchTerm, statusFilter, dateRange);
-      if (response?.code === "OK") {
-        setData(response?.data?.data || []);
-        setTotalRecords(response?.data?.totalRecords || 0);
+      const response: any = await orderAPI.getAll(lazyParams, searchTerm, statusFilter, dateRange);
+      const resData = response?.data?.data || response?.data || response;
+      const list = Array.isArray(resData?.data)
+        ? resData.data
+        : Array.isArray(resData?.orders)
+        ? resData.orders
+        : Array.isArray(resData)
+        ? resData
+        : [];
+      const total = response?.data?.totalRecords || resData?.totalRecords || response?.totalRecords || list.length;
+      if (response?.code === "OK" || response?.status === 200 || Array.isArray(list)) {
+        setData(list);
+        setTotalRecords(total);
       }
     } catch (error) {
       toast.error(getErrorMessage(error));

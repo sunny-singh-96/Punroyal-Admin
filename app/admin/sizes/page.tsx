@@ -40,10 +40,19 @@ export default function SizesPage() {
   const fetchSizes = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await sizesAPI.getAll(lazyParams);
-      if (response?.code === "OK" || response?.data) {
-        setData(response.data?.data || []);
-        setTotalRecords(response.data?.data?.length || 0);
+      const response: any = await sizesAPI.getAll(lazyParams);
+      const resData = response?.data?.data || response?.data || response;
+      const list = Array.isArray(resData?.data)
+        ? resData.data
+        : Array.isArray(resData)
+        ? resData
+        : Array.isArray(response?.data)
+        ? response.data
+        : [];
+      const total = response?.totalRecords || response?.data?.totalRecords || resData?.totalRecords || list.length;
+      if (response?.code === "OK" || response?.status === 200 || Array.isArray(list)) {
+        setData(list);
+        setTotalRecords(total);
       }
     } catch (error) {
       toast.error(getErrorMessage(error));
@@ -65,10 +74,10 @@ export default function SizesPage() {
     const toastId = toast.loading("Creating...");
     try {
       setLoading(true);
-      const response = await sizesAPI.create({
+      const response: any = await sizesAPI.create({
         name: formData.name,
       });
-      if (response?.data?.code === "OK" || response?.code === "OK") {
+      if (response?.data?.code === "OK" || response?.code === "OK" || response?.status === 200 || response?._id || response?.data?._id) {
         setFormData({ name: "", status: true });
         setReload(!reload);
         toast.success(`Size created successfully!`, { id: toastId });
@@ -87,8 +96,8 @@ export default function SizesPage() {
     
     try {
       setLoading(true);
-      const response = await sizesAPI.delete(id);
-      if (response?.code === "OK" || response?.data?.code === "OK") {
+      const response: any = await sizesAPI.delete(id);
+      if (response?.code === "OK" || response?.data?.code === "OK" || response?.status === 200 || response?.success) {
         setData((prev) => prev.filter((item) => item._id !== id));
         toast.success("Size deleted successfully!");
       }

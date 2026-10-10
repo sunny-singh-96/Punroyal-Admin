@@ -291,9 +291,15 @@ export default function CreateProductPage() {
 
   const fetchCommon = useCallback(async () => {
     try {
-      const response = await commonAPI.getAll();
-      if (response?.data?.code === "OK") {
-        setCommon(response?.data?.data || []);
+      const response: any = await commonAPI.getAll();
+      const raw = response?.data?.data || response?.data || response;
+      if (raw?.models || raw?.colors || raw?.materials || raw?.sizes || response?.code === "OK" || response?.data?.code === "OK") {
+        setCommon({
+          models: raw?.models || [],
+          materials: raw?.materials || [],
+          sizes: raw?.sizes || [],
+          colors: raw?.colors || [],
+        });
       }
     } catch (error) {
       toast.error(getErrorMessage(error));
