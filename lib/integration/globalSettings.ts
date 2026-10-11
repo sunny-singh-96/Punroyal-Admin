@@ -8,7 +8,13 @@ export const globalSettingsAPI = {
   adminGet: async () => {
     return http.get(ENDPOINTS.GLOBAL_SETTINGS.ADMIN_GET);
   },
-  update: async (data: FormData | any) => {
-    return http.put(ENDPOINTS.GLOBAL_SETTINGS.UPDATE, data);
+  update: async (data: FormData | Record<string, unknown>) => {
+    return http.put(
+      ENDPOINTS.GLOBAL_SETTINGS.UPDATE,
+      data,
+      data instanceof FormData
+        ? { headers: { "Content-Type": "multipart/form-data" } }
+        : undefined
+    );
   },
 };

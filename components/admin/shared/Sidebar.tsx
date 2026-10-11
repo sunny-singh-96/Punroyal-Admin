@@ -87,8 +87,10 @@ const menuItems = [
   {
     name: "Newsletters",
     icon: Mail,
-    path: "/newsletters",
-    badgeKey: "newsletters" as const,
+    children: [
+      { name: "Subscribers", path: "/newsletters" },
+      { name: "Signup Section", path: "/newsletter-settings" },
+    ],
   },
   {
     name: "FAQs",
@@ -318,12 +320,21 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                         {item.name}
                       </div>
 
-                      <ChevronRight
-                        size={16}
-                        className={`transition-transform ${
-                          isOpen ? "rotate-90" : ""
-                        }`}
-                      />
+                      <div className="flex items-center gap-2">
+                        {item.name === "Newsletters" && subscriberCount > 0 && (
+                          <span className={`min-w-[20px] h-5 flex items-center justify-center text-[10px] font-bold rounded-full px-1.5 ${
+                            isParentActive ? "bg-white text-blue-600" : "bg-blue-500 text-white"
+                          }`}>
+                            {subscriberCount > 999 ? "999+" : subscriberCount}
+                          </span>
+                        )}
+                        <ChevronRight
+                          size={16}
+                          className={`transition-transform ${
+                            isOpen ? "rotate-90" : ""
+                          }`}
+                        />
+                      </div>
                     </div>
                   ) : (
                     // 👉 ✅ FIX: LINK ADDED HERE
