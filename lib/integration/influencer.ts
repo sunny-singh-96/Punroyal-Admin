@@ -105,6 +105,10 @@ export const influencerAPI = {
     return http.post(ENDPOINTS.INFLUENCER.REGISTER, data, {}, false);
   },
 
+  async changePassword(data: { currentPassword: string; newPassword: string }) {
+    return http.post(ENDPOINTS.INFLUENCER.CHANGE_PASSWORD, data);
+  },
+
   // Influencer Dashboard Stats
   async getDashboardStats(params?: InfluencerDateFilterParams) {
     const query = new URLSearchParams();

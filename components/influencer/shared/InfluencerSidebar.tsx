@@ -124,9 +124,14 @@ export default function InfluencerSidebar({ isOpen, setIsOpen }: SidebarProps) {
           <div className="p-4 border-t space-y-2">
             <Link
               href="/influencer/settings"
-              className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-100"
+              onClick={() => setIsOpen(false)}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition ${
+                pathname === "/influencer/settings"
+                  ? "bg-blue-600 text-white"
+                  : "text-slate-600 hover:bg-slate-100"
+              }`}
             >
-              <Settings size={18} /> Settings
+              <Settings size={18} /> <span>Settings</span>
             </Link>
 
             <button

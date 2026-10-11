@@ -70,6 +70,7 @@ export const ENDPOINTS = {
     INFLUENCER: {
         LOGIN: '/auth/influencer-login',
         REGISTER: '/auth/influencer-register',
+        CHANGE_PASSWORD: '/auth/influencer/change-password',
         DASHBOARD: '/influencer/dashboard',
         SALES: '/influencer/sales',
         UPLOAD_VIDEO: '/influencer/admin/upload-video',
