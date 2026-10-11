@@ -12,6 +12,7 @@ interface ModelData {
   username?: string;
   password?: string;
   status?: boolean;
+  role_label?: string;
 }
 
 export const modelsAPI = {
@@ -45,7 +46,8 @@ export const modelsAPI = {
       data: {
         name: data.name,
         username: data.username,
-        password: data.password
+        password: data.password,
+        role_label: data.role_label,
       }
     });
   },

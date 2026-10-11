@@ -21,6 +21,7 @@ type Influencers = {
   auth_created?: boolean;
   video?: string;
   order?: number;
+  role_label?: string;
 };
 
 export default function ModelsPage() {
@@ -30,9 +31,10 @@ export default function ModelsPage() {
   const [loading, setLoading] = useState(false);
   const [reload, setReload] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalType, setModalType] = useState<'MODEL' | 'AUTH' | 'EDIT_VIDEO'>('MODEL');
+  const [modalType, setModalType] = useState<'MODEL' | 'AUTH' | 'EDIT_VIDEO' | 'EDIT_LABEL'>('MODEL');
   const [selectedRow, setSelectedRow] = useState<Influencers | null>(null);
   const [registeredAuthIds, setRegisteredAuthIds] = useState<string[]>([]);
+  const [roleLabel, setRoleLabel] = useState('');
 
   const [formData, setFormData] = useState({
     name: "",
@@ -123,6 +125,30 @@ export default function ModelsPage() {
 
   // ✅ Create influencer, Auth, or Update Video
   const handleSave = async () => {
+    if (modalType === 'EDIT_LABEL') {
+      if (!selectedRow?._id) return;
+      const toastId = toast.loading("Saving influencer label...");
+      try {
+        setLoading(true);
+        const response = await modelsAPI.update(selectedRow._id, { role_label: roleLabel.trim() });
+        if (response?.code !== "OK" && response?.data?.code !== "OK") {
+          throw new Error(response?.message || response?.data?.message || "Failed to update influencer label.");
+        }
+        setData((prev) =>
+          prev.map((item) =>
+            item._id === selectedRow._id ? { ...item, role_label: roleLabel.trim() } : item
+          )
+        );
+        setIsModalOpen(false);
+        toast.success("Influencer label updated successfully!", { id: toastId });
+      } catch (error) {
+        toast.error(getErrorMessage(error), { id: toastId });
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     if (modalType === 'EDIT_VIDEO') {
       if (!selectedRow?._id) return;
       if (!videoFile && !videoPreview) {
@@ -182,10 +208,12 @@ export default function ModelsPage() {
         const response = await modelsAPI.create({
           name: formData.name,
           username: '',
-          password: ''
+          password: '',
+          role_label: roleLabel.trim(),
         });
         if (response?.data?.code === "OK" || response?.code === "OK") {
           setFormData({ name: "", username: "", password: "", status: true });
+          setRoleLabel('');
           setIsModalOpen(false);
           setReload(!reload);
           toast.success(`Influencer created successfully!`, { id: toastId });
@@ -293,6 +321,7 @@ export default function ModelsPage() {
             onClick={() => {
               setModalType('MODEL');
               setFormData({ name: "", username: "", password: "", status: true });
+              setRoleLabel('');
               setErrors({});
               setIsModalOpen(true);
             }}
@@ -310,13 +339,50 @@ export default function ModelsPage() {
           title={
             modalType === 'EDIT_VIDEO'
               ? `Edit Influencer Video - ${selectedRow?.name}`
-              : modalType === 'AUTH'
-                ? 'Register Auth'
-                : 'Create Influencer'
+              : modalType === 'EDIT_LABEL'
+                ? `Edit Influencer Label - ${selectedRow?.name}`
+                : modalType === 'AUTH'
+                  ? 'Register Auth'
+                  : 'Create Influencer'
           }
           type="custom"
         >
-          {modalType === 'EDIT_VIDEO' ? (
+          {modalType === 'EDIT_LABEL' ? (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Influencer Label
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g., Verified Influencer"
+                  value={roleLabel}
+                  onChange={(e) => setRoleLabel(e.target.value)}
+                  maxLength={60}
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
+                />
+                <p className="text-xs text-slate-500 mt-1">Leave blank to show the default label.</p>
+              </div>
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  disabled={loading}
+                  className="px-5 py-2 border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={loading}
+                  className="px-5 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold shadow-md hover:bg-blue-700 transition-all disabled:opacity-50"
+                >
+                  {loading ? "Saving..." : "Save Label"}
+                </button>
+              </div>
+            </div>
+          ) : modalType === 'EDIT_VIDEO' ? (
             <div className="space-y-3">
               <div className="flex items-center justify-between px-3.5 py-2 bg-slate-50 rounded-xl border border-slate-200">
                 <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Influencer</span>
@@ -388,6 +454,7 @@ export default function ModelsPage() {
                         </button>
                       )}
                     </div>
+
                     <div className="flex justify-center bg-black rounded-lg overflow-hidden h-44 max-h-44">
                       <video
                         src={videoPreview}
@@ -455,6 +522,22 @@ export default function ModelsPage() {
                   <p className="text-xs text-red-500 mt-1">{errors.name}</p>
                 )}
               </div>
+
+              {modalType === 'MODEL' && (
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Influencer Label
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g., Verified Influencer"
+                    value={roleLabel}
+                    onChange={(e) => setRoleLabel(e.target.value)}
+                    maxLength={60}
+                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
+                  />
+                </div>
+              )}
               
               {modalType === 'AUTH' && (
                 <>
@@ -568,6 +651,18 @@ export default function ModelsPage() {
                 label: "Actions",
                 render: (row: Influencers) => (
                   <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        setSelectedRow(row);
+                        setRoleLabel(row.role_label || '');
+                        setModalType('EDIT_LABEL');
+                        setIsModalOpen(true);
+                      }}
+                      className="bg-slate-600 text-white px-3 py-1 rounded-md hover:bg-slate-700 transition text-sm flex items-center gap-1 font-medium shadow-sm"
+                      title="Edit Influencer Label"
+                    >
+                      <Edit3 size={13} /> Label
+                    </button>
                     <button
                       onClick={() => handleEdit(row)}
                       className="bg-amber-500 text-white px-3 py-1 rounded-md hover:bg-amber-600 transition text-sm flex items-center gap-1 font-medium shadow-sm"
