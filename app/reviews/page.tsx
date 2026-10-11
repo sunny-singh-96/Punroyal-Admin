@@ -157,8 +157,13 @@ export default function AdminReviewsPage() {
                           <p className="text-xs text-slate-400 truncate max-w-[160px]">{rev.customer_email}</p>
                         )}
                       </td>
-                      <td className="py-3 px-4 font-medium text-slate-700 max-w-[180px] truncate" title={rev.product_name}>
-                        {rev.product_name}
+                      <td className="py-3 px-4 max-w-[180px]">
+                        <p className="font-medium text-slate-700 truncate" title={rev.product_name}>
+                          {rev.product_name}
+                        </p>
+                        <p className="text-[10px] font-mono text-slate-400 truncate" title={rev.product_id}>
+                          ID: {rev.product_id}
+                        </p>
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-0.5">{renderStars(rev.stars)}</div>
@@ -263,6 +268,7 @@ export default function AdminReviewsPage() {
             <div>
               <p className="text-[10px] font-bold uppercase text-slate-400">Product</p>
               <p className="font-semibold text-slate-900">{selectedReview.product_name}</p>
+              <p className="text-xs font-mono text-slate-500 break-all">Product ID: {selectedReview.product_id}</p>
             </div>
             <div>
               <p className="text-[10px] font-bold uppercase text-slate-400">Rating</p>
