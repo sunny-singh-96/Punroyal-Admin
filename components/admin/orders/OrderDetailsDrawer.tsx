@@ -93,7 +93,13 @@ export default function OrderDetailsDrawer({
               <div className="flex gap-2">
                 <button
                   onClick={() => onPrint(displayOrder)}  // pass detailed order
-                  className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition"
+                  disabled={displayOrder.order_status === 'cancelled' || displayOrder.order_status === 'returned'}
+                  className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition ${
+                    displayOrder.order_status === 'cancelled' || displayOrder.order_status === 'returned'
+                      ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-60'
+                      : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-700'
+                  }`}
+                  title={displayOrder.order_status === 'cancelled' || displayOrder.order_status === 'returned' ? 'Invoice unavailable for cancelled or returned orders' : 'Print Invoice'}
                 >
                   <Printer size={16} /> Print Invoice
                 </button>
