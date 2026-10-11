@@ -858,7 +858,7 @@ function ColorVariantsSection({
                     onClick={() => onProductTypeChange("sizes")}
                     className="mt-3 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold hover:bg-indigo-100 transition-all border border-indigo-200"
                   >
-                    Switch to Readymade
+                    Switch to Ready-Made
                   </button>
                 )}
               </div>
@@ -867,7 +867,7 @@ function ColorVariantsSection({
                 <Ruler size={24} className="text-slate-400 mb-2" />
                 <h4 className="text-xs font-bold text-slate-700">Select Product Type</h4>
                 <p className="text-[11px] text-slate-400 max-w-xs mt-1">
-                  Please select Product Type (Readymade or Unstitched) in Basic Details above to configure sizes.
+                  Please select Product Type (Ready-Made or Unstitched) in Basic Details above to configure sizes.
                 </p>
               </div>
             )}
@@ -880,4 +880,3 @@ function ColorVariantsSection({
 }
 
 export default memo(ColorVariantsSection);
-

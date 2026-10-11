@@ -616,7 +616,7 @@ export default function CreateProductPage() {
                 className={`w-full px-4 py-3 bg-slate-50 border-2 rounded-xl outline-none transition-all focus:bg-white ${hasError("product_type") ? "border-red-500 bg-red-50" : "border-transparent focus:border-indigo-600"}`}
               >
                 <option value="">Select</option>
-                <option value="sizes">Readymade</option>
+                <option value="sizes">Ready-Made</option>
                 <option value="no_sizes">Unstitched</option>
               </select>
               {hasError("product_type") && (
