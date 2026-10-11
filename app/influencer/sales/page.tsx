@@ -33,6 +33,7 @@ import { storageUtils } from "@/lib/storage";
 import { influencerAPI, InfluencerSaleItem } from "@/lib/integration/influencer";
 import { getErrorMessage } from "@/lib/helpers/handlers";
 import Modal from "@/components/admin/shared/Modal";
+import PayoutDetailsModal from "@/components/influencer/PayoutDetailsModal";
 
 interface SalesSummary {
   totalSalesCount?: number;
@@ -67,6 +68,7 @@ export default function InfluencerSalesPage() {
   // Modal State
   const [selectedSale, setSelectedSale] = useState<InfluencerSaleItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [payoutModalSale, setPayoutModalSale] = useState<InfluencerSaleItem | null>(null);
 
   // Currency Formatter
   const formatINR = (num: number) => {
@@ -392,6 +394,7 @@ export default function InfluencerSalesPage() {
                       <th className="py-3.5 px-4">Commission Rate</th>
                       <th className="py-3.5 px-4 text-right">Commission Earned</th>
                       <th className="py-3.5 px-4 text-center">Commission Status</th>
+                      <th className="py-3.5 px-4 text-center">Payment Status</th>
                       <th className="py-3.5 px-4 text-center">Action</th>
                     </tr>
                   </thead>
@@ -487,6 +490,26 @@ export default function InfluencerSalesPage() {
                           </span>
                         </td>
 
+                        {/* Payment Status (payout to influencer) */}
+                        <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                          {item.payout_status === "Paid" ? (
+                            <button
+                              type="button"
+                              onClick={() => setPayoutModalSale(item)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition"
+                              title="View payment receipt and notes"
+                            >
+                              <CheckCircle2 size={12} />
+                              Paid
+                            </button>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                              <Clock size={12} />
+                              Unpaid
+                            </span>
+                          )}
+                        </td>
+
                         {/* Action */}
                         <td className="py-3.5 px-4 text-center whitespace-nowrap">
                           <button
@@ -542,6 +565,15 @@ export default function InfluencerSalesPage() {
               </div>
             )}
           </div>
+
+      <PayoutDetailsModal
+        isOpen={Boolean(payoutModalSale)}
+        onClose={() => setPayoutModalSale(null)}
+        orderNumber={payoutModalSale?.order_number}
+        payoutReceiptUrl={payoutModalSale?.payout_receipt_url}
+        payoutNotes={payoutModalSale?.payout_notes}
+        payoutAt={payoutModalSale?.payout_at}
+      />
 
       {/* Order Details Modal */}
       {isModalOpen && selectedSale && (

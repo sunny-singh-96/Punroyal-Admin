@@ -10,11 +10,13 @@ import DataGrid from "@/components/admin/tables/dataGrid";
 import Modal from "@/components/admin/shared/Modal";
 import { ModelsError } from "@/validations/models";
 import { getErrorMessage } from "@/lib/helpers/handlers";
-import { UploadCloud, Video, Edit3 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { UploadCloud, Video, Edit3, Wallet, Copy, Check } from "lucide-react";
 
 type Influencers = {
   _id: string;
   name: string;
+  username?: string;
   status: boolean;
   auth_created?: boolean;
   video?: string;
@@ -22,6 +24,7 @@ type Influencers = {
 };
 
 export default function ModelsPage() {
+  const router = useRouter();
   const [data, setData] = useState<Influencers[]>([]);
   const [totalRecords, setTotalRecords] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -46,6 +49,19 @@ export default function ModelsPage() {
   const MAX_VIDEO_SIZE_BYTES = MAX_VIDEO_SIZE_MB * 1024 * 1024;
 
   const [errors, setErrors] = useState<ModelsError>({});
+  const [copiedUsernameId, setCopiedUsernameId] = useState<string | null>(null);
+
+  const copyUsername = async (row: Influencers) => {
+    if (!row.username) return;
+    try {
+      await navigator.clipboard.writeText(row.username);
+      setCopiedUsernameId(row._id);
+      toast.success("Username copied to clipboard");
+      setTimeout(() => setCopiedUsernameId(null), 2000);
+    } catch {
+      toast.error("Could not copy username");
+    }
+  };
 
   const initialParams = {
     page: 1,
@@ -508,6 +524,31 @@ export default function ModelsPage() {
                 ),
               },
               {
+                key: "username",
+                label: "Username",
+                render: (row: Influencers) => (
+                  row.username ? (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-mono text-slate-600">@{row.username}</span>
+                      <button
+                        type="button"
+                        onClick={() => copyUsername(row)}
+                        className="p-1 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-100 transition"
+                        title="Copy username"
+                      >
+                        {copiedUsernameId === row._id ? (
+                          <Check size={14} className="text-emerald-600" />
+                        ) : (
+                          <Copy size={14} />
+                        )}
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="text-slate-400 italic text-xs">Not set</span>
+                  )
+                ),
+              },
+              {
                 key: "status",
                 label: "Status",
                 render: (row: Influencers) => (
@@ -540,6 +581,13 @@ export default function ModelsPage() {
                       className={`px-3 py-1 rounded-md transition text-sm ${row.auth_created || registeredAuthIds.includes(row._id) ? 'bg-gray-400 text-white cursor-not-allowed' : 'bg-blue-500 text-white hover:bg-blue-600'}`}
                     >
                       {row.auth_created || registeredAuthIds.includes(row._id) ? 'Auth Created' : 'Create Auth'}
+                    </button>
+                    <button
+                      onClick={() => router.push(`/admin/influencers/${row._id}/payments`)}
+                      className="bg-indigo-600 text-white px-3 py-1 rounded-md hover:bg-indigo-700 transition text-sm flex items-center gap-1 font-medium shadow-sm"
+                      title="Manage influencer payments"
+                    >
+                      <Wallet size={13} /> Payments
                     </button>
                     <button
                       onClick={() => {

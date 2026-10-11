@@ -24,6 +24,7 @@ import {
   Search,
   SlidersHorizontal,
   X,
+  CheckCircle2,
 } from "lucide-react";
 import { format, subDays, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import toast from "react-hot-toast";
@@ -32,6 +33,7 @@ import { logoutUser } from "@/lib/middleware/auth";
 import { influencerAPI, InfluencerDashboardData, InfluencerSaleItem } from "@/lib/integration/influencer";
 import { getErrorMessage } from "@/lib/helpers/handlers";
 import Modal from "@/components/admin/shared/Modal";
+import PayoutDetailsModal from "@/components/influencer/PayoutDetailsModal";
 
 export default function InfluencerDashboardPage() {
   const router = useRouter();
@@ -60,6 +62,7 @@ export default function InfluencerDashboardPage() {
   // Product View Modal State
   const [selectedProduct, setSelectedProduct] = useState<InfluencerSaleItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [payoutModalSale, setPayoutModalSale] = useState<InfluencerSaleItem | null>(null);
 
   // Currency Formatter
   const formatINR = (num: number) => {
@@ -509,6 +512,7 @@ export default function InfluencerDashboardPage() {
                     <th className="py-3.5 px-6 text-right">Sale Amount</th>
                     <th className="py-3.5 px-6 text-right">Commission</th>
                     <th className="py-3.5 px-6 text-center">Commission Status</th>
+                    <th className="py-3.5 px-6 text-center">Payment Status</th>
                     <th className="py-3.5 px-6 text-center">Order Status</th>
                   </tr>
                 </thead>
@@ -610,6 +614,23 @@ export default function InfluencerDashboardPage() {
                         </span>
                       </td>
 
+                      {/* PAYMENT STATUS */}
+                      <td className="py-4 px-6 text-center">
+                        {item.payout_status === "Paid" ? (
+                          <button
+                            type="button"
+                            onClick={() => setPayoutModalSale(item)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-full border bg-blue-50 text-blue-700 border-blue-200/70 hover:bg-blue-100 transition uppercase tracking-wider"
+                          >
+                            <CheckCircle2 size={12} /> Paid
+                          </button>
+                        ) : (
+                          <span className="inline-block px-2.5 py-1 text-[11px] font-bold rounded-full border bg-slate-100 text-slate-600 border-slate-200 uppercase tracking-wider">
+                            Unpaid
+                          </span>
+                        )}
+                      </td>
+
                       {/* ORDER STATUS */}
                       <td className="py-4 px-6 text-center">
                         <span className="inline-block px-2.5 py-1 text-[11px] font-semibold rounded-full bg-slate-100 text-slate-700 border border-slate-200/60 uppercase tracking-wider">
@@ -649,6 +670,15 @@ export default function InfluencerDashboardPage() {
           )}
         </section>
       </main>
+
+      <PayoutDetailsModal
+        isOpen={Boolean(payoutModalSale)}
+        onClose={() => setPayoutModalSale(null)}
+        orderNumber={payoutModalSale?.order_number}
+        payoutReceiptUrl={payoutModalSale?.payout_receipt_url}
+        payoutNotes={payoutModalSale?.payout_notes}
+        payoutAt={payoutModalSale?.payout_at}
+      />
 
       {/* ======================================================= */}
       {/* PRODUCT DETAILS MODAL */}

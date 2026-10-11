@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Package,
   ShoppingCart,
+  Wallet,
   Settings,
   X,
   LogOut,
@@ -33,6 +34,11 @@ const menuItems = [
     name: "Sales",
     icon: ShoppingCart,
     path: "/influencer/sales",
+  },
+  {
+    name: "Get Paid",
+    icon: Wallet,
+    path: "/influencer/get-paid",
   },
 ];
 

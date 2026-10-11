@@ -17,7 +17,9 @@ import {
   HelpCircle,
   Quote,
   FileText,
-  Settings
+  Settings,
+  Tag,
+  Star,
 } from "lucide-react";
 import { orderAPI } from "@/lib/integration/orders";
 import { enquiryAPI } from "@/lib/integration/enquiry";
@@ -102,6 +104,11 @@ const menuItems = [
     ],
   },
   {
+    name: "Reviews",
+    icon: Star,
+    path: "/reviews",
+  },
+  {
     name: "Inventory",
     icon: Boxes,
     path: "/inventory",
@@ -149,11 +156,11 @@ const menuItems = [
     icon: Settings,
     path: "/settings",
   },
-  // {
-  //   name: "Coupons",
-  //   icon: Tag,
-  //   path: "/coupons",
-  // },
+  {
+    name: "Coupons",
+    icon: Tag,
+    path: "/coupons",
+  },
   // {
   //   name: "Queries",
   //   icon: MessageSquare,

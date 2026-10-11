@@ -72,7 +72,10 @@ export const ENDPOINTS = {
         REGISTER: '/auth/influencer-register',
         DASHBOARD: '/influencer/dashboard',
         SALES: '/influencer/sales',
-        UPLOAD_VIDEO: '/influencer/admin/upload-video'
+        UPLOAD_VIDEO: '/influencer/admin/upload-video',
+        PAYMENT_DETAILS: '/influencer/payment-settings',
+        PAYMENT_QR_CODE: '/influencer/payment-settings/qr-code',
+        MARK_PAID: '/influencer/admin/mark-paid',
     },
     FREELANCER: {
         ASSIGN: '/freelancer/assign',
@@ -111,6 +114,19 @@ export const ENDPOINTS = {
         ADD: '/faq/admin/faq/add',
         UPDATE: '/faq/admin/faq/update',
         DELETE: '/faq/admin/faq/delete'
+    },
+    REVIEW: {
+        ADMIN_LIST: '/review/admin/list',
+        ADMIN_GET: '/review/admin',
+        ADMIN_VISIBILITY: '/review/admin',
+        ADMIN_DELETE: '/review/admin/delete',
+    },
+    COUPON: {
+        LIST: '/coupons/admin/coupon/list',
+        GET: '/coupons/admin/coupon',
+        ADD: '/coupons/admin/coupon/add',
+        UPDATE: '/coupons/admin/coupon/update',
+        DELETE: '/coupons/admin/coupon/delete'
     },
     ABOUT_US: {
         GET: '/about-us/admin/about-us',

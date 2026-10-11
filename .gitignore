@@ -27,3 +27,7 @@ Thumbs.db
 .idea/
 *.tsbuildinfo
 
+# Archives
+*.zip
+*.tar.gz
+*.rar

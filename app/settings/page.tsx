@@ -18,10 +18,13 @@ import {
   Phone,
   MapPin,
   Share2,
-  ExternalLink
+  ExternalLink,
+  Megaphone,
+  Tag
 } from "lucide-react";
 import PageHeader from "@/components/admin/head/head";
 import { globalSettingsAPI } from "@/lib/integration/globalSettings";
+import { couponsAPI } from "@/lib/integration/coupons";
 
 interface FooterLink {
   name: string;
@@ -33,6 +36,12 @@ interface SocialLinks {
   instagram: string;
   youtube: string;
   whatsapp: string;
+  twitter: string;
+}
+
+interface CouponOption {
+  _id: string;
+  couponName: string;
 }
 
 export default function SettingsPage() {
@@ -43,6 +52,7 @@ export default function SettingsPage() {
   const [headerLogo, setHeaderLogo] = useState("");
   const [footerLogo, setFooterLogo] = useState("");
   const [favicon, setFavicon] = useState("");
+  const [newsletterImage, setNewsletterImage] = useState("");
   const [footerDescription, setFooterDescription] = useState("");
   const [footerLinks, setFooterLinks] = useState<FooterLink[]>([
     { name: "About", link: "/about" },
@@ -60,17 +70,36 @@ export default function SettingsPage() {
     instagram: "",
     youtube: "",
     whatsapp: "",
+    twitter: "",
   });
+  const [topbarMessages, setTopbarMessages] = useState<string[]>([]);
+  const [couponHighlight, setCouponHighlight] = useState("");
+  const [couponOptions, setCouponOptions] = useState<CouponOption[]>([]);
 
   // File uploads
   const [headerLogoFile, setHeaderLogoFile] = useState<File | null>(null);
   const [footerLogoFile, setFooterLogoFile] = useState<File | null>(null);
   const [faviconFile, setFaviconFile] = useState<File | null>(null);
+  const [newsletterImageFile, setNewsletterImageFile] = useState<File | null>(null);
 
   // File previews
   const [headerLogoPreview, setHeaderLogoPreview] = useState("");
   const [footerLogoPreview, setFooterLogoPreview] = useState("");
   const [faviconPreview, setFaviconPreview] = useState("");
+  const [newsletterImagePreview, setNewsletterImagePreview] = useState("");
+
+  const fetchCoupons = useCallback(async () => {
+    try {
+      const res: any = await couponsAPI.getAll({ page: 1, limit: 200, search: "" });
+      if (res?.code === "OK" && Array.isArray(res.data)) {
+        setCouponOptions(
+          res.data.map((c: CouponOption) => ({ _id: c._id, couponName: c.couponName }))
+        );
+      }
+    } catch {
+      // non-blocking; dropdown stays empty
+    }
+  }, []);
 
   const fetchSettings = useCallback(async () => {
     try {
@@ -81,6 +110,7 @@ export default function SettingsPage() {
       if (data.header_logo) setHeaderLogo(data.header_logo);
       if (data.footer_logo) setFooterLogo(data.footer_logo);
       if (data.favicon) setFavicon(data.favicon);
+      if (data.newsletter_image !== undefined) setNewsletterImage(data.newsletter_image || "");
       if (data.footer_description) setFooterDescription(data.footer_description);
       if (Array.isArray(data.footer_links) && data.footer_links.length > 0) {
         setFooterLinks(data.footer_links);
@@ -95,7 +125,23 @@ export default function SettingsPage() {
           instagram: data.social_links.instagram || "",
           youtube: data.social_links.youtube || "",
           whatsapp: data.social_links.whatsapp || "",
+          twitter: data.social_links.twitter || "",
         });
+      }
+      if (Array.isArray(data.topbar_messages) && data.topbar_messages.length > 0) {
+        setTopbarMessages(data.topbar_messages);
+      } else if (data.topbar && String(data.topbar).trim()) {
+        setTopbarMessages([String(data.topbar).trim()]);
+      } else {
+        setTopbarMessages([]);
+      }
+      const highlight = data.coupon_highlight;
+      if (highlight && typeof highlight === "object" && highlight._id) {
+        setCouponHighlight(highlight._id);
+      } else if (typeof highlight === "string") {
+        setCouponHighlight(highlight);
+      } else {
+        setCouponHighlight("");
       }
     } catch (err: any) {
       toast.error(err?.response?.data?.message || err?.message || "Failed to load global settings");
@@ -106,7 +152,8 @@ export default function SettingsPage() {
 
   useEffect(() => {
     fetchSettings();
-  }, [fetchSettings]);
+    fetchCoupons();
+  }, [fetchSettings, fetchCoupons]);
 
   // Handle file selections
   const handleHeaderLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -130,6 +177,14 @@ export default function SettingsPage() {
     if (file) {
       setFaviconFile(file);
       setFaviconPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleNewsletterImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setNewsletterImageFile(file);
+      setNewsletterImagePreview(URL.createObjectURL(file));
     }
   };
 
@@ -170,6 +225,38 @@ export default function SettingsPage() {
     setFooterLinks(updated);
   };
 
+  const addTopbarMessage = () => {
+    setTopbarMessages([...topbarMessages, ""]);
+  };
+
+  const updateTopbarMessage = (index: number, value: string) => {
+    const updated = [...topbarMessages];
+    updated[index] = value;
+    setTopbarMessages(updated);
+  };
+
+  const removeTopbarMessage = (index: number) => {
+    setTopbarMessages(topbarMessages.filter((_, i) => i !== index));
+  };
+
+  const moveTopbarMessageUp = (index: number) => {
+    if (index === 0) return;
+    const updated = [...topbarMessages];
+    const temp = updated[index - 1];
+    updated[index - 1] = updated[index];
+    updated[index] = temp;
+    setTopbarMessages(updated);
+  };
+
+  const moveTopbarMessageDown = (index: number) => {
+    if (index === topbarMessages.length - 1) return;
+    const updated = [...topbarMessages];
+    const temp = updated[index + 1];
+    updated[index + 1] = updated[index];
+    updated[index] = temp;
+    setTopbarMessages(updated);
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -180,11 +267,13 @@ export default function SettingsPage() {
       if (headerLogoFile) formData.append("header_logo", headerLogoFile);
       if (footerLogoFile) formData.append("footer_logo", footerLogoFile);
       if (faviconFile) formData.append("favicon", faviconFile);
+      if (newsletterImageFile) formData.append("newsletter_image", newsletterImageFile);
 
       // Text values
       formData.append("header_logo", headerLogo);
       formData.append("footer_logo", footerLogo);
       formData.append("favicon", favicon);
+      formData.append("newsletter_image", newsletterImage);
       formData.append("footer_description", footerDescription);
       formData.append("footer_links", JSON.stringify(footerLinks));
       formData.append("email", email);
@@ -192,6 +281,8 @@ export default function SettingsPage() {
       formData.append("location", location);
       formData.append("copyright", copyright);
       formData.append("social_links", JSON.stringify(socialLinks));
+      formData.append("topbar_messages", JSON.stringify(topbarMessages));
+      formData.append("coupon_highlight", couponHighlight || "");
 
       const res: any = await globalSettingsAPI.update(formData);
       if (res?.code === "OK" || res?.success || res?.status === 200) {
@@ -199,6 +290,7 @@ export default function SettingsPage() {
         setHeaderLogoFile(null);
         setFooterLogoFile(null);
         setFaviconFile(null);
+        setNewsletterImageFile(null);
         fetchSettings();
       } else {
         toast.error(res?.message || "Failed to update global settings");
@@ -235,11 +327,11 @@ export default function SettingsPage() {
             </div>
             <div>
               <h2 className="text-lg font-bold text-slate-800">Brand Identity & Logos</h2>
-              <p className="text-xs text-slate-500">Header logo, footer logo, and browser favicon</p>
+              <p className="text-xs text-slate-500">Header logo, footer logo, favicon, and newsletter image</p>
             </div>
           </div>
 
-          <div className="p-6 sm:p-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="p-6 sm:p-8 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
             {/* Header Logo */}
             <div className="space-y-3 p-5 rounded-2xl bg-slate-50 border border-slate-200/60 flex flex-col justify-between">
               <div>
@@ -389,6 +481,169 @@ export default function SettingsPage() {
                   className="w-full p-2.5 text-xs bg-white border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
+            </div>
+
+            {/* Newsletter Image */}
+            <div className="space-y-3 p-5 rounded-2xl bg-slate-50 border border-slate-200/60 flex flex-col justify-between">
+              <div>
+                <label className="text-xs font-black text-slate-600 uppercase tracking-wider block mb-2">
+                  <Mail size={14} className="inline mr-1 text-slate-400" /> Newsletter Image
+                </label>
+                <p className="text-xs text-slate-400 mb-3">Used in newsletter signup and promotional sections.</p>
+
+                <div className="w-full h-24 bg-white border border-dashed border-slate-200 rounded-xl flex items-center justify-center p-2 mb-3 overflow-hidden">
+                  {newsletterImagePreview || newsletterImage ? (
+                    <img
+                      src={newsletterImagePreview || newsletterImage}
+                      alt="Newsletter Preview"
+                      className="max-h-full max-w-full object-contain"
+                    />
+                  ) : (
+                    <span className="text-[11px] text-slate-400 font-medium">No image uploaded</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-white border border-slate-200 hover:border-blue-500 rounded-xl text-xs font-bold text-slate-700 cursor-pointer transition-colors shadow-sm">
+                  <Upload size={14} className="text-blue-600" /> Upload File
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                    onChange={handleNewsletterImageChange}
+                    className="hidden"
+                  />
+                </label>
+                <input
+                  type="text"
+                  placeholder="Or enter image URL"
+                  value={newsletterImage}
+                  onChange={(e) => setNewsletterImage(e.target.value)}
+                  className="w-full p-2.5 text-xs bg-white border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* TOPBAR & COUPON HIGHLIGHT */}
+        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
+            <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
+              <Megaphone size={20} />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-slate-800">Topbar & Coupon Highlight</h2>
+              <p className="text-xs text-slate-500">
+                Announcement text for the store top bar and which coupon to feature
+              </p>
+            </div>
+          </div>
+
+          <div className="p-6 sm:p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="md:col-span-1 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <label className="text-xs font-black text-slate-600 uppercase tracking-wider block">
+                  Topbar Messages
+                </label>
+                <button
+                  type="button"
+                  onClick={addTopbarMessage}
+                  className="flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
+                >
+                  <Plus size={14} /> Add Message
+                </button>
+              </div>
+              <p className="text-[11px] text-slate-500">
+                Short promo lines shown in the website top bar (one or more). Remove all to hide the top bar.
+              </p>
+
+              {topbarMessages.length === 0 ? (
+                <div className="p-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 text-center">
+                  <p className="text-xs text-slate-500 mb-2">No top bar messages yet.</p>
+                  <button
+                    type="button"
+                    onClick={addTopbarMessage}
+                    className="text-xs font-bold text-blue-600 hover:text-blue-700"
+                  >
+                    Add your first message
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {topbarMessages.map((message, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center gap-2 p-3 bg-slate-50 border border-slate-200/80 rounded-2xl"
+                    >
+                      <span className="text-xs font-black text-slate-400 w-6 text-center shrink-0">
+                        {index + 1}
+                      </span>
+                      <input
+                        type="text"
+                        value={message}
+                        onChange={(e) => updateTopbarMessage(index, e.target.value)}
+                        placeholder="e.g. Free shipping on orders above ₹999"
+                        className="flex-1 p-2.5 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <div className="flex items-center gap-0.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => moveTopbarMessageUp(index)}
+                          disabled={index === 0}
+                          title="Move Up"
+                          className="p-2 text-slate-400 hover:text-slate-700 hover:bg-white rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                        >
+                          <ArrowUp size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveTopbarMessageDown(index)}
+                          disabled={index === topbarMessages.length - 1}
+                          title="Move Down"
+                          className="p-2 text-slate-400 hover:text-slate-700 hover:bg-white rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                        >
+                          <ArrowDown size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeTopbarMessage(index)}
+                          title="Remove Message"
+                          className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="text-xs font-black text-slate-600 uppercase tracking-wider block mb-2">
+                <Tag size={14} className="inline mr-1 text-slate-400" /> Coupon Highlight
+              </label>
+              <select
+                value={couponHighlight}
+                onChange={(e) => setCouponHighlight(e.target.value)}
+                className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">None — do not highlight a coupon</option>
+                {couponOptions.map((coupon) => (
+                  <option key={coupon._id} value={coupon._id}>
+                    {coupon.couponName}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[11px] text-slate-500 mt-1">
+                Choose a coupon from your Coupons module to promote on the storefront.
+              </p>
+              {couponOptions.length === 0 && (
+                <p className="text-[11px] text-amber-700 mt-1">
+                  No coupons found. Create coupons under Coupons in the sidebar first.
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -632,6 +887,19 @@ export default function SettingsPage() {
                 <p className="text-[11px] text-slate-500 mt-1">
                   Floating WhatsApp button on store will connect directly to this number. If empty, Support Phone ({phone || "+91 9816787333"}) is used.
                 </p>
+              </div>
+
+              <div>
+                <label className="text-xs font-black text-slate-600 uppercase tracking-wider block mb-2">
+                  Twitter / X URL
+                </label>
+                <input
+                  type="url"
+                  value={socialLinks.twitter}
+                  onChange={(e) => setSocialLinks({ ...socialLinks, twitter: e.target.value })}
+                  placeholder="https://x.com/..."
+                  className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500"
+                />
               </div>
             </div>
           </div>

@@ -25,6 +25,7 @@ export interface InfluencerSalesQueryParams extends InfluencerDateFilterParams {
   page?: number;
   limit?: number;
   search?: string;
+  modelId?: string;
 }
 
 export interface InfluencerSaleItem {
@@ -51,6 +52,22 @@ export interface InfluencerSaleItem {
   commission_status?: string;
   order_status: string;
   payment_status: string;
+  payout_status?: 'Unpaid' | 'Paid';
+  payout_receipt_url?: string;
+  payout_notes?: string;
+  payout_at?: string | null;
+}
+
+export interface InfluencerPaymentDetails {
+  payment_upi_id: string;
+  payment_qr_code_url: string;
+  influencer?: {
+    _id: string;
+    name: string;
+    email: string;
+    username?: string;
+  } | null;
+  model?: { _id: string; name: string } | null;
 }
 
 export interface InfluencerDashboardData {
@@ -112,6 +129,7 @@ export const influencerAPI = {
     if (params?.limit) query.append('limit', String(params.limit));
     if (params?.search) query.append('search', params.search);
     if (params?.influencerId) query.append('influencerId', params.influencerId);
+    if (params?.modelId) query.append('modelId', params.modelId);
 
     const queryString = query.toString();
     const endpoint = queryString
@@ -119,5 +137,33 @@ export const influencerAPI = {
       : ENDPOINTS.INFLUENCER.SALES;
 
     return http.get(endpoint);
+  },
+
+  async getPaymentDetails(params?: { modelId?: string }) {
+    const query = new URLSearchParams();
+    if (params?.modelId) query.append('modelId', params.modelId);
+    const qs = query.toString();
+    const endpoint = qs
+      ? `${ENDPOINTS.INFLUENCER.PAYMENT_DETAILS}?${qs}`
+      : ENDPOINTS.INFLUENCER.PAYMENT_DETAILS;
+    return http.get(endpoint);
+  },
+
+  async updatePaymentDetails(data: { upi_id?: string; remove_qr?: boolean }) {
+    return http.post(ENDPOINTS.INFLUENCER.PAYMENT_DETAILS, data);
+  },
+
+  async uploadPaymentQrCode(formData: FormData) {
+    return http.post(ENDPOINTS.INFLUENCER.PAYMENT_QR_CODE, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 120000,
+    });
+  },
+
+  async markOrderItemPaid(orderItemId: string, formData: FormData) {
+    return http.post(`${ENDPOINTS.INFLUENCER.MARK_PAID}/${orderItemId}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 120000,
+    });
   },
 };
