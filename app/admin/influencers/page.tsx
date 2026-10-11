@@ -53,10 +53,35 @@ export default function ModelsPage() {
   const [errors, setErrors] = useState<ModelsError>({});
   const [copiedUsernameId, setCopiedUsernameId] = useState<string | null>(null);
 
+  const copyTextToClipboard = async (text: string) => {
+    if (navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return;
+      } catch {
+        // Clipboard API may be blocked on non-HTTPS admin addresses.
+      }
+    }
+
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.setAttribute("readonly", "");
+    textArea.style.position = "fixed";
+    textArea.style.left = "-9999px";
+    document.body.appendChild(textArea);
+    textArea.select();
+    const copied = document.execCommand("copy");
+    textArea.remove();
+
+    if (!copied) {
+      throw new Error("Clipboard copy was denied");
+    }
+  };
+
   const copyUsername = async (row: Influencers) => {
     if (!row.username) return;
     try {
-      await navigator.clipboard.writeText(row.username);
+      await copyTextToClipboard(row.username);
       setCopiedUsernameId(row._id);
       toast.success("Username copied to clipboard");
       setTimeout(() => setCopiedUsernameId(null), 2000);
