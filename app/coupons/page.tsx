@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 import { Plus, Edit2, Trash2, Search, Tag, X } from "lucide-react";
 import PageHeader from "@/components/admin/head/head";
-import { couponsAPI } from "@/lib/integration/coupons";
+import { couponsAPI, type CouponPayload } from "@/lib/integration/coupons";
 import { confirmDelete } from "@/lib/sweetAlert";
 import { getErrorMessage } from "@/lib/helpers/handlers";
 import {
@@ -120,8 +120,8 @@ export default function CouponsPage() {
     setErrors({});
   };
 
-  const buildPayload = () => {
-    const payload: Record<string, unknown> = {
+  const buildPayload = (): CouponPayload => {
+    const payload: CouponPayload = {
       couponName: formData.couponName.trim().toUpperCase(),
       expiryType: formData.expiryType,
       count: Number(formData.count),
@@ -147,7 +147,7 @@ export default function CouponsPage() {
         response = await couponsAPI.update(editingCoupon._id, payload);
         toast.success("Coupon updated successfully");
       } else {
-        response = await couponsAPI.create(payload as Parameters<typeof couponsAPI.create>[0]);
+        response = await couponsAPI.create(payload);
         toast.success("Coupon created successfully");
       }
       const saved = response?.data?.coupon;

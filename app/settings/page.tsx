@@ -53,6 +53,8 @@ export default function SettingsPage() {
   const [footerLogo, setFooterLogo] = useState("");
   const [favicon, setFavicon] = useState("");
   const [newsletterImage, setNewsletterImage] = useState("");
+  const [newsletterTitle, setNewsletterTitle] = useState("");
+  const [newsletterSubtitle, setNewsletterSubtitle] = useState("");
   const [footerDescription, setFooterDescription] = useState("");
   const [footerLinks, setFooterLinks] = useState<FooterLink[]>([
     { name: "About", link: "/about" },
@@ -111,6 +113,8 @@ export default function SettingsPage() {
       if (data.footer_logo) setFooterLogo(data.footer_logo);
       if (data.favicon) setFavicon(data.favicon);
       if (data.newsletter_image !== undefined) setNewsletterImage(data.newsletter_image || "");
+      if (data.newsletter_title !== undefined) setNewsletterTitle(data.newsletter_title || "");
+      if (data.newsletter_subtitle !== undefined) setNewsletterSubtitle(data.newsletter_subtitle || "");
       if (data.footer_description) setFooterDescription(data.footer_description);
       if (Array.isArray(data.footer_links) && data.footer_links.length > 0) {
         setFooterLinks(data.footer_links);
@@ -274,6 +278,8 @@ export default function SettingsPage() {
       formData.append("footer_logo", footerLogo);
       formData.append("favicon", favicon);
       formData.append("newsletter_image", newsletterImage);
+      formData.append("newsletter_title", newsletterTitle);
+      formData.append("newsletter_subtitle", newsletterSubtitle);
       formData.append("footer_description", footerDescription);
       formData.append("footer_links", JSON.stringify(footerLinks));
       formData.append("email", email);
@@ -521,6 +527,29 @@ export default function SettingsPage() {
                   onChange={(e) => setNewsletterImage(e.target.value)}
                   className="w-full p-2.5 text-xs bg-white border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500"
                 />
+              </div>
+
+              <div className="space-y-2 pt-2 border-t border-slate-200/80">
+                <div>
+                  <label className="text-[11px] font-bold text-slate-600 block mb-1">Newsletter Title</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Join our style circle & get 10% off"
+                    value={newsletterTitle}
+                    onChange={(e) => setNewsletterTitle(e.target.value)}
+                    className="w-full p-2.5 text-xs bg-white border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-slate-600 block mb-1">Newsletter Subtitle</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Stay in the loop with our Punroyal newsletter"
+                    value={newsletterSubtitle}
+                    onChange={(e) => setNewsletterSubtitle(e.target.value)}
+                    className="w-full p-2.5 text-xs bg-white border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
               </div>
             </div>
           </div>
