@@ -20,7 +20,9 @@ import {
   Share2,
   ExternalLink,
   Megaphone,
-  Tag
+  Tag,
+  Percent,
+  Receipt
 } from "lucide-react";
 import PageHeader from "@/components/admin/head/head";
 import { globalSettingsAPI } from "@/lib/integration/globalSettings";
@@ -43,6 +45,34 @@ interface CouponOption {
   _id: string;
   couponName: string;
 }
+
+export interface GstRule {
+  product_type: "unstitched" | "readymade";
+  value: "any" | "below2500" | "above2500";
+  percentage: number;
+  label: string;
+}
+
+const DEFAULT_GST_RULES: GstRule[] = [
+  {
+    product_type: "unstitched",
+    value: "any",
+    percentage: 5,
+    label: "Unstitched (Any Price)",
+  },
+  {
+    product_type: "readymade",
+    value: "below2500",
+    percentage: 5,
+    label: "Readymade below ₹2,500",
+  },
+  {
+    product_type: "readymade",
+    value: "above2500",
+    percentage: 18,
+    label: "Readymade above ₹2,500",
+  },
+];
 
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
@@ -75,6 +105,7 @@ export default function SettingsPage() {
   const [topbarMessages, setTopbarMessages] = useState<string[]>([]);
   const [couponHighlight, setCouponHighlight] = useState("");
   const [couponOptions, setCouponOptions] = useState<CouponOption[]>([]);
+  const [gstRules, setGstRules] = useState<GstRule[]>(DEFAULT_GST_RULES);
 
   // File uploads
   const [headerLogoFile, setHeaderLogoFile] = useState<File | null>(null);
@@ -143,12 +174,44 @@ export default function SettingsPage() {
       } else {
         setCouponHighlight("");
       }
+
+      if (Array.isArray(data.gst_rules) && data.gst_rules.length > 0) {
+        setGstRules((prev) =>
+          prev.map((fixed) => {
+            const found = data.gst_rules.find((r: any) => {
+              if (!r) return false;
+              const pt = String(r.product_type || "").toLowerCase().trim();
+              const val = String(r.value || "").toLowerCase().trim();
+              const fixedPt = fixed.product_type.toLowerCase();
+              const fixedVal = fixed.value.toLowerCase();
+              const ptMatches =
+                pt === fixedPt ||
+                (fixedPt === "unstitched" && pt === "no_sizes") ||
+                (fixedPt === "readymade" && pt === "sizes");
+              return ptMatches && val === fixedVal;
+            });
+            if (found && found.percentage !== undefined && found.percentage !== null && !isNaN(Number(found.percentage))) {
+              return { ...fixed, percentage: Number(found.percentage) };
+            }
+            return fixed;
+          })
+        );
+      }
     } catch (err: any) {
       toast.error(err?.response?.data?.message || err?.message || "Failed to load global settings");
     } finally {
       setLoading(false);
     }
   }, []);
+
+  const handleGstPercentageChange = (valueKey: string, newPercentage: number) => {
+    const clamped = Math.max(0, Math.min(100, isNaN(newPercentage) ? 0 : newPercentage));
+    setGstRules((prev) =>
+      prev.map((rule) =>
+        rule.value === valueKey ? { ...rule, percentage: clamped } : rule
+      )
+    );
+  };
 
   useEffect(() => {
     fetchSettings();
@@ -283,6 +346,7 @@ export default function SettingsPage() {
       formData.append("social_links", JSON.stringify(socialLinks));
       formData.append("topbar_messages", JSON.stringify(topbarMessages));
       formData.append("coupon_highlight", couponHighlight || "");
+      formData.append("gst_rules", JSON.stringify(gstRules));
 
       const res: any = await globalSettingsAPI.update(formData);
       if (res?.code === "OK" || res?.success || res?.status === 200) {
@@ -645,6 +709,112 @@ export default function SettingsPage() {
                   No coupons found. Create coupons under Coupons in the sidebar first.
                 </p>
               )}
+            </div>
+          </div>
+        </div>
+
+        {/* GST TAX CONFIGURATION SECTION */}
+        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-amber-50 text-amber-600 rounded-xl">
+                <Percent size={20} />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-slate-800">GST Configuration (Tax Rules)</h2>
+                <p className="text-xs text-slate-500">
+                  Fixed product categories &amp; price rules. Only GST percentages are editable by admin.
+                </p>
+              </div>
+            </div>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+              <CheckCircle2 size={13} className="text-emerald-600" />
+              Dynamic Tax Rules Active
+            </span>
+          </div>
+
+          <div className="p-6 sm:p-8 space-y-6">
+            <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200/70 text-xs text-amber-900 flex items-start gap-3">
+              <Receipt size={18} className="text-amber-600 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="font-bold">Important Tax Policy Guidelines:</p>
+                <p className="text-amber-800 leading-relaxed">
+                  Product types and price criteria are fixed by business policy. Admins can configure only the GST percentages.
+                  These percentages dynamically drive tax calculations on product pages, the cart drawer, and checkout totals without frontend duplication.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+              {gstRules.map((rule) => {
+                const isUnstitched = rule.value === "any";
+                const isBelow2500 = rule.value === "below2500";
+                const isAbove2500 = rule.value === "above2500";
+
+                return (
+                  <div
+                    key={rule.value}
+                    className="p-5 rounded-2xl bg-slate-50/70 border border-slate-200/80 flex flex-col justify-between space-y-4 hover:border-slate-300 transition-all shadow-sm"
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <span
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wider ${
+                            isUnstitched
+                              ? "bg-purple-100 text-purple-700 border border-purple-200"
+                              : "bg-blue-100 text-blue-700 border border-blue-200"
+                          }`}
+                        >
+                          {rule.product_type}
+                        </span>
+                        <span className="text-[11px] font-mono text-slate-400 bg-white px-2 py-0.5 rounded-md border border-slate-200">
+                          value: {rule.value}
+                        </span>
+                      </div>
+
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-800">{rule.label}</h4>
+                        <p className="text-xs text-slate-500 mt-1">
+                          {isUnstitched && "Applies to all unstitched suits regardless of price."}
+                          {isBelow2500 && "Applies to readymade items with unit price ≤ ₹2,500."}
+                          {isAbove2500 && "Applies to readymade items with unit price > ₹2,500."}
+                        </p>
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-200/60">
+                        <div className="flex items-center justify-between text-xs text-slate-500 mb-1.5">
+                          <span className="font-semibold text-slate-700">GST Rate (%)</span>
+                          <span className="text-[11px] text-slate-400">
+                            Default: {isAbove2500 ? "18%" : "5%"}
+                          </span>
+                        </div>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            min={0}
+                            max={100}
+                            step={0.1}
+                            value={rule.percentage}
+                            onChange={(e) =>
+                              handleGstPercentageChange(rule.value, parseFloat(e.target.value))
+                            }
+                            className="w-full pl-3.5 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-base font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                            required
+                          />
+                          <span className="absolute right-3.5 top-1/2 -translate-y-1/2 font-bold text-slate-400 text-sm">
+                            %
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-[11px] text-slate-400 flex items-center justify-between pt-2 border-t border-slate-200/40">
+                      <span>Condition: Fixed</span>
+                      <span className="font-medium text-emerald-600">Active Rate: {rule.percentage}%</span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
