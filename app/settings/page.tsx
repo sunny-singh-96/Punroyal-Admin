@@ -379,12 +379,41 @@ export default function SettingsPage() {
     <div className="p-4 sm:p-8 max-w-6xl mx-auto space-y-8">
       <PageHeader
         title="Global Store Settings"
-        subtitle="Manage website logos, favicon, footer description, and footer navigation links"
+        subtitle="Manage website logos, dynamic GST tax rules, store announcements, coupons, and footer details"
       />
+
+      {/* Quick Navigation Anchor Bar */}
+      <div className="flex flex-wrap items-center gap-2.5 p-3 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
+        <span className="text-xs font-bold text-slate-400 mr-1">Quick Jump:</span>
+        <a
+          href="#gst-settings"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-xl transition border border-amber-200 shadow-xs"
+        >
+          <Percent size={13} className="text-amber-600" /> GST Tax Rules (Configurable)
+        </a>
+        <a
+          href="#branding-settings"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-xl transition border border-slate-200/70"
+        >
+          <ImageIcon size={13} /> Brand Identity &amp; Logos
+        </a>
+        <a
+          href="#topbar-settings"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-xl transition border border-slate-200/70"
+        >
+          <Megaphone size={13} /> Topbar &amp; Coupons
+        </a>
+        <a
+          href="#footer-settings"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-xl transition border border-slate-200/70"
+        >
+          <FileText size={13} /> Footer &amp; Social Links
+        </a>
+      </div>
 
       <form onSubmit={handleSave} className="space-y-8">
         {/* BRANDING SECTION */}
-        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div id="branding-settings" className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden scroll-mt-6">
           <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
             <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
               <ImageIcon size={20} />
@@ -591,8 +620,114 @@ export default function SettingsPage() {
           </div>
         </div>
 
+        {/* GST TAX CONFIGURATION SECTION (PLACED PROMINENTLY NEAR TOP) */}
+        <div id="gst-settings" className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden scroll-mt-6">
+          <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-amber-50 text-amber-600 rounded-xl">
+                <Percent size={20} />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-slate-800">GST Configuration (Tax Rules)</h2>
+                <p className="text-xs text-slate-500">
+                  Fixed product categories &amp; price rules. Only GST percentages are editable by admin.
+                </p>
+              </div>
+            </div>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+              <CheckCircle2 size={13} className="text-emerald-600" />
+              Dynamic Tax Rules Active
+            </span>
+          </div>
+
+          <div className="p-6 sm:p-8 space-y-6">
+            <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200/70 text-xs text-amber-900 flex items-start gap-3">
+              <Receipt size={18} className="text-amber-600 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="font-bold">Important Tax Policy Guidelines:</p>
+                <p className="text-amber-800 leading-relaxed">
+                  Product types and price criteria are fixed by business policy. Admins can configure only the GST percentages.
+                  These percentages dynamically drive tax calculations on product pages, the cart drawer, and checkout totals without frontend duplication.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+              {gstRules.map((rule) => {
+                const isUnstitched = rule.value === "any";
+                const isBelow2500 = rule.value === "below2500";
+                const isAbove2500 = rule.value === "above2500";
+
+                return (
+                  <div
+                    key={rule.value}
+                    className="p-5 rounded-2xl bg-slate-50/70 border border-slate-200/80 flex flex-col justify-between space-y-4 hover:border-slate-300 transition-all shadow-sm"
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <span
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wider ${
+                            isUnstitched
+                              ? "bg-purple-100 text-purple-700 border border-purple-200"
+                              : "bg-blue-100 text-blue-700 border border-blue-200"
+                          }`}
+                        >
+                          {rule.product_type}
+                        </span>
+                        <span className="text-[11px] font-mono text-slate-400 bg-white px-2 py-0.5 rounded-md border border-slate-200">
+                          value: {rule.value}
+                        </span>
+                      </div>
+
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-800">{rule.label}</h4>
+                        <p className="text-xs text-slate-500 mt-1">
+                          {isUnstitched && "Applies to all unstitched suits regardless of price."}
+                          {isBelow2500 && "Applies to readymade items with unit price ≤ ₹2,500."}
+                          {isAbove2500 && "Applies to readymade items with unit price > ₹2,500."}
+                        </p>
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-200/60">
+                        <div className="flex items-center justify-between text-xs text-slate-500 mb-1.5">
+                          <span className="font-semibold text-slate-700">GST Rate (%)</span>
+                          <span className="text-[11px] text-slate-400">
+                            Default: {isAbove2500 ? "18%" : "5%"}
+                          </span>
+                        </div>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            min={0}
+                            max={100}
+                            step={0.1}
+                            value={rule.percentage}
+                            onChange={(e) =>
+                              handleGstPercentageChange(rule.value, parseFloat(e.target.value))
+                            }
+                            className="w-full pl-3.5 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-base font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                            required
+                          />
+                          <span className="absolute right-3.5 top-1/2 -translate-y-1/2 font-bold text-slate-400 text-sm">
+                            %
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-[11px] text-slate-400 flex items-center justify-between pt-2 border-t border-slate-200/40">
+                      <span>Condition: Fixed</span>
+                      <span className="font-medium text-emerald-600">Active Rate: {rule.percentage}%</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
         {/* TOPBAR & COUPON HIGHLIGHT */}
-        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div id="topbar-settings" className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden scroll-mt-6">
           <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
             <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
               <Megaphone size={20} />
@@ -713,114 +848,8 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* GST TAX CONFIGURATION SECTION */}
-        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-amber-50 text-amber-600 rounded-xl">
-                <Percent size={20} />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-slate-800">GST Configuration (Tax Rules)</h2>
-                <p className="text-xs text-slate-500">
-                  Fixed product categories &amp; price rules. Only GST percentages are editable by admin.
-                </p>
-              </div>
-            </div>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
-              <CheckCircle2 size={13} className="text-emerald-600" />
-              Dynamic Tax Rules Active
-            </span>
-          </div>
-
-          <div className="p-6 sm:p-8 space-y-6">
-            <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200/70 text-xs text-amber-900 flex items-start gap-3">
-              <Receipt size={18} className="text-amber-600 shrink-0 mt-0.5" />
-              <div className="space-y-1">
-                <p className="font-bold">Important Tax Policy Guidelines:</p>
-                <p className="text-amber-800 leading-relaxed">
-                  Product types and price criteria are fixed by business policy. Admins can configure only the GST percentages.
-                  These percentages dynamically drive tax calculations on product pages, the cart drawer, and checkout totals without frontend duplication.
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-              {gstRules.map((rule) => {
-                const isUnstitched = rule.value === "any";
-                const isBelow2500 = rule.value === "below2500";
-                const isAbove2500 = rule.value === "above2500";
-
-                return (
-                  <div
-                    key={rule.value}
-                    className="p-5 rounded-2xl bg-slate-50/70 border border-slate-200/80 flex flex-col justify-between space-y-4 hover:border-slate-300 transition-all shadow-sm"
-                  >
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <span
-                          className={`px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wider ${
-                            isUnstitched
-                              ? "bg-purple-100 text-purple-700 border border-purple-200"
-                              : "bg-blue-100 text-blue-700 border border-blue-200"
-                          }`}
-                        >
-                          {rule.product_type}
-                        </span>
-                        <span className="text-[11px] font-mono text-slate-400 bg-white px-2 py-0.5 rounded-md border border-slate-200">
-                          value: {rule.value}
-                        </span>
-                      </div>
-
-                      <div>
-                        <h4 className="text-sm font-bold text-slate-800">{rule.label}</h4>
-                        <p className="text-xs text-slate-500 mt-1">
-                          {isUnstitched && "Applies to all unstitched suits regardless of price."}
-                          {isBelow2500 && "Applies to readymade items with unit price ≤ ₹2,500."}
-                          {isAbove2500 && "Applies to readymade items with unit price > ₹2,500."}
-                        </p>
-                      </div>
-
-                      <div className="pt-2 border-t border-slate-200/60">
-                        <div className="flex items-center justify-between text-xs text-slate-500 mb-1.5">
-                          <span className="font-semibold text-slate-700">GST Rate (%)</span>
-                          <span className="text-[11px] text-slate-400">
-                            Default: {isAbove2500 ? "18%" : "5%"}
-                          </span>
-                        </div>
-                        <div className="relative">
-                          <input
-                            type="number"
-                            min={0}
-                            max={100}
-                            step={0.1}
-                            value={rule.percentage}
-                            onChange={(e) =>
-                              handleGstPercentageChange(rule.value, parseFloat(e.target.value))
-                            }
-                            className="w-full pl-3.5 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-base font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                            required
-                          />
-                          <span className="absolute right-3.5 top-1/2 -translate-y-1/2 font-bold text-slate-400 text-sm">
-                            %
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="text-[11px] text-slate-400 flex items-center justify-between pt-2 border-t border-slate-200/40">
-                      <span>Condition: Fixed</span>
-                      <span className="font-medium text-emerald-600">Active Rate: {rule.percentage}%</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
         {/* FOOTER DESCRIPTION SECTION */}
-        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div id="footer-settings" className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden scroll-mt-6">
           <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
             <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
               <FileText size={20} />
