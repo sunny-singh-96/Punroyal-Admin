@@ -52,7 +52,7 @@ export default function AboutUsAdminPage() {
   const [saving, setSaving] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
-  const [activeTab, setActiveTab] = useState<"general" | "stats" | "values" | "team" | "seo">("general");
+  const [activeTab, setActiveTab] = useState<"general" | "whoweare" | "curated" | "stats" | "values" | "team" | "seo">("general");
 
   useEffect(() => {
     setMounted(true);
@@ -71,6 +71,16 @@ export default function AboutUsAdminPage() {
     missionContent: "",
     visionTitle: "",
     visionContent: "",
+    whoWeAreBadge: "",
+    whoWeAreTitle: "",
+    whoWeAreDescription: "",
+    whoWeAreButtonText: "",
+    whoWeAreButtonLink: "",
+    curatedBadge: "",
+    curatedTitle: "",
+    curatedDescription: "",
+    curatedButtonText: "",
+    curatedButtonLink: "",
     metaTitle: "",
     metaDescription: "",
   });
@@ -79,11 +89,39 @@ export default function AboutUsAdminPage() {
   const [values, setValues] = useState<ValueItem[]>([]);
   const [team, setTeam] = useState<TeamMember[]>([]);
 
-  // File uploads
+  // File uploads for Hero & Story
   const [heroImageFile, setHeroImageFile] = useState<File | null>(null);
   const [storyImageFile, setStoryImageFile] = useState<File | null>(null);
   const [heroPreview, setHeroPreview] = useState<string>("");
   const [storyPreview, setStoryPreview] = useState<string>("");
+
+  // Who We Are Images
+  const [whoWeAreImages, setWhoWeAreImages] = useState<string[]>([
+    "/images/whowe/1.webp",
+    "/images/whowe/2.webp",
+    "/images/whowe/3.webp",
+  ]);
+  const [whoWeAreFiles, setWhoWeAreFiles] = useState<(File | null)[]>([null, null, null]);
+  const [whoWeArePreviews, setWhoWeArePreviews] = useState<string[]>([
+    "/images/whowe/1.webp",
+    "/images/whowe/2.webp",
+    "/images/whowe/3.webp",
+  ]);
+
+  // Curated Looks Images
+  const [curatedImages, setCuratedImages] = useState<string[]>([
+    "/images/whowe/4.webp",
+    "/images/whowe/5.webp",
+    "/images/whowe/6.webp",
+    "/images/whowe/7.webp",
+  ]);
+  const [curatedFiles, setCuratedFiles] = useState<(File | null)[]>([null, null, null, null]);
+  const [curatedPreviews, setCuratedPreviews] = useState<string[]>([
+    "/images/whowe/4.webp",
+    "/images/whowe/5.webp",
+    "/images/whowe/6.webp",
+    "/images/whowe/7.webp",
+  ]);
 
   // Team Member Modal State
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
@@ -120,9 +158,45 @@ export default function AboutUsAdminPage() {
         missionContent: data.missionContent || "",
         visionTitle: data.visionTitle || "Our Vision",
         visionContent: data.visionContent || "",
+
+        whoWeAreBadge: data.whoWeAreBadge || "OUR ARTISAN VISION",
+        whoWeAreTitle: data.whoWeAreTitle || "Who We Are",
+        whoWeAreDescription:
+          data.whoWeAreDescription ||
+          "What started as a passionate boutique in Jagraon, Punjab, has grown into a beloved destination for discerning women seeking royal heritage attire without the luxury markup.",
+        whoWeAreButtonText: data.whoWeAreButtonText || "Shop Collection By Category",
+        whoWeAreButtonLink: data.whoWeAreButtonLink || "/products",
+
+        curatedBadge: data.curatedBadge || "SIGNATURE ETHNIC SELECTION",
+        curatedTitle: data.curatedTitle || "Curated With Love & Perfection",
+        curatedDescription:
+          data.curatedDescription ||
+          "Explore our celebrated looks styled by leading fashion creators and cherished by thousands of happy brides and festive shoppers.",
+        curatedButtonText: data.curatedButtonText || "Visit Our Boutique in Jagraon",
+        curatedButtonLink: data.curatedButtonLink || "/contact",
+
         metaTitle: data.metaTitle || "About Us | Punroyal",
         metaDescription: data.metaDescription || "",
       });
+
+      const defaultWhoImgs = ["/images/whowe/1.webp", "/images/whowe/2.webp", "/images/whowe/3.webp"];
+      const loadedWhoImgs = Array.isArray(data.whoWeAreImages) && data.whoWeAreImages.length > 0
+        ? data.whoWeAreImages
+        : defaultWhoImgs;
+      setWhoWeAreImages(loadedWhoImgs);
+      setWhoWeArePreviews(loadedWhoImgs);
+
+      const defaultCuratedImgs = [
+        "/images/whowe/4.webp",
+        "/images/whowe/5.webp",
+        "/images/whowe/6.webp",
+        "/images/whowe/7.webp",
+      ];
+      const loadedCuratedImgs = Array.isArray(data.curatedImages) && data.curatedImages.length > 0
+        ? data.curatedImages
+        : defaultCuratedImgs;
+      setCuratedImages(loadedCuratedImgs);
+      setCuratedPreviews(loadedCuratedImgs);
 
       setStats(Array.isArray(data.stats) ? data.stats : []);
       setValues(Array.isArray(data.values) ? data.values : []);
@@ -152,9 +226,18 @@ export default function AboutUsAdminPage() {
       });
       data.append("stats", JSON.stringify(stats));
       data.append("values", JSON.stringify(values));
+      data.append("whoWeAreImages", JSON.stringify(whoWeAreImages));
+      data.append("curatedImages", JSON.stringify(curatedImages));
 
       if (heroImageFile) data.append("heroImage", heroImageFile);
       if (storyImageFile) data.append("storyImage", storyImageFile);
+
+      whoWeAreFiles.forEach((f, idx) => {
+        if (f) data.append(`whoWeAreImg${idx}`, f);
+      });
+      curatedFiles.forEach((f, idx) => {
+        if (f) data.append(`curatedImg${idx}`, f);
+      });
 
       await aboutUsAPI.update(data);
       toast.success("About Us page updated successfully!");
@@ -291,8 +374,10 @@ export default function AboutUsAdminPage() {
         <div className="flex flex-wrap gap-2 p-1.5 bg-white rounded-2xl border border-slate-200 shadow-xs mb-8">
           {[
             { id: "general", label: "Hero & Story", icon: BookOpen },
+            { id: "whoweare", label: "Who We Are", icon: Target },
+            { id: "curated", label: "Curated With Love", icon: Sparkles },
             { id: "stats", label: "Stats & Metrics", icon: Award },
-            { id: "values", label: "Why Choose Us / Values", icon: Sparkles },
+            { id: "values", label: "Why Choose Us / Values", icon: Award },
             { id: "team", label: "Team Members", icon: Users },
             { id: "seo", label: "SEO Meta Tags", icon: Globe },
           ].map((tab) => {
@@ -530,6 +615,326 @@ export default function AboutUsAdminPage() {
                       className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium"
                     />
                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB: Who We Are Section */}
+        {activeTab === "whoweare" && (
+          <div className="space-y-8">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 md:p-8">
+              <div className="flex items-center gap-3 pb-4 mb-6 border-b border-slate-100">
+                <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold">
+                  <Target size={20} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-slate-800">Who We Are Section</h2>
+                  <p className="text-xs text-slate-400">
+                    Manage the artisan vision badge, title, narrative description, button action, and 3 gallery cards
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div>
+                  <label className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-2 block">
+                    Badge Text
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.whoWeAreBadge}
+                    onChange={(e) => setFormData({ ...formData, whoWeAreBadge: e.target.value })}
+                    placeholder="e.g. OUR ARTISAN VISION"
+                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-2 block">
+                    Section Title
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.whoWeAreTitle}
+                    onChange={(e) => setFormData({ ...formData, whoWeAreTitle: e.target.value })}
+                    placeholder="e.g. Who We Are"
+                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-2 block">
+                    Story / Narrative Description
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={formData.whoWeAreDescription}
+                    onChange={(e) => setFormData({ ...formData, whoWeAreDescription: e.target.value })}
+                    placeholder="What started as a passionate boutique in Jagraon, Punjab..."
+                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-2 block">
+                    Button Label
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.whoWeAreButtonText}
+                    onChange={(e) => setFormData({ ...formData, whoWeAreButtonText: e.target.value })}
+                    placeholder="Shop Collection By Category"
+                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-2 block">
+                    Button Link (URL)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.whoWeAreButtonLink}
+                    onChange={(e) => setFormData({ ...formData, whoWeAreButtonLink: e.target.value })}
+                    placeholder="/products"
+                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+              </div>
+
+              {/* 3 Gallery Images */}
+              <div className="pt-6 border-t border-slate-100">
+                <h3 className="text-base font-bold text-slate-800 mb-1">Gallery Showcase (3 Images)</h3>
+                <p className="text-xs text-slate-400 mb-6">
+                  Upload custom photo files or enter image URLs to display across the 3 Who We Are gallery cards.
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {[0, 1, 2].map((idx) => (
+                    <div key={idx} className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-700">Look #{idx + 1}</span>
+                        <span className="text-[10px] uppercase font-mono px-2 py-0.5 bg-white border rounded text-slate-500">
+                          Slot {idx + 1}
+                        </span>
+                      </div>
+
+                      <div className="w-full h-44 rounded-xl overflow-hidden bg-slate-200 border border-slate-200 flex items-center justify-center">
+                        {whoWeArePreviews[idx] ? (
+                          <img
+                            src={whoWeArePreviews[idx]}
+                            alt={`Who We Are Preview ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <ImageIcon size={32} className="text-slate-400" />
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-600 block mb-1">Upload New File</label>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const updatedFiles = [...whoWeAreFiles];
+                              updatedFiles[idx] = file;
+                              setWhoWeAreFiles(updatedFiles);
+
+                              const updatedPreviews = [...whoWeArePreviews];
+                              updatedPreviews[idx] = URL.createObjectURL(file);
+                              setWhoWeArePreviews(updatedPreviews);
+                            }
+                          }}
+                          className="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-purple-100 file:text-purple-700 hover:file:bg-purple-200 cursor-pointer"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-600 block mb-1">Or Image URL</label>
+                        <input
+                          type="text"
+                          value={whoWeAreImages[idx] || ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            const updatedImgs = [...whoWeAreImages];
+                            updatedImgs[idx] = val;
+                            setWhoWeAreImages(updatedImgs);
+
+                            const updatedPreviews = [...whoWeArePreviews];
+                            updatedPreviews[idx] = val;
+                            setWhoWeArePreviews(updatedPreviews);
+                          }}
+                          placeholder="/images/whowe/1.webp or https://..."
+                          className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium outline-none focus:ring-2 focus:ring-purple-500"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB: Curated With Love & Perfection */}
+        {activeTab === "curated" && (
+          <div className="space-y-8">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 md:p-8">
+              <div className="flex items-center gap-3 pb-4 mb-6 border-b border-slate-100">
+                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+                  <Sparkles size={20} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-slate-800">Curated With Love &amp; Perfection Section</h2>
+                  <p className="text-xs text-slate-400">
+                    Manage the signature ethnic selection badge, heading, description, boutique visit button, and 4 showcase looks
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div>
+                  <label className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-2 block">
+                    Badge Text
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.curatedBadge}
+                    onChange={(e) => setFormData({ ...formData, curatedBadge: e.target.value })}
+                    placeholder="e.g. SIGNATURE ETHNIC SELECTION"
+                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-2 block">
+                    Section Title
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.curatedTitle}
+                    onChange={(e) => setFormData({ ...formData, curatedTitle: e.target.value })}
+                    placeholder="e.g. Curated With Love & Perfection"
+                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-2 block">
+                    Section Description
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={formData.curatedDescription}
+                    onChange={(e) => setFormData({ ...formData, curatedDescription: e.target.value })}
+                    placeholder="Explore our celebrated looks styled by leading fashion creators..."
+                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-2 block">
+                    Button Label
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.curatedButtonText}
+                    onChange={(e) => setFormData({ ...formData, curatedButtonText: e.target.value })}
+                    placeholder="Visit Our Boutique in Jagraon"
+                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-2 block">
+                    Button Link (URL)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.curatedButtonLink}
+                    onChange={(e) => setFormData({ ...formData, curatedButtonLink: e.target.value })}
+                    placeholder="/contact"
+                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+              </div>
+
+              {/* 4 Curated Images */}
+              <div className="pt-6 border-t border-slate-100">
+                <h3 className="text-base font-bold text-slate-800 mb-1">Curated Looks Showcase (4 Images)</h3>
+                <p className="text-xs text-slate-400 mb-6">
+                  Upload custom photo files or enter image URLs to display across the 4 curated grid cards.
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {[0, 1, 2, 3].map((idx) => (
+                    <div key={idx} className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-700">Ensemble #{idx + 1}</span>
+                        <span className="text-[10px] uppercase font-mono px-2 py-0.5 bg-white border rounded text-slate-500">
+                          Slot {idx + 1}
+                        </span>
+                      </div>
+
+                      <div className="w-full h-44 rounded-xl overflow-hidden bg-slate-200 border border-slate-200 flex items-center justify-center">
+                        {curatedPreviews[idx] ? (
+                          <img
+                            src={curatedPreviews[idx]}
+                            alt={`Curated Look Preview ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <ImageIcon size={32} className="text-slate-400" />
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-600 block mb-1">Upload New File</label>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const updatedFiles = [...curatedFiles];
+                              updatedFiles[idx] = file;
+                              setCuratedFiles(updatedFiles);
+
+                              const updatedPreviews = [...curatedPreviews];
+                              updatedPreviews[idx] = URL.createObjectURL(file);
+                              setCuratedPreviews(updatedPreviews);
+                            }
+                          }}
+                          className="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-amber-100 file:text-amber-800 hover:file:bg-amber-200 cursor-pointer"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-600 block mb-1">Or Image URL</label>
+                        <input
+                          type="text"
+                          value={curatedImages[idx] || ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            const updatedImgs = [...curatedImages];
+                            updatedImgs[idx] = val;
+                            setCuratedImages(updatedImgs);
+
+                            const updatedPreviews = [...curatedPreviews];
+                            updatedPreviews[idx] = val;
+                            setCuratedPreviews(updatedPreviews);
+                          }}
+                          placeholder="/images/whowe/4.webp or https://..."
+                          className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium outline-none focus:ring-2 focus:ring-amber-500"
+                        />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>

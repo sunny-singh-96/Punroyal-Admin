@@ -127,7 +127,9 @@ export default function CouponsPage() {
       count: Number(formData.count),
     };
     if (formData.expiryType === "expiry_date" && formData.expiryDate) {
-      payload.expiryDate = new Date(formData.expiryDate).toISOString();
+      const d = new Date(formData.expiryDate);
+      d.setHours(23, 59, 59, 999);
+      payload.expiryDate = d.toISOString();
     }
     return payload;
   };
