@@ -19,11 +19,16 @@ import {
   Eye,
   RefreshCw,
   ArrowRight,
+  MessageSquare,
+  Mail,
+  TrendingUp,
 } from "lucide-react";
 import { format } from "date-fns";
 import toast from "react-hot-toast";
 import { getErrorMessage } from "@/lib/helpers/handlers";
 import { dashboardAPI } from "@/lib/integration/dashboard";
+import { enquiryAPI } from "@/lib/integration/enquiry";
+import { newsletterAPI } from "@/lib/integration/newsletter";
 
 interface LatestOrder {
   _id: string;
@@ -66,6 +71,9 @@ interface DashboardData {
   totalCancelledOrders: number;
   totalPendingOrders: number;
   totalDeliveredOrders: number;
+  totalEnquiries?: number;
+  totalNewsletters?: number;
+  totalSales?: number;
   orderStats: OrderStats;
   orderChart: OrderChartItem[];
   latestOrders: LatestOrder[];
@@ -88,15 +96,30 @@ const STATUS_COLORS: Record<string, { bg: string; text: string; border: string }
 
 export default function AdminDashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
+  const [fallbackStats, setFallbackStats] = useState<{ enquiries?: number; newsletters?: number }>({});
   const [loading, setLoading] = useState(true);
 
   const fetchDashboardData = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await dashboardAPI.getAll();
-      if (response?.code === "OK" && response.data) {
-        setData(response.data);
+      const [dashRes, enqRes, newsRes] = await Promise.allSettled([
+        dashboardAPI.getAll(),
+        enquiryAPI.getStats(),
+        newsletterAPI.getStats(),
+      ]);
+
+      if (dashRes.status === "fulfilled" && dashRes.value?.code === "OK" && dashRes.value.data) {
+        setData(dashRes.value.data);
       }
+
+      const fallbacks: { enquiries?: number; newsletters?: number } = {};
+      if (enqRes.status === "fulfilled" && enqRes.value?.code === "OK") {
+        fallbacks.enquiries = enqRes.value?.data?.total ?? 0;
+      }
+      if (newsRes.status === "fulfilled" && newsRes.value?.code === "OK") {
+        fallbacks.newsletters = newsRes.value?.data?.total ?? 0;
+      }
+      setFallbackStats(fallbacks);
     } catch (error) {
       toast.error(getErrorMessage(error) || "Failed to load dashboard data");
     } finally {
@@ -139,6 +162,9 @@ export default function AdminDashboard() {
   const totalCancelledOrders = data?.totalCancelledOrders ?? (data?.orderStats?.cancelled ?? 0);
   const totalPendingOrders = data?.totalPendingOrders ?? (data?.orderStats?.pending ?? 0);
   const totalDeliveredOrders = data?.totalDeliveredOrders ?? (data?.orderStats?.delivered ?? 0);
+  const totalEnquiries = data?.totalEnquiries ?? fallbackStats.enquiries ?? 0;
+  const totalNewsletters = data?.totalNewsletters ?? fallbackStats.newsletters ?? 0;
+  const totalSales = data?.totalSales ?? 0;
 
   // Exactly 3 states in the chart: Order Delivered, Order Pending, Order Cancelled
   const chartData = [
@@ -172,9 +198,9 @@ export default function AdminDashboard() {
         </button>
       </div>
 
-      {/* 5 Core Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        {/* 1. Total Products */}
+      {/* 6 Metric Cards in 2 Rows (3 Columns Per Row) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        {/* Row 1, Card 1: Total Products */}
         <Link
           href="/products"
           className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition group"
@@ -183,7 +209,7 @@ export default function AdminDashboard() {
             <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-105 transition-transform">
               <Package size={22} />
             </div>
-            <span className="text-[11px] font-normal text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+            <span className="text-[11px] font-normal text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-100/60">
               Catalog
             </span>
           </div>
@@ -197,7 +223,7 @@ export default function AdminDashboard() {
           </div>
         </Link>
 
-        {/* 2. Total Categories */}
+        {/* Row 1, Card 2: Total Categories */}
         <Link
           href="/categories"
           className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition group"
@@ -206,7 +232,7 @@ export default function AdminDashboard() {
             <div className="w-11 h-11 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:scale-105 transition-transform">
               <Layers size={22} />
             </div>
-            <span className="text-[11px] font-normal text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+            <span className="text-[11px] font-normal text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-100/60">
               Categories
             </span>
           </div>
@@ -220,7 +246,7 @@ export default function AdminDashboard() {
           </div>
         </Link>
 
-        {/* 3. Total Orders */}
+        {/* Row 1, Card 3: Total Orders */}
         <Link
           href="/orders"
           className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition group"
@@ -229,7 +255,7 @@ export default function AdminDashboard() {
             <div className="w-11 h-11 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center group-hover:scale-105 transition-transform">
               <ShoppingBag size={22} />
             </div>
-            <span className="text-[11px] font-normal text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full">
+            <span className="text-[11px] font-normal text-violet-600 bg-violet-50 px-2.5 py-0.5 rounded-full border border-violet-100/60">
               Orders
             </span>
           </div>
@@ -243,48 +269,71 @@ export default function AdminDashboard() {
           </div>
         </Link>
 
-        {/* 4. Total Cancelled Orders */}
+        {/* Row 2, Card 1: Total Enquiries */}
         <Link
-          href="/orders"
-          className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition group"
-        >
-          <div className="flex items-center justify-between">
-            <div className="w-11 h-11 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-              <XCircle size={22} />
-            </div>
-            <span className="text-[11px] font-normal text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full">
-              Cancelled
-            </span>
-          </div>
-          <div className="mt-4">
-            <p className="text-xs font-normal uppercase tracking-wider text-slate-400">
-              Total Cancelled Orders
-            </p>
-            <p className="text-2xl font-normal text-slate-900 mt-1">
-              {totalCancelledOrders.toLocaleString()}
-            </p>
-          </div>
-        </Link>
-
-        {/* 5. Total Pending Orders */}
-        <Link
-          href="/orders"
+          href="/enquiries"
           className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition group"
         >
           <div className="flex items-center justify-between">
             <div className="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-              <Clock size={22} />
+              <MessageSquare size={22} />
             </div>
-            <span className="text-[11px] font-normal text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
-              Pending
+            <span className="text-[11px] font-normal text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-100/60">
+              Support
             </span>
           </div>
           <div className="mt-4">
             <p className="text-xs font-normal uppercase tracking-wider text-slate-400">
-              Total Pending Orders
+              Total Enquiries
             </p>
             <p className="text-2xl font-normal text-slate-900 mt-1">
-              {totalPendingOrders.toLocaleString()}
+              {totalEnquiries.toLocaleString()}
+            </p>
+          </div>
+        </Link>
+
+        {/* Row 2, Card 2: Total Newsletters */}
+        <Link
+          href="/newsletters"
+          className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition group"
+        >
+          <div className="flex items-center justify-between">
+            <div className="w-11 h-11 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+              <Mail size={22} />
+            </div>
+            <span className="text-[11px] font-normal text-sky-600 bg-sky-50 px-2.5 py-0.5 rounded-full border border-sky-100/60">
+              Subscribers
+            </span>
+          </div>
+          <div className="mt-4">
+            <p className="text-xs font-normal uppercase tracking-wider text-slate-400">
+              Total Newsletters
+            </p>
+            <p className="text-2xl font-normal text-slate-900 mt-1">
+              {totalNewsletters.toLocaleString()}
+            </p>
+          </div>
+        </Link>
+
+        {/* Row 2, Card 3: Total Sales */}
+        <Link
+          href="/sales"
+          className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition group"
+        >
+          <div className="flex items-center justify-between">
+            <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+              <TrendingUp size={22} />
+            </div>
+            <span className="text-[11px] font-normal text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-100/60">
+              Sales
+            </span>
+          </div>
+          <div className="mt-4">
+            <p className="text-xs font-normal uppercase tracking-wider text-slate-400">
+              Total Sales
+            </p>
+            <p className="text-2xl font-normal text-slate-900 mt-1">
+              {formatCurrency(totalSales)}
             </p>
           </div>
         </Link>
