@@ -260,7 +260,7 @@ export default function InventoryCommandCenter() {
               label: "Created",
               render: (row) => (
                 <span className="text-xs text-slate-500">
-                  {new Date(row.createdAt).toLocaleDateString()}
+                  {row.createdAt ? new Date(row.createdAt).toLocaleDateString() : "-"}
                 </span>
               ),
             },
