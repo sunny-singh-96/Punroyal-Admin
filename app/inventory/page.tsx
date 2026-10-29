@@ -7,46 +7,23 @@ import {
   CheckCircle2,
   Package,
   ArrowUpRight,
+  Sliders,
+  Eye,
 } from "lucide-react";
 import { StatsCards } from "@/components/admin/stateCard/stateCard";
 import PageHeader from "@/components/admin/head/head";
 import DataGrid from "@/components/admin/tables/dataGrid";
-import { inventoryAPI } from "@/lib/integration/inventory"; // ✅ your API
+import { inventoryAPI } from "@/lib/integration/inventory";
 import { toast } from "react-hot-toast";
 import { getErrorMessage } from "@/lib/helpers/handlers";
-import { ProductInfoModal } from "@/components/admin/inventory/ProductInfoModal";
+import { ProductInfoModal, Product } from "@/components/admin/inventory/ProductInfoModal";
 import { useSearchParams } from "next/navigation";
-interface Product {
-  _id: string;
-  title: string;
-  display_price: number;
-  price: number;
-  totalStock: number;
-  product_type: string;
-  status: boolean;
-  model?: { name: string };
-  materials?: { name: string }[];
-  createdAt: string;
-  category?: { title: string };
-  colors?: {
-    _id: string;
-    color_name: string;
-    color_hex: string;
-  }[];
-  variants?: {
-    _id: string;
-    stock: number;
-    size?: { name: string };
-    color?: { name: string };
-  }[];
-}
 
 export default function InventoryCommandCenter() {
   const searchParams = useSearchParams();
   const searchParam = searchParams?.get('search') || '';
 
   const [loading, setLoading] = useState(true);
-
   const [searchTerm, setSearchTerm] = useState(searchParam);
   const [stockStatus, setStockStatus] = useState("");
 
@@ -73,7 +50,7 @@ export default function InventoryCommandCenter() {
     totalStockValue: 0
   });
 
-  // ✅ FETCH INVENTORY
+  // FETCH INVENTORY
   const fetchInventory = useCallback(async () => {
     try {
       setLoading(true);
@@ -122,7 +99,6 @@ export default function InventoryCommandCenter() {
 
   useEffect(() => {
     const delay = setTimeout(() => {
-      setLoading(true);
       fetchInventory();
       fetchInventoryStats();
     }, 300);
@@ -166,7 +142,7 @@ export default function InventoryCommandCenter() {
       <div className="mb-6">
         <PageHeader
           title="Inventory Management"
-          subtitle="Manage E-Commerce Inventory"
+          subtitle="Manage E-Commerce Inventory & Variant Stocks"
         />
       </div>
 
@@ -175,9 +151,9 @@ export default function InventoryCommandCenter() {
 
       {/* TABLE CARD */}
       <div className="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
-        {/* ✅ FIXED TOOLBAR (SEARCH LEFT, FILTER RIGHT) */}
+        {/* TOOLBAR */}
         <div className="p-4 md:p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4">
-          {/* LEFT - SEARCH */}
+          {/* SEARCH */}
           <div className="relative w-full sm:w-80">
             <Search
               className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
@@ -192,16 +168,16 @@ export default function InventoryCommandCenter() {
             />
           </div>
 
-          {/* RIGHT - STOCK FILTER */}
+          {/* STOCK FILTER */}
           <select
-            className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-100"
+            className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer"
             value={stockStatus}
             onChange={(e) => setStockStatus(e.target.value)}
           >
             <option value="">All Stock</option>
-            <option value="low">Low Stock</option>
-            <option value="out">Out of Stock</option>
-            <option value="in">In Stock</option>
+            <option value="low">Low Stock (≤ 5 units)</option>
+            <option value="out">Out of Stock (0 units)</option>
+            <option value="in">In Stock (&gt; 5 units)</option>
           </select>
         </div>
       </div>
@@ -215,11 +191,11 @@ export default function InventoryCommandCenter() {
               label: "Product",
               render: (row) => (
                 <div className="flex flex-col">
-                  <span className="font-medium text-slate-800">
+                  <span className="font-semibold text-slate-800">
                     {row.title}
                   </span>
                   <span className="text-xs text-slate-400">
-                    {row?.category?.title}
+                    {row?.category?.title || "Uncategorized"}
                   </span>
                 </div>
               ),
@@ -228,7 +204,7 @@ export default function InventoryCommandCenter() {
               key: "display_price",
               label: "Price",
               render: (row) => (
-                <span className="font-medium text-slate-700">
+                <span className="font-semibold text-slate-700">
                   ₹{row.display_price}
                 </span>
               ),
@@ -237,7 +213,7 @@ export default function InventoryCommandCenter() {
               key: "product_type",
               label: "Type",
               render: (row) => (
-                <span className="px-2 py-1 text-xs bg-indigo-100 text-indigo-600 rounded-full">
+                <span className="px-2.5 py-1 text-xs font-semibold bg-indigo-50 text-indigo-700 rounded-full">
                   {row.product_type === "sizes" ? "Variants" : "Simple"}
                 </span>
               ),
@@ -251,14 +227,14 @@ export default function InventoryCommandCenter() {
 
                 if (row.totalStock === 0) {
                   color = "bg-red-100 text-red-700";
-                  label = "Out";
+                  label = "Out of Stock";
                 } else if (row.totalStock <= 5) {
-                  color = "bg-yellow-100 text-yellow-700";
-                  label = "Low";
+                  color = "bg-amber-100 text-amber-700";
+                  label = "Low Stock";
                 }
 
                 return (
-                  <span className={`px-2 py-1 text-xs rounded-full ${color}`}>
+                  <span className={`px-2.5 py-1 text-xs font-bold rounded-full ${color}`}>
                     {label} ({row.totalStock})
                   </span>
                 );
@@ -269,7 +245,7 @@ export default function InventoryCommandCenter() {
               label: "Status",
               render: (row) => (
                 <span
-                  className={`px-2 py-1 text-xs rounded-full ${
+                  className={`px-2.5 py-1 text-xs font-semibold rounded-full ${
                     row.status
                       ? "bg-green-100 text-green-700"
                       : "bg-gray-100 text-gray-500"
@@ -283,24 +259,28 @@ export default function InventoryCommandCenter() {
               key: "createdAt",
               label: "Created",
               render: (row) => (
-                <span className="text-sm text-slate-500">
+                <span className="text-xs text-slate-500">
                   {new Date(row.createdAt).toLocaleDateString()}
                 </span>
               ),
             },
             {
               key: "action",
-              label: "Action",
+              label: "Actions",
               render: (row) => (
-                <button
-                  onClick={() => {
-                    setSelectedProduct(row);
-                    setIsModalOpen(true);
-                  }}
-                  className="px-3 py-1 text-xs bg-indigo-100 text-indigo-600 rounded-lg hover:bg-indigo-200"
-                >
-                  View
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setSelectedProduct(row);
+                      setIsModalOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition cursor-pointer"
+                    title="Manage stock & variants"
+                  >
+                    <Sliders size={13} />
+                    <span>Manage Stock</span>
+                  </button>
+                </div>
               ),
             },
           ]}
@@ -318,6 +298,22 @@ export default function InventoryCommandCenter() {
         product={selectedProduct}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        onSuccess={(updated) => {
+          setData((prev) =>
+            prev.map((item) =>
+              item._id === updated._id
+                ? {
+                    ...item,
+                    ...updated,
+                    totalStock: updated.totalStock,
+                    status: updated.status,
+                    variants: updated.variants,
+                  }
+                : item
+            )
+          );
+          fetchInventoryStats();
+        }}
       />
     </div>
   );

@@ -63,6 +63,7 @@ export const ENDPOINTS = {
     INVENTORY: {
         LIST: '/product/admin/inventory-products',
         STATS: '/index/admin/dashboard/inventory',
+        UPDATE: '/product/admin/product/inventory',
     },
     SALES: {
         MONTHLY_STATS: '/order/admin/stats/monthly-sales',

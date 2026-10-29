@@ -2,12 +2,14 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import toast from 'react-hot-toast';
 import DataGrid from '@/components/admin/tables/dataGrid';
 import PageHeader from '@/components/admin/head/head';
 import { bannersAPI } from '@/lib/integration/banners';
 import { confirmDelete } from '@/lib/sweetAlert';
 import { getErrorMessage } from '@/lib/helpers/handlers';
+import { Edit2, Trash2, ExternalLink } from 'lucide-react';
 
 type Banner = {
   _id: string;
@@ -25,7 +27,7 @@ export default function BannerListPage() {
   const [totalRecords, setTotalRecords] = useState(0);
   const [lazyParams, setLazyParams] = useState({ page: 1, limit: 10, search: '' });
   const [loading, setLoading] = useState(false);
-  const [redirectTo, setRedirectTo] = useState('');
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const fetchBanners = useCallback(async () => {
     try {
@@ -35,15 +37,11 @@ export default function BannerListPage() {
         setTotalRecords(response.totalRecords || 0);
       }
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      toast.error(getErrorMessage(error) || 'Failed to fetch banners');
     } finally {
       setLoading(false);
     }
   }, [lazyParams]);
-
-  useEffect(() => {
-    if (redirectTo) router.push(redirectTo);
-  }, [redirectTo, router]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -61,36 +59,45 @@ export default function BannerListPage() {
     const isConfirmed = await confirmDelete('Delete this banner?');
     if (!isConfirmed) return;
     try {
-      setLoading(true);
       const response = await bannersAPI.delete(id);
       if (response?.code === 'OK') {
         setData((prev) => prev.filter((item) => item._id !== id));
+        toast.success('Banner deleted successfully');
+      } else {
+        toast.error('Failed to delete banner');
       }
     } catch (error) {
-      toast.error(getErrorMessage(error));
-    } finally {
-      setLoading(false);
+      toast.error(getErrorMessage(error) || 'Failed to delete banner');
     }
   }, []);
 
   const handleToggleStatus = useCallback(async (id: string, currentStatus: boolean) => {
+    const nextStatus = !currentStatus;
+    // Optimistic UI update
+    setData((prev) =>
+      prev.map((item) => (item._id === id ? { ...item, status: nextStatus } : item))
+    );
+    setTogglingId(id);
+
     try {
-      setLoading(true);
-      await bannersAPI.updateStatus(id, !currentStatus);
-      setData((prev) => prev.map((item) => item._id === id ? { ...item, status: !currentStatus } : item));
-      toast.success(`Banner ${!currentStatus ? 'activated' : 'deactivated'}`);
+      await bannersAPI.updateStatus(id, nextStatus);
+      toast.success(`Banner ${nextStatus ? 'activated (Live)' : 'deactivated (Hidden)'}`);
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      // Rollback on failure
+      setData((prev) =>
+        prev.map((item) => (item._id === id ? { ...item, status: currentStatus } : item))
+      );
+      toast.error(getErrorMessage(error) || 'Failed to update banner status');
     } finally {
-      setLoading(false);
+      setTogglingId(null);
     }
   }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <PageHeader title="Banners" subtitle="Manage site banners" />
+      <PageHeader title="Banners" subtitle="Manage site banners (Active banners appear on customer homepage)" />
 
-      <div className="p-4">
+      <div className="p-4 md:p-6">
         <DataGrid<Banner>
           headers={[
             {
@@ -104,10 +111,10 @@ export default function BannerListPage() {
                       alt={row.title || 'banner'}
                       width={100}
                       height={60}
-                      className="rounded object-cover h-14 w-24 bg-slate-100 border border-slate-200"
+                      className="rounded-lg object-cover h-14 w-24 bg-slate-100 border border-slate-200"
                     />
                   ) : (
-                    <div className="h-14 w-24 rounded bg-slate-100 border border-dashed border-slate-300 flex items-center justify-center text-slate-400 text-[10px] font-semibold">
+                    <div className="h-14 w-24 rounded-lg bg-slate-100 border border-dashed border-slate-300 flex items-center justify-center text-slate-400 text-[10px] font-semibold">
                       No Image
                     </div>
                   )}
@@ -129,7 +136,7 @@ export default function BannerListPage() {
                       title={row.redirect_to}
                     >
                       <span className="truncate max-w-[200px]">{row.redirect_to}</span>
-                      <span className="text-[10px]">↗</span>
+                      <ExternalLink size={12} />
                     </a>
                   ) : (
                     <span className="text-xs text-slate-400 italic">No link</span>
@@ -141,16 +148,31 @@ export default function BannerListPage() {
               key: 'status',
               label: 'Status',
               render: (row) => (
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className={`px-2 py-1 text-xs font-semibold rounded-full ${row.status ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    disabled={togglingId === row._id}
+                    onClick={() => handleToggleStatus(row._id, row.status)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer disabled:opacity-50 ${
+                      row.status ? 'bg-emerald-500' : 'bg-slate-300'
+                    }`}
+                    title={row.status ? 'Click to deactivate' : 'Click to activate'}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-xs ${
+                        row.status ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                  <span
+                    className={`px-2.5 py-0.5 text-xs font-semibold rounded-full ${
+                      row.status
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        : 'bg-slate-100 text-slate-500 border border-slate-200'
+                    }`}
+                  >
                     {row.status ? 'Active' : 'Inactive'}
                   </span>
-                  <button
-                    onClick={() => handleToggleStatus(row._id, row.status)}
-                    className={`px-3 py-1 rounded-md text-xs font-semibold transition ${row.status ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-green-500 text-white hover:bg-green-600'}`}
-                  >
-                    {row.status ? 'Turn Off' : 'Turn On'}
-                  </button>
                 </div>
               ),
             },
@@ -159,17 +181,20 @@ export default function BannerListPage() {
               label: 'Actions',
               render: (row) => (
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setRedirectTo(`/banners/edit/${row._id}`)}
-                    className="bg-blue-500 text-white px-3 py-1 rounded-md"
+                  <Link
+                    href={`/banners/edit/${row._id}`}
+                    className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                    title="Edit Banner"
                   >
-                    Edit
-                  </button>
+                    <Edit2 size={16} />
+                  </Link>
                   <button
+                    type="button"
                     onClick={() => handleDelete(row._id)}
-                    className="bg-red-500 text-white px-3 py-1 rounded-md"
+                    className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                    title="Delete Banner"
                   >
-                    Delete
+                    <Trash2 size={16} />
                   </button>
                 </div>
               ),
@@ -183,7 +208,7 @@ export default function BannerListPage() {
           onPageChange={(page) => setLazyParams((prev) => ({ ...prev, page }))}
           searchEnable
           onSearch={handleSearch}
-          rightContent={{ text: '+ Create Banner', onClick: () => setRedirectTo('/banners/create') }}
+          rightContent={{ text: '+ Create Banner', onClick: () => router.push('/banners/create') }}
         />
       </div>
     </div>

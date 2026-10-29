@@ -7,7 +7,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { CategoryError } from "@/types/types";
 import PageHeader from "@/components/admin/head/head";
-import { getErrorMessage } from "@/lib/helpers/handlers"
+import { getErrorMessage } from "@/lib/helpers/handlers";
 
 export default function CategoryEditPage() {
   const router = useRouter();
@@ -36,7 +36,7 @@ export default function CategoryEditPage() {
         setFormData({
           title: data.title || "",
           image: data.image || "",
-          status: data.status ?? true,
+          status: data.status !== false,
         });
         setImageFile(null);
       }
@@ -65,7 +65,6 @@ export default function CategoryEditPage() {
     setPreviewUrl(formData.image || "");
   }, [imageFile, formData.image]);
 
-  // ✅ Fetch category by ID (with delayed loader)
   useEffect(() => {
     const delay = setTimeout(() => {
       setLoading(true);
@@ -91,14 +90,13 @@ export default function CategoryEditPage() {
     }
   };
 
-  // ✅ Update category
   const handleUpdate = async () => {
     if (!categoryValidate(formData.title, formData.image, imageFile, setErrors)) return;
     setLoading(true);
-    const toastId = toast.loading("Updating...");
+    const toastId = toast.loading("Updating category...");
     try {
       const payload = new FormData();
-      payload.append("title", formData.title);
+      payload.append("title", formData.title.trim());
       payload.append("status", String(formData.status));
       if (imageFile) {
         payload.append("image", imageFile);
@@ -109,6 +107,8 @@ export default function CategoryEditPage() {
       if (response?.code === "OK") {
         toast.success(`${formData.title} updated successfully`, { id: toastId });
         router.push("/categories");
+      } else {
+        toast.error("Failed to update category", { id: toastId });
       }
     } catch (error) {
       toast.error(getErrorMessage(error), { id: toastId });
@@ -121,13 +121,13 @@ export default function CategoryEditPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       <PageHeader
         title="Update Category"
-        subtitle="Manage E-Commerce Categories"
+        subtitle="Manage E-Commerce Categories (Active categories appear on customer site)"
       />
 
-      <div className="max-w-7xl mx-auto py-8">
-        <div className="bg-white rounded-2xl shadow-xl border overflow-hidden">
+      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6">
+        <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
           {/* Header */}
-          <div className="p-6 border-b bg-slate-50">
+          <div className="p-6 border-b border-slate-100 bg-slate-50">
             <h2 className="text-lg font-bold text-slate-800">
               Update Category
             </h2>
@@ -140,20 +140,22 @@ export default function CategoryEditPage() {
                 <label className="text-xs font-bold text-slate-500 uppercase">
                   Category Image <span className="text-slate-400 font-normal">(Optional)</span>
                 </label>
-                <div className="mt-2 border-2 border-dashed rounded-xl p-4 text-center hover:border-blue-400 transition">  
+                <div className="mt-2 border-2 border-dashed border-slate-200 rounded-xl p-4 text-center hover:border-blue-400 transition">  
                   {previewUrl ? (
-                      <div className="relative">
-                      <img src={previewUrl} alt="Banner preview" className="w-full h-48 object-cover rounded-lg" />
-                      <button type="button" onClick={clearImage} className="absolute top-2 right-2 bg-white p-1 rounded-full shadow">✕</button>
-                      </div>
+                    <div className="relative">
+                      <img src={previewUrl} alt="Category preview" className="w-full h-48 object-cover rounded-lg" />
+                      <button type="button" onClick={clearImage} className="absolute top-2 right-2 bg-white/90 p-1.5 rounded-full shadow text-slate-600 hover:text-red-600 cursor-pointer">
+                        ✕
+                      </button>
+                    </div>
                   ) : (
-                      <div className="space-y-3">
-                      <p className="text-sm text-slate-500">Upload an image file or paste an image URL</p>
-                      <label className="inline-flex items-center justify-center w-full px-4 py-3 text-sm font-semibold text-slate-700 bg-slate-100 border border-slate-300 rounded-lg cursor-pointer hover:bg-slate-200">
-                          Upload file
-                          <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+                    <div className="space-y-3 py-4">
+                      <p className="text-sm text-slate-500">Upload an image file or select a file</p>
+                      <label className="inline-flex items-center justify-center w-full px-4 py-2.5 text-xs font-semibold text-slate-700 bg-slate-100 border border-slate-300 rounded-lg cursor-pointer hover:bg-slate-200 transition">
+                        Select File
+                        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
                       </label>
-                      </div>
+                    </div>
                   )}
                   {errors.image && <p className="text-xs text-red-500 mt-2">{errors.image}</p>}
                 </div>
@@ -180,8 +182,9 @@ export default function CategoryEditPage() {
                         });
                       }
                     }}
+                    placeholder="e.g. Unstitched Suits"
                     className={`mt-2 w-full px-4 py-3 rounded-xl border-2 bg-slate-50 ${
-                      errors.title ? "border-red-500" : ""
+                      errors.title ? "border-red-500" : "border-slate-200 focus:border-blue-500"
                     }`}
                   />
 
@@ -189,14 +192,47 @@ export default function CategoryEditPage() {
                     <p className="text-xs text-red-500 mt-1">{errors.title}</p>
                   )}
                 </div>
+
+                {/* STATUS TOGGLE */}
+                <div>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    Category Status
+                  </label>
+                  <div className="mt-2 flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, status: !formData.status })}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
+                        formData.status ? "bg-emerald-500" : "bg-slate-300"
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-xs ${
+                          formData.status ? "translate-x-6" : "translate-x-1"
+                        }`}
+                      />
+                    </button>
+                    <span className="text-sm font-semibold text-slate-700">
+                      {formData.status ? "Active (Displayed on store)" : "Inactive (Hidden)"}
+                    </span>
+                  </div>
+                </div>
               </div>
 
-              {/* BUTTON */}
-              <div className="md:col-span-12 flex justify-end pt-6 border-t">
+              {/* BUTTONS */}
+              <div className="md:col-span-12 flex justify-end gap-3 pt-6 border-t border-slate-100">
                 <button
+                  type="button"
+                  onClick={() => router.push("/categories")}
+                  className="px-6 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-semibold hover:bg-slate-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
                   onClick={handleUpdate}
                   disabled={loading}
-                  className="px-8 py-2.5 bg-blue-600 text-white rounded-xl font-bold disabled:opacity-50"
+                  className="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold disabled:opacity-50 transition shadow-xs cursor-pointer"
                 >
                   {loading ? "Updating..." : "Update Category"}
                 </button>

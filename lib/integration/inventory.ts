@@ -8,6 +8,16 @@ interface LazyParams {
   search: string;
 };
 
+export interface UpdateInventoryPayload {
+  quantity?: number;
+  variants?: Array<{
+    _id?: string;
+    variantId?: string;
+    stock: number;
+  }>;
+  status?: boolean;
+}
+
 export const inventoryAPI = {
   // Get inventory list
   async getAll(params?: LazyParams) {
@@ -18,5 +28,10 @@ export const inventoryAPI = {
   // Get inventory status
   async getInventoryStats() {
     return http.get(ENDPOINTS.INVENTORY.STATS);
+  },
+
+  // Update product inventory and variant stock
+  async updateStock(productId: string, data: UpdateInventoryPayload) {
+    return http.put(`${ENDPOINTS.INVENTORY.UPDATE}/${productId}`, data);
   },
 };

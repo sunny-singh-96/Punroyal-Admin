@@ -36,6 +36,10 @@ export const productsAPI = {
     return await http.post(ENDPOINTS.PRODUCT.BULK_UPDATE_STATUS, { productIds, status });
   },
 
+  async updateStatus(productId: string, status: boolean) {
+    return await http.post(ENDPOINTS.PRODUCT.BULK_UPDATE_STATUS, { productIds: [productId], status });
+  },
+
   async delete(productId: string) {
     return await http.delete(`${ENDPOINTS.PRODUCT.DELETE}/${productId}`);
   },
@@ -43,5 +47,4 @@ export const productsAPI = {
   async bulkDelete(productIds: string[]) {
     return await http.post(ENDPOINTS.PRODUCT.BULK_DELETE, {  productIds });
   },
-
 };
