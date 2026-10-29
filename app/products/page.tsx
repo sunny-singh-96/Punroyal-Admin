@@ -647,7 +647,7 @@ export default function ProductsPage() {
       key: "status",
       label: "Status",
       render: (row) => {
-        const isLive = row.status === 1 || row.status === true;
+        const isLive = Boolean(row.status);
         const isToggling = togglingId === row._id;
         return (
           <div className="flex items-center gap-2">

@@ -17,10 +17,13 @@ export type Product = {
   _id: string;
   title: string;
   price: number;
+  display_price?: number;
   totalStock: number;
   product_type: string;
   quantity?: number;
   status: boolean;
+  createdAt?: string;
+  category?: { title: string };
   model?: { name: string };
   materials?: { name: string }[];
   colors?: {
