@@ -4,12 +4,13 @@ import { ENDPOINTS } from '@/constants/endpoint';
 interface LazyParams {
   page: number;
   limit: number;
+  search?: string;
 }
 
 interface ColorData {
   name: string;
   hex: string;
-  status?: boolean;
+  status?: boolean | string;
 }
 
 export const colorsAPI = {
@@ -21,6 +22,7 @@ export const colorsAPI = {
       data: {
         page: lazyParams.page,
         limit: lazyParams.limit,
+        search: lazyParams.search || '',
       }
     });
   },
@@ -39,7 +41,25 @@ export const colorsAPI = {
     return http.post(ENDPOINTS.COMMON_HANDLER, {
       action: 'create',
       module: 'colors',
-      data: { name: data.name, hex: data.hex }
+      data: {
+        name: data.name,
+        hex: data.hex,
+        status: data.status !== undefined ? (data.status === true || data.status === 'true' ? 'true' : 'false') : 'true',
+      }
+    });
+  },
+
+  // Update color
+  async update(id: string, data: ColorData) {
+    return http.post(ENDPOINTS.COMMON_HANDLER, {
+      action: 'update',
+      module: 'colors',
+      id,
+      data: {
+        name: data.name,
+        hex: data.hex,
+        status: data.status !== undefined ? (data.status === true || data.status === 'true' ? 'true' : 'false') : undefined,
+      }
     });
   },
 
