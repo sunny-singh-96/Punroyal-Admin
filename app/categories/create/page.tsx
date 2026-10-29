@@ -1,4 +1,5 @@
 "use client";
+
 import { categoriesAPI } from '@/lib/integration/categories';
 import toast from 'react-hot-toast';
 import { categoryValidate } from '@/validations/categories';
@@ -10,7 +11,6 @@ import { getErrorMessage } from "@/lib/helpers/handlers";
 
 export default function CategoryPage() {
     const router = useRouter();
-    const [redirectTo, setRedirectTo] = useState("");
 
     const [formData, setFormData] = useState({
         title: "",
@@ -21,7 +21,6 @@ export default function CategoryPage() {
     const [previewUrl, setPreviewUrl] = useState("");
     const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-    // ✅ Redirect after category
     useEffect(() => {
         if (imageFile) {
             const url = URL.createObjectURL(imageFile);
@@ -32,10 +31,6 @@ export default function CategoryPage() {
         }
         setPreviewUrl(formData.image || "");
     }, [imageFile, formData.image]);
-
-    useEffect(() => {
-        if (redirectTo) router.push(redirectTo);
-    }, [redirectTo, router]);
 
     const [errors, setErrors] = useState<CategoryError>({});
     const [loading, setLoading] = useState(false);
@@ -61,10 +56,10 @@ export default function CategoryPage() {
     const handleSave = async () => {
         if (!categoryValidate(formData.title, formData.image, imageFile, setErrors)) return;
         setLoading(true);
-        const toastId = toast.loading("Loading...");
+        const toastId = toast.loading("Creating category...");
         try {
             const payload = new FormData();
-            payload.append("title", formData.title);
+            payload.append("title", formData.title.trim());
             payload.append("status", String(formData.status));
             if (imageFile) {
                 payload.append("image", imageFile);
@@ -72,104 +67,145 @@ export default function CategoryPage() {
                 payload.append("image", formData.image);
             }
             const response = await categoriesAPI.create(payload);
-            if (response?.data?.code === "OK") {
+            if (response?.code === "OK" || response?.data?.code === "OK") {
                 toast.success(`${formData.title} Category created`, { id: toastId });
+                router.push('/categories');
+            } else {
+                toast.error("Failed to create category", { id: toastId });
             }
-            setRedirectTo('/categories');
         } catch (error) {
-            toast.error(getErrorMessage(error), { id: toastId });
+            toast.error(getErrorMessage(error) || "Failed to create category", { id: toastId });
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <>
-            <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-                {/* Header - Sticky */}
-                <PageHeader
-                    title="Category"
-                    subtitle="Manage E-Commerce Categories"
-                />
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+            {/* Header - Sticky */}
+            <PageHeader
+                title="Category"
+                subtitle="Manage E-Commerce Categories (Active categories appear on customer site)"
+            />
 
-                {/* Form Card */}
-                <div className="max-w-7xl mx-auto py-8">
-                    <div className="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
+            {/* Form Card */}
+            <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6">
+                <div className="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
 
-                        {/* Header */}
-                        <div className="p-6 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
-                            <h2 className="text-lg font-bold text-slate-800">
-                                Create Category
-                            </h2>
-                        </div>
+                    {/* Header */}
+                    <div className="p-6 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+                        <h2 className="text-lg font-bold text-slate-800">
+                            Create Category
+                        </h2>
+                    </div>
 
-                        <div className="p-6">
-                            <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+                    <div className="p-6">
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
 
-                                {/* LEFT SIDE - IMAGE UPLOAD */}
-                                <div className="md:col-span-4">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                        Category Image <span className="text-slate-400 font-normal">(Optional)</span>
-                                    </label>
-                                    <div className="mt-2 border-2 border-dashed border-slate-200 rounded-xl p-4 text-center hover:border-blue-400 transition">
-                                        {previewUrl ? (
-                                            <div className="relative">
-                                            <img src={previewUrl} alt="Banner preview" className="w-full h-48 object-cover rounded-lg" />
-                                            <button type="button" onClick={clearImage} className="absolute top-2 right-2 bg-white p-1 rounded-full shadow">✕</button>
-                                            </div>
-                                        ) : (
-                                            <div className="space-y-3">
-                                            <p className="text-sm text-slate-500">Upload an image file or paste an image URL</p>
-                                            <label className="inline-flex items-center justify-center w-full px-4 py-3 text-sm font-semibold text-slate-700 bg-slate-100 border border-slate-300 rounded-lg cursor-pointer hover:bg-slate-200">
-                                                Upload file
+                            {/* LEFT SIDE - IMAGE UPLOAD */}
+                            <div className="md:col-span-4">
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                    Category Image <span className="text-slate-400 font-normal">(Optional)</span>
+                                </label>
+                                <div className="mt-2 border-2 border-dashed border-slate-200 rounded-xl p-4 text-center hover:border-blue-400 transition bg-slate-50/50">
+                                    {previewUrl ? (
+                                        <div className="relative">
+                                            <img src={previewUrl} alt="Preview" className="w-full h-48 object-cover rounded-lg" />
+                                            <button
+                                                type="button"
+                                                onClick={clearImage}
+                                                className="absolute top-2 right-2 bg-white/90 p-1.5 rounded-full shadow text-slate-600 hover:text-red-600 cursor-pointer"
+                                                title="Remove image"
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3 py-4">
+                                            <p className="text-sm text-slate-500">Upload a category image file</p>
+                                            <label className="inline-flex items-center justify-center w-full px-4 py-2.5 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg cursor-pointer hover:bg-slate-100 transition shadow-xs">
+                                                Select File
                                                 <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
                                             </label>
-                                            </div>
-                                        )}
-                                        {errors.image && <p className="text-xs text-red-500 mt-2">{errors.image}</p>}
-                                    </div>
+                                        </div>
+                                    )}
+                                    {errors.image && <p className="text-xs text-red-500 mt-2">{errors.image}</p>}
+                                </div>
+                            </div>
+
+                            {/* RIGHT SIDE - FORM */}
+                            <div className="md:col-span-8 space-y-6">
+
+                                {/* TITLE */}
+                                <div>
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                        Category Name <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        value={formData.title}
+                                        onChange={(e) => {
+                                            setFormData({ ...formData, title: e.target.value });
+                                            if (errors.title) setErrors({ ...errors, title: undefined });
+                                        }}
+                                        placeholder="e.g. Designer Party Wear Suits"
+                                        className={`mt-2 w-full px-4 py-3 rounded-xl border-2 bg-slate-50 focus:bg-white outline-none transition ${errors.title
+                                            ? 'border-red-500 bg-red-50'
+                                            : 'border-slate-200 focus:border-blue-500'
+                                            }`}
+                                    />
+                                    {errors.title && (
+                                        <p className="text-xs text-red-500 mt-1">{errors.title}</p>
+                                    )}
                                 </div>
 
-                                {/* RIGHT SIDE - FORM */}
-                                <div className="md:col-span-8 space-y-6">
-
-                                    {/* TITLE */}
-                                    <div>
-                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                            Category Name <span className="text-red-500">*</span>
-                                        </label>
-                                        <input
-                                            value={formData.title}
-                                            onChange={(e) => {
-                                                setFormData({ ...formData, title: e.target.value });
-                                                if (errors.title) setErrors({ ...errors, title: undefined });
-                                            }}
-                                            placeholder="e.g. Designer Party Wear Suits"
-                                            className={`mt-2 w-full px-4 py-3 rounded-xl border-2 bg-slate-50 focus:bg-white outline-none transition ${errors.title
-                                                ? 'border-red-500 bg-red-50'
-                                                : 'border-transparent focus:border-blue-500'
+                                {/* STATUS TOGGLE */}
+                                <div>
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                        Category Status
+                                    </label>
+                                    <div className="mt-2 flex items-center gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormData({ ...formData, status: !formData.status })}
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
+                                                formData.status ? "bg-emerald-500" : "bg-slate-300"
+                                            }`}
+                                        >
+                                            <span
+                                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-xs ${
+                                                    formData.status ? "translate-x-6" : "translate-x-1"
                                                 }`}
-                                        />
-                                        {errors.title && (
-                                            <p className="text-xs text-red-500 mt-1">{errors.title}</p>
-                                        )}
+                                            />
+                                        </button>
+                                        <span className="text-sm font-semibold text-slate-700">
+                                            {formData.status ? "Active (Displayed on store)" : "Inactive (Hidden)"}
+                                        </span>
                                     </div>
                                 </div>
+                            </div>
 
-                                {/* ACTION BUTTONS */}
-                                <div className="md:col-span-12 flex justify-end gap-3 pt-6 border-t border-slate-100">
-                                    <button
-                                        onClick={handleSave}
-                                        disabled={loading}
-                                        className="px-8 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition disabled:opacity-50" >
-                                        {loading ? "Creating..." : "Create Category"}
-                                    </button>
-                                </div>
+                            {/* ACTION BUTTONS */}
+                            <div className="md:col-span-12 flex justify-end gap-3 pt-6 border-t border-slate-100">
+                                <button
+                                    type="button"
+                                    onClick={() => router.push('/categories')}
+                                    className="px-6 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-semibold hover:bg-slate-50 transition"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleSave}
+                                    disabled={loading}
+                                    className="px-8 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition disabled:opacity-50 cursor-pointer"
+                                >
+                                    {loading ? "Creating..." : "Create Category"}
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </>
+        </div>
     );
 }

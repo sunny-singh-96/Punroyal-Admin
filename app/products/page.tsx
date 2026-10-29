@@ -277,6 +277,7 @@ export default function ProductsPage() {
     }
   }, [searchParam]);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
@@ -645,16 +646,38 @@ export default function ProductsPage() {
     {
       key: "status",
       label: "Status",
-      render: (row) => (
-        <div className="flex items-center gap-1.5">
-          <span
-            className={`h-1.5 w-1.5 rounded-full ${row.status === 1 ? "bg-green-500" : "bg-slate-300"}`}
-          />
-          <span className="text-[11px] font-semibold text-slate-600">
-            {row.status === 1 ? "Live" : "Draft"}
-          </span>
-        </div>
-      ),
+      render: (row) => {
+        const isLive = row.status === 1 || row.status === true;
+        const isToggling = togglingId === row._id;
+        return (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={isToggling}
+              onClick={() => toggleSingleProductStatus(row._id, row.status)}
+              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors cursor-pointer disabled:opacity-50 ${
+                isLive ? "bg-emerald-500" : "bg-slate-300"
+              }`}
+              title={isLive ? "Click to set Draft" : "Click to set Live"}
+            >
+              <span
+                className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform shadow-xs ${
+                  isLive ? "translate-x-4.5" : "translate-x-0.5"
+                }`}
+              />
+            </button>
+            <span
+              className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                isLive
+                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                  : "bg-slate-100 text-slate-500 border border-slate-200"
+              }`}
+            >
+              {isLive ? "Live" : "Draft"}
+            </span>
+          </div>
+        );
+      },
     },
 
     {
@@ -696,6 +719,35 @@ export default function ProductsPage() {
       ),
     },
   ];
+
+  // ── Single Product Status Toggle ──────────────────────────────────────────────
+  const toggleSingleProductStatus = async (productId: string, currentStatus: number | boolean) => {
+    const isLive = currentStatus === 1 || currentStatus === true;
+    const nextStatus = !isLive;
+    // Optimistic UI update
+    setProducts((prev) =>
+      prev.map((p) => (p._id === productId ? { ...p, status: nextStatus ? 1 : 0 } : p))
+    );
+    setTogglingId(productId);
+
+    try {
+      const response = await productsAPI.updateStatus(productId, nextStatus);
+      const res = response?.data || response;
+      if (res?.code === "OK") {
+        toast.success(nextStatus ? "Product set to Live" : "Product set to Draft");
+      } else {
+        throw new Error(res?.message || "Failed to update product status");
+      }
+    } catch (error) {
+      // Rollback on failure
+      setProducts((prev) =>
+        prev.map((p) => (p._id === productId ? { ...p, status: isLive ? 1 : 0 } : p))
+      );
+      toast.error(getErrorMessage(error) || "Failed to update product status");
+    } finally {
+      setTogglingId(null);
+    }
+  };
 
   // ── Bulk Status Change ────────────────────────────────────────────────────────
 
