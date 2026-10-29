@@ -31,10 +31,12 @@ export default function ModelsPage() {
   const [loading, setLoading] = useState(false);
   const [reload, setReload] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalType, setModalType] = useState<'MODEL' | 'AUTH' | 'EDIT_VIDEO' | 'EDIT_LABEL'>('MODEL');
+  const [modalType, setModalType] = useState<'MODEL' | 'AUTH' | 'EDIT_VIDEO' | 'EDIT_LABEL' | 'EDIT_INFLUENCER'>('MODEL');
   const [selectedRow, setSelectedRow] = useState<Influencers | null>(null);
   const [registeredAuthIds, setRegisteredAuthIds] = useState<string[]>([]);
   const [roleLabel, setRoleLabel] = useState('');
+  const [editInfluencerName, setEditInfluencerName] = useState('');
+  const [editInfluencerStatus, setEditInfluencerStatus] = useState(true);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -137,6 +139,17 @@ export default function ModelsPage() {
     setFormData({ ...formData, name: val, username: generatedUsername });
   };
 
+  // ✅ Handle Edit Influencer Name & Details
+  const handleOpenEditInfluencer = useCallback((row: Influencers) => {
+    setSelectedRow(row);
+    setEditInfluencerName(row.name || '');
+    setRoleLabel(row.role_label || '');
+    setEditInfluencerStatus(row.status === true || String(row.status) === 'true');
+    setModalType('EDIT_INFLUENCER');
+    setErrors({});
+    setIsModalOpen(true);
+  }, []);
+
   // ✅ Handle Edit Influencer Video
   const handleEdit = useCallback((row: Influencers) => {
     setSelectedRow(row);
@@ -148,8 +161,48 @@ export default function ModelsPage() {
     setIsModalOpen(true);
   }, []);
 
-  // ✅ Create influencer, Auth, or Update Video
+  // ✅ Create influencer, Auth, or Update Video / Details
   const handleSave = async () => {
+    if (modalType === 'EDIT_INFLUENCER') {
+      if (!selectedRow?._id) return;
+      if (!editInfluencerName.trim()) {
+        setErrors({ name: 'Influencer name is required' });
+        return;
+      }
+      const toastId = toast.loading("Saving influencer details...");
+      try {
+        setLoading(true);
+        const response: any = await modelsAPI.update(selectedRow._id, {
+          name: editInfluencerName.trim(),
+          role_label: roleLabel.trim(),
+          status: editInfluencerStatus ? 'true' : 'false',
+        });
+        if (response?.code !== "OK" && response?.data?.code !== "OK" && !response?.success && response?.status !== 200) {
+          throw new Error(response?.message || response?.data?.message || "Failed to update influencer.");
+        }
+        setData((prev) =>
+          prev.map((item) =>
+            item._id === selectedRow._id
+              ? {
+                  ...item,
+                  name: editInfluencerName.trim(),
+                  role_label: roleLabel.trim(),
+                  status: editInfluencerStatus,
+                }
+              : item
+          )
+        );
+        setIsModalOpen(false);
+        setReload(!reload);
+        toast.success("Influencer details updated successfully!", { id: toastId });
+      } catch (error) {
+        toast.error(getErrorMessage(error), { id: toastId });
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     if (modalType === 'EDIT_LABEL') {
       if (!selectedRow?._id) return;
       const toastId = toast.loading("Saving influencer label...");
@@ -362,17 +415,82 @@ export default function ModelsPage() {
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           title={
-            modalType === 'EDIT_VIDEO'
-              ? `Edit Influencer Video - ${selectedRow?.name}`
-              : modalType === 'EDIT_LABEL'
-                ? `Edit Influencer Label - ${selectedRow?.name}`
-                : modalType === 'AUTH'
-                  ? 'Register Auth'
-                  : 'Create Influencer'
+            modalType === 'EDIT_INFLUENCER'
+              ? `Edit Influencer - ${selectedRow?.name}`
+              : modalType === 'EDIT_VIDEO'
+                ? `Edit Influencer Video - ${selectedRow?.name}`
+                : modalType === 'EDIT_LABEL'
+                  ? `Edit Influencer Label - ${selectedRow?.name}`
+                  : modalType === 'AUTH'
+                    ? 'Register Auth'
+                    : 'Create Influencer'
           }
           type="custom"
         >
-          {modalType === 'EDIT_LABEL' ? (
+          {modalType === 'EDIT_INFLUENCER' ? (
+            <div className="space-y-4 py-2">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                  Influencer Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Enter influencer full name"
+                  value={editInfluencerName}
+                  onChange={(e) => setEditInfluencerName(e.target.value)}
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                {errors.name && (
+                  <p className="text-xs text-red-500 mt-1">{errors.name}</p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                  Influencer Label
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g., Verified Influencer"
+                  value={roleLabel}
+                  onChange={(e) => setRoleLabel(e.target.value)}
+                  maxLength={60}
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="text-xs text-slate-500 mt-1">Shown on product tags and influencer reels.</p>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                  Status
+                </label>
+                <select
+                  value={editInfluencerStatus ? "true" : "false"}
+                  onChange={(e) => setEditInfluencerStatus(e.target.value === "true")}
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                >
+                  <option value="true">Active</option>
+                  <option value="false">Inactive</option>
+                </select>
+              </div>
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  disabled={loading}
+                  className="px-5 py-2 border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={loading}
+                  className="px-5 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold shadow-md hover:bg-blue-700 transition-all disabled:opacity-50"
+                >
+                  {loading ? "Saving..." : "Save Details"}
+                </button>
+              </div>
+            </div>
+          ) : modalType === 'EDIT_LABEL' ? (
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
@@ -677,23 +795,18 @@ export default function ModelsPage() {
                 render: (row: Influencers) => (
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => {
-                        setSelectedRow(row);
-                        setRoleLabel(row.role_label || '');
-                        setModalType('EDIT_LABEL');
-                        setIsModalOpen(true);
-                      }}
-                      className="bg-slate-600 text-white px-3 py-1 rounded-md hover:bg-slate-700 transition text-sm flex items-center gap-1 font-medium shadow-sm"
-                      title="Edit Influencer Label"
+                      onClick={() => handleOpenEditInfluencer(row)}
+                      className="bg-blue-600 text-white px-3 py-1 rounded-md hover:bg-blue-700 transition text-sm flex items-center gap-1 font-medium shadow-sm"
+                      title="Edit Influencer Name & Details"
                     >
-                      <Edit3 size={13} /> Label
+                      <Edit3 size={13} /> Edit
                     </button>
                     <button
                       onClick={() => handleEdit(row)}
                       className="bg-amber-500 text-white px-3 py-1 rounded-md hover:bg-amber-600 transition text-sm flex items-center gap-1 font-medium shadow-sm"
-                      title="Edit Influencer Video"
+                      title="Upload / Change Influencer Video"
                     >
-                      <Edit3 size={13} /> Edit
+                      <Video size={13} /> Video
                     </button>
                     <button
                       onClick={() => handleRegisterAuth(row)}
