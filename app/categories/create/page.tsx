@@ -15,7 +15,8 @@ export default function CategoryPage() {
     const [formData, setFormData] = useState({
         title: "",
         image: "",
-        status: true
+        status: true,
+        order: 1
     });
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState("");
@@ -61,6 +62,7 @@ export default function CategoryPage() {
             const payload = new FormData();
             payload.append("title", formData.title.trim());
             payload.append("status", String(formData.status));
+            payload.append("order", String(formData.order ?? 1));
             if (imageFile) {
                 payload.append("image", imageFile);
             } else {
@@ -156,6 +158,24 @@ export default function CategoryPage() {
                                     {errors.title && (
                                         <p className="text-xs text-red-500 mt-1">{errors.title}</p>
                                     )}
+                                </div>
+
+                                {/* DISPLAY ORDER */}
+                                <div>
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                        Display Order (1st, 2nd, 3rd, etc.)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        value={formData.order}
+                                        onChange={(e) => {
+                                            setFormData({ ...formData, order: parseInt(e.target.value, 10) || 1 });
+                                        }}
+                                        placeholder="1"
+                                        className="mt-2 w-full px-4 py-3 rounded-xl border-2 border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 outline-none transition"
+                                    />
+                                    <p className="text-xs text-slate-400 mt-1">Lower numbers appear first on customer site navigation.</p>
                                 </div>
 
                                 {/* STATUS TOGGLE */}

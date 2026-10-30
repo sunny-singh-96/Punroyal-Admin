@@ -128,7 +128,8 @@ export const ENDPOINTS = {
         GET: '/coupons/admin/coupon',
         ADD: '/coupons/admin/coupon/add',
         UPDATE: '/coupons/admin/coupon/update',
-        DELETE: '/coupons/admin/coupon/delete'
+        DELETE: '/coupons/admin/coupon/delete',
+        STATUS: '/coupons/admin/coupon/status'
     },
     ABOUT_US: {
         GET: '/about-us/admin/about-us',

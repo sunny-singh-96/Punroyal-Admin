@@ -9,9 +9,16 @@ interface LazyParams {
 
 export interface CouponPayload {
   couponName: string;
+  discountType?: 'flat' | 'percentage';
+  discountValue?: number;
+  minOrderAmount?: number;
+  maxDiscount?: number;
+  startDate?: string | null;
   expiryType: 'expiry_date' | 'no_expiry';
   expiryDate?: string | null;
   count: number;
+  usageLimitPerUser?: number;
+  status?: boolean;
 }
 
 export const couponsAPI = {
@@ -33,6 +40,10 @@ export const couponsAPI = {
 
   async update(id: string, data: Partial<CouponPayload>) {
     return http.put(`${ENDPOINTS.COUPON.UPDATE}/${id}`, data);
+  },
+
+  async updateStatus(id: string, status: boolean) {
+    return http.put(`${ENDPOINTS.COUPON.STATUS}/${id}`, { status });
   },
 
   async delete(id: string) {
