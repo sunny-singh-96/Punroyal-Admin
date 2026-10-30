@@ -166,6 +166,7 @@ export default function OccasionPage() {
         prev.map((item) => (item._id === occ._id ? { ...item, status: !occ.status } : item))
       );
       toast.success(`Occasion ${!occ.status ? "activated" : "deactivated"}`);
+      fetchOccasions();
     } catch (error) {
       toast.error(getErrorMessage(error) || "Failed to update status");
     }

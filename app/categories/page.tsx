@@ -90,6 +90,7 @@ export default function CategoryLists() {
     try {
       await categoriesAPI.updateStatus(id, nextStatus);
       toast.success(`Category ${nextStatus ? "activated (Live)" : "deactivated (Hidden)"}`);
+      fetchCategories();
     } catch (error) {
       // Rollback on failure
       setData((prev) =>
@@ -99,7 +100,7 @@ export default function CategoryLists() {
     } finally {
       setTogglingId(null);
     }
-  }, []);
+  }, [fetchCategories]);
 
   const handleMove = useCallback(async (index: number, direction: 'up' | 'down') => {
     if (direction === 'up' && index === 0) return;

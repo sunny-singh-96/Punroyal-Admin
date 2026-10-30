@@ -194,6 +194,7 @@ export default function CouponsPage() {
     try {
       await couponsAPI.updateStatus(id, nextStatus);
       toast.success(`Coupon ${nextStatus ? "activated" : "deactivated"}`);
+      fetchCoupons();
     } catch (error) {
       setCoupons((prev) =>
         prev.map((c) => (c._id === id ? { ...c, status: currentStatus } : c))

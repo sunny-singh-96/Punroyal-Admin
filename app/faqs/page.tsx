@@ -139,6 +139,7 @@ export default function FaqsPage() {
         prev.map((f) => (f._id === id ? { ...f, status: !currentStatus } : f))
       );
       toast.success(`FAQ ${!currentStatus ? "activated" : "deactivated"}`);
+      fetchFaqs();
     } catch (error) {
       toast.error(getErrorMessage(error));
     }

@@ -59,6 +59,7 @@ export default function TestimonialsPage() {
         prev.map((t) => (t._id === id ? { ...t, status: !currentStatus } : t))
       );
       toast.success(`Testimonial ${!currentStatus ? "activated" : "deactivated"}`);
+      fetchTestimonials();
     } catch (error) {
       toast.error(getErrorMessage(error));
     }

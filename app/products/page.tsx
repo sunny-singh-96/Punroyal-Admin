@@ -735,6 +735,7 @@ export default function ProductsPage() {
       const res = response?.data || response;
       if (res?.code === "OK") {
         toast.success(nextStatus ? "Product set to Live" : "Product set to Draft");
+        fetchProducts(appliedFilters, currentPage);
       } else {
         throw new Error(res?.message || "Failed to update product status");
       }

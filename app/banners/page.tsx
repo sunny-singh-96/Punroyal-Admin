@@ -82,6 +82,7 @@ export default function BannerListPage() {
     try {
       await bannersAPI.updateStatus(id, nextStatus);
       toast.success(`Banner ${nextStatus ? 'activated (Live)' : 'deactivated (Hidden)'}`);
+      fetchBanners();
     } catch (error) {
       // Rollback on failure
       setData((prev) =>
@@ -91,7 +92,7 @@ export default function BannerListPage() {
     } finally {
       setTogglingId(null);
     }
-  }, []);
+  }, [fetchBanners]);
 
   return (
     <div className="min-h-screen bg-gray-50">
