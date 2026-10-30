@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
-import { Plus, Edit2, Trash2, Search, Tag, X } from "lucide-react";
+import { Plus, Edit2, Trash2, Search, Tag, X, Sparkles } from "lucide-react";
 import PageHeader from "@/components/admin/head/head";
 import { couponsAPI, type CouponPayload } from "@/lib/integration/coupons";
 import { confirmDelete } from "@/lib/sweetAlert";
@@ -441,9 +441,27 @@ export default function CouponsPage() {
               {/* Row 1: Code and Status */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-                    Coupon Code *
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
+                      Coupon Code *
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+                        let rand = "";
+                        for (let i = 0; i < 8; i++) {
+                          rand += chars.charAt(Math.floor(Math.random() * chars.length));
+                        }
+                        setFormData({ ...formData, couponName: rand });
+                      }}
+                      className="text-[11px] font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 cursor-pointer"
+                      title="Generate unique 8-character random code"
+                    >
+                      <Sparkles size={12} />
+                      <span>Generate Random</span>
+                    </button>
+                  </div>
                   <input
                     type="text"
                     placeholder="e.g. FESTIVE20"

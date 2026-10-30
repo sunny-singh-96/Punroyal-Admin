@@ -131,6 +131,16 @@ export const ENDPOINTS = {
         DELETE: '/coupons/admin/coupon/delete',
         STATUS: '/coupons/admin/coupon/status'
     },
+    CODES: {
+        LIST: '/codes/admin/list',
+        GET: '/codes/admin',
+        ADD: '/codes/admin/add',
+        GENERATE: '/codes/admin/generate',
+        UPDATE: '/codes/admin/update',
+        DELETE: '/codes/admin/delete',
+        STATUS: '/codes/admin/status',
+        VALIDATE: '/codes/validate'
+    },
     ABOUT_US: {
         GET: '/about-us/admin/about-us',
         UPDATE: '/about-us/admin/about-us/update',

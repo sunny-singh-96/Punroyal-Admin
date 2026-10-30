@@ -20,6 +20,7 @@ import {
   Settings,
   Tag,
   Star,
+  Sparkles,
 } from "lucide-react";
 import { orderAPI } from "@/lib/integration/orders";
 import { enquiryAPI } from "@/lib/integration/enquiry";
@@ -162,6 +163,11 @@ const menuItems = [
     name: "Coupons",
     icon: Tag,
     path: "/coupons",
+  },
+  {
+    name: "Code Generator",
+    icon: Sparkles,
+    path: "/code-generator",
   },
   // {
   //   name: "Queries",
