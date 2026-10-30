@@ -22,11 +22,13 @@ import {
   Megaphone,
   Tag,
   Percent,
-  Receipt
+  Receipt,
+  RotateCw
 } from "lucide-react";
 import PageHeader from "@/components/admin/head/head";
 import { globalSettingsAPI } from "@/lib/integration/globalSettings";
 import { couponsAPI } from "@/lib/integration/coupons";
+import { dashboardAPI } from "@/lib/integration/dashboard";
 
 interface FooterLink {
   name: string;
@@ -77,6 +79,21 @@ const DEFAULT_GST_RULES: GstRule[] = [
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [clearingCache, setClearingCache] = useState(false);
+
+  const handleClearCache = async () => {
+    if (clearingCache) return;
+    setClearingCache(true);
+    try {
+      await dashboardAPI.clearWebsiteCache();
+      toast.success("Website cache cleared successfully!");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to clear website cache");
+    } finally {
+      setClearingCache(false);
+    }
+  };
+
 
   // Form fields
   const [headerLogo, setHeaderLogo] = useState("");
@@ -1102,6 +1119,33 @@ export default function SettingsPage() {
                 />
               </div>
             </div>
+          </div>
+        </div>
+
+        
+        {/* WEBSITE CACHE & PERFORMANCE */}
+        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xs mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2.5 mb-1.5">
+                <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-700">
+                  <RotateCw size={18} />
+                </div>
+                <h3 className="text-base font-bold text-slate-800">Website Cache & Synchronization</h3>
+              </div>
+              <p className="text-xs text-slate-500 max-w-xl">
+                Clear all cached pages, banners, product collections, and occasions stored in Redis memory. Use this whenever changes are not reflecting immediately on the live frontend.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleClearCache}
+              disabled={clearingCache}
+              className="flex items-center justify-center gap-2 px-5 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-sm font-bold shadow-xs transition-all active:scale-95 disabled:opacity-50 cursor-pointer shrink-0"
+            >
+              <RotateCw size={16} className={clearingCache ? "animate-spin" : ""} />
+              {clearingCache ? "Clearing Cache..." : "Clear Website Cache"}
+            </button>
           </div>
         </div>
 

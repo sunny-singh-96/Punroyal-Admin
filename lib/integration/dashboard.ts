@@ -6,4 +6,9 @@ export const dashboardAPI = {
   async getAll() {
     return http.get(ENDPOINTS.DASHBOARD);
   },
+
+  // Clear Website & Redis Cache
+  async clearWebsiteCache() {
+    return http.post(ENDPOINTS.CLEAR_CACHE, {});
+  },
 };

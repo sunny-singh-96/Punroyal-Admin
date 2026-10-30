@@ -21,6 +21,7 @@ export const ENDPOINTS = {
     LOGIN: "/auth/admin-login",
     LOGOUT: "/auth/logout",
     DASHBOARD: '/index/admin/dashboard/stats',
+    CLEAR_CACHE: '/index/admin/clear-cache',
     COMMON: '/index/common',
     COMMON_HANDLER: '/index/common-handler',
     PRODUCT: {

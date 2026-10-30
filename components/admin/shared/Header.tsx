@@ -19,12 +19,15 @@ import {
   Calendar,
   Loader2,
   ArrowRight,
-  ExternalLink
+  ExternalLink,
+  RotateCw
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { logoutUser } from '@/lib/middleware/auth';
 import { productsAPI } from '@/lib/integration/products';
 import { orderAPI } from '@/lib/integration/orders';
+import { dashboardAPI } from '@/lib/integration/dashboard';
+import toast from 'react-hot-toast';
 
 interface SearchResultProduct {
   _id: string;
@@ -79,6 +82,22 @@ export default function Header({ setIsOpen }: { setIsOpen: (v: boolean) => void 
   const handleLogout = async () => {
     await logoutUser();
   };
+
+  const [clearingCache, setClearingCache] = useState(false);
+
+  const handleClearCache = async () => {
+    if (clearingCache) return;
+    setClearingCache(true);
+    try {
+      await dashboardAPI.clearWebsiteCache();
+      toast.success("Website cache cleared successfully!");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to clear website cache");
+    } finally {
+      setClearingCache(false);
+    }
+  };
+
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -459,6 +478,19 @@ export default function Header({ setIsOpen }: { setIsOpen: (v: boolean) => void 
           aria-label="Toggle Mobile Search"
         >
           <Search size={20} />
+        </button>
+
+        
+        {/* Clear Website Cache Button */}
+        <button
+          type="button"
+          onClick={handleClearCache}
+          disabled={clearingCache}
+          className="flex items-center gap-1.5 px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-xl text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer disabled:opacity-50"
+          title="Clear Website Cache (Flush Homepage, Occasions & Redis Cache)"
+        >
+          <RotateCw size={14} className={clearingCache ? "animate-spin text-amber-600" : "text-amber-600"} />
+          <span className="hidden md:inline">Clear Cache</span>
         </button>
 
         {/* Notifications */}
