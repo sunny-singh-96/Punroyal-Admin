@@ -64,7 +64,15 @@ export default function CategoryEditPage() {
         URL.revokeObjectURL(url);
       };
     }
-    setPreviewUrl(formData.image || "");
+    if (formData.image) {
+      try {
+        setPreviewUrl(encodeURI(decodeURI(formData.image)));
+      } catch (e) {
+        setPreviewUrl(encodeURI(formData.image));
+      }
+    } else {
+      setPreviewUrl("");
+    }
   }, [imageFile, formData.image]);
 
   useEffect(() => {

@@ -211,7 +211,7 @@ export default function CategoryLists() {
                 <div className="flex items-center gap-3">
                   {row.image ? (
                     <img
-                      src={row.image}
+                      src={encodeURI(decodeURI(row.image))}
                       alt={row.title || "image"}
                       width={64}
                       height={64}
