@@ -248,16 +248,16 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:sticky top-0 left-0 z-[110] h-screen w-72 bg-[#0d1527] border-r border-slate-800/80 
-        transition-all duration-300 shadow-2xl lg:shadow-none text-slate-200
+        className={`fixed lg:sticky top-0 left-0 z-[110] h-screen w-72 bg-white border-r 
+        transition-all duration-300 shadow-2xl lg:shadow-none
         ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
       >
         <div className="flex flex-col h-full">
 
           {/* Logo */}
-          <div className="h-20 flex items-center justify-between px-6 border-b border-slate-800/80 bg-[#090e1a]/90 backdrop-blur-xs">
+          <div className="h-20 flex items-center justify-between px-6 border-b">
             <Link href="/dashboard" className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 border border-amber-400/80 shadow-md bg-slate-900 p-0.5">
+              <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 border border-amber-300/70 shadow-xs bg-slate-900 p-0.5">
                 <Image
                   src="/punroyal-logo.png"
                   alt="Punroyal Logo"
@@ -269,24 +269,24 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                 />
               </div>
               <div className="flex flex-col">
-                <span className="text-lg font-black text-white tracking-tight leading-none">
-                  Pun<span className="text-amber-400">Royal</span>
+                <span className="text-lg font-black text-slate-900 tracking-tight leading-none">
+                  Pun<span className="text-blue-600">Royal</span>
                 </span>
-                <span className="text-[9px] font-extrabold text-amber-300 uppercase tracking-widest mt-1 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20 w-fit">
+                <span className="text-[10px] font-extrabold text-amber-600 uppercase tracking-widest mt-0.5">
                   Enterprise
                 </span>
               </div>
             </Link>
             <button
               onClick={() => setIsOpen(false)}
-              className="lg:hidden p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800/60 transition"
+              className="lg:hidden p-2 text-slate-400 hover:text-slate-600"
             >
               <X size={20} />
             </button>
           </div>
 
           {/* NAVIGATION */}
-          <nav className="flex-1 overflow-y-auto py-5 px-3.5 space-y-1.5 custom-sidebar-scroll">
+          <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-2">
             {menuItems.map((item) => {
               const isOpen = openMenus.includes(item.name);
 
@@ -303,15 +303,16 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
               return (
                 <div key={item.name}>
                   
-                  {/* Parent (toggle only) */}
+                  {/* ✅ FIXED PART */}
                   {item.children ? (
+                    // 👉 Parent (toggle only)
                     <div
                       onClick={() => toggleMenu(item.name)}
-                      className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl cursor-pointer text-sm font-medium transition-all
+                      className={`flex items-center justify-between px-4 py-3 rounded-xl cursor-pointer font-semibold transition
                       ${
                         isParentActive
-                          ? "bg-gradient-to-r from-indigo-600 via-indigo-600 to-purple-600 text-white font-semibold shadow-lg shadow-indigo-600/25"
-                          : "text-slate-300 hover:text-white hover:bg-slate-800/60"
+                          ? "bg-blue-600 text-white"
+                          : "text-slate-600 hover:bg-slate-100"
                       }`}
                     >
                       <div className="flex items-center gap-3">
@@ -322,7 +323,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                       <div className="flex items-center gap-2">
                         {item.name === "Newsletters" && subscriberCount > 0 && (
                           <span className={`min-w-[20px] h-5 flex items-center justify-center text-[10px] font-bold rounded-full px-1.5 ${
-                            isParentActive ? "bg-white text-indigo-700" : "bg-indigo-500 text-white"
+                            isParentActive ? "bg-white text-blue-600" : "bg-blue-500 text-white"
                           }`}>
                             {subscriberCount > 999 ? "999+" : subscriberCount}
                           </span>
@@ -336,14 +337,15 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                       </div>
                     </div>
                   ) : (
+                    // 👉 ✅ FIX: LINK ADDED HERE
                     <Link
                       href={item.path}
                       onClick={() => setIsOpen(false)}
-                      className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all
+                      className={`flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition
                       ${
                         isActive
-                          ? "bg-gradient-to-r from-indigo-600 via-indigo-600 to-purple-600 text-white font-semibold shadow-lg shadow-indigo-600/25"
-                          : "text-slate-300 hover:text-white hover:bg-slate-800/60"
+                          ? "bg-blue-600 text-white"
+                          : "text-slate-600 hover:bg-slate-100"
                       }`}
                     >
                       <item.icon size={18} />
@@ -351,8 +353,8 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                       {(item as any).badgeKey === "pending" && pendingCount > 0 && (
                         <span className={`min-w-[20px] h-5 flex items-center justify-center text-[10px] font-bold rounded-full px-1.5 ${
                           isActive
-                            ? "bg-white text-red-600"
-                            : "bg-red-500 text-white shadow-xs"
+                            ? "bg-white text-blue-600"
+                            : "bg-red-500 text-white"
                         }`}>
                           {pendingCount > 99 ? "99+" : pendingCount}
                         </span>
@@ -360,8 +362,8 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                       {(item as any).badgeKey === "enquiries" && pendingEnquiriesCount > 0 && (
                         <span className={`min-w-[20px] h-5 flex items-center justify-center text-[10px] font-bold rounded-full px-1.5 ${
                           isActive
-                            ? "bg-white text-amber-700"
-                            : "bg-amber-500 text-white shadow-xs"
+                            ? "bg-white text-blue-600"
+                            : "bg-amber-500 text-white"
                         }`}>
                           {pendingEnquiriesCount > 99 ? "99+" : pendingEnquiriesCount}
                         </span>
@@ -369,8 +371,8 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                       {(item as any).badgeKey === "newsletters" && subscriberCount > 0 && (
                         <span className={`min-w-[20px] h-5 flex items-center justify-center text-[10px] font-bold rounded-full px-1.5 ${
                           isActive
-                            ? "bg-white text-indigo-700"
-                            : "bg-indigo-500 text-white"
+                            ? "bg-white text-blue-600"
+                            : "bg-blue-500 text-white"
                         }`}>
                           {subscriberCount > 999 ? "999+" : subscriberCount}
                         </span>
@@ -381,7 +383,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                   {/* SUBMENU */}
                   {item.children && (
                     <div
-                      className={`ml-5 pl-2 border-l border-slate-800/90 overflow-hidden transition-all duration-300 space-y-0.5 ${
+                      className={`ml-6 overflow-hidden transition-all duration-300 ${
                         isOpen ? "max-h-40 mt-1" : "max-h-0"
                       }`}
                     >
@@ -394,10 +396,11 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                             key={child.path}
                             href={child.path}
                             onClick={() => setIsOpen(false)}
-                            className={`block px-3 py-2 rounded-lg text-xs transition-all ${
+                            className={`block px-3 py-2 rounded-lg text-sm transition
+                            ${
                               isChildActive
-                                ? "bg-amber-400/15 text-amber-300 font-bold border-l-2 border-amber-400 shadow-xs"
-                                : "text-slate-400 hover:text-white hover:bg-slate-800/40 font-medium"
+                                ? "bg-blue-100 text-blue-700"
+                                : "text-slate-500 hover:bg-slate-50"
                             }`}
                           >
                             {child.name}
@@ -412,10 +415,10 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
           </nav>
 
           {/* FOOTER */}
-          <div className="p-4 border-t border-slate-800/80 bg-[#090e1a]/80 space-y-2">
+          <div className="p-4 border-t space-y-2">
             <button
               onClick={() => setShowLogoutModal(true)}
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition text-sm font-medium"
+              className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl"
             >
               <LogOut size={18} /> Logout
             </button>

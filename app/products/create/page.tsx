@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
 import { Loader2, AlertCircle, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { categoriesAPI, productsAPI, commonAPI, occasionsAPI } from "@/lib/integration";
-import AsyncSelect from "@/components/admin/select/select";
+import AsyncSelect, { SearchableSelect } from "@/components/admin/select/select";
 import ColorVariantsSection from "@/components/admin/product/ColorVariantsSection";
 import { getErrorMessage } from "@/lib/helpers/handlers";
 import { productValidate } from "@/validations/product";
@@ -558,20 +558,20 @@ export default function CreateProductPage() {
               <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider ml-1">
                 Product Type<span className="text-red-500">*</span>
               </label>
-              <select
+              <SearchableSelect
+                options={[
+                  { label: "Ready-Made", value: "sizes" },
+                  { label: "Unstitched", value: "no_sizes" },
+                ]}
                 value={form.product_type}
-                onChange={(e) =>
+                onChange={(val) =>
                   handleFieldChange(
                     "product_type",
-                    e.target.value as "sizes" | "no_sizes" | "",
+                    val as "sizes" | "no_sizes" | "",
                   )
                 }
-                className={`w-full px-4 py-3 bg-slate-50 border-2 rounded-xl outline-none transition-all focus:bg-white ${hasError("product_type") ? "border-red-500 bg-red-50" : "border-transparent focus:border-indigo-600"}`}
-              >
-                <option value="">Select Product Type</option>
-                <option value="sizes">Ready-Made</option>
-                <option value="no_sizes">Unstitched</option>
-              </select>
+                placeholder="Select Product Type"
+              />
               {hasError("product_type") && (
                 <p className="text-red-500 text-xs">
                   {handleError("product_type")}
@@ -689,25 +689,22 @@ export default function CreateProductPage() {
               <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider ml-1">
                 Influencer
               </label>
-              <select
+              <SearchableSelect
+                options={(common?.models || []).map((item) => ({
+                  label: item.name,
+                  value: item._id,
+                }))}
                 value={form.model_id || form.influencer_id || ""}
-                onChange={(e) => {
-                  const val = e.target.value;
+                onChange={(val) => {
                   setForm((prev) => ({
                     ...prev,
                     model_id: val,
                     influencer_id: val,
                   }));
                 }}
-                className="w-full px-4 py-3 bg-slate-50/70 border border-slate-200 rounded-xl outline-none font-medium text-sm text-slate-800 hover:border-slate-300 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-xs cursor-pointer"
-              >
-                <option value="">Select Influencer</option>
-                {common?.models?.map((item) => (
-                  <option key={item._id} value={item._id}>
-                    {item.name}
-                  </option>
-                ))}
-              </select>
+                placeholder="Select Influencer"
+                isClearable={true}
+              />
               {hasError("model_id") && (
                 <p className="text-red-500 text-xs">
                   {handleError("model_id")}
@@ -744,20 +741,20 @@ export default function CreateProductPage() {
                   <label className="text-[10px] font-black text-purple-900 uppercase tracking-wider ml-1">
                     Commission Type
                   </label>
-                  <select
+                  <SearchableSelect
+                    options={[
+                      { label: "Percentage (%)", value: "percentage" },
+                      { label: "Flat Amount (₹)", value: "flat" },
+                    ]}
                     value={form.commission_type || ""}
-                    onChange={(e) =>
+                    onChange={(val) =>
                       handleFieldChange(
                         "commission_type",
-                        e.target.value as "percentage" | "flat" | ""
+                        val as "percentage" | "flat" | ""
                       )
                     }
-                    className="w-full px-4 py-2.5 bg-white border-2 border-purple-200 rounded-xl outline-none focus:border-purple-600 text-sm font-medium"
-                  >
-                    <option value="">Select Commission Type</option>
-                    <option value="percentage">Percentage (%)</option>
-                    <option value="flat">Flat Amount (₹)</option>
-                  </select>
+                    placeholder="Select Commission Type"
+                  />
                 </div>
               </div>
             )}
@@ -765,32 +762,21 @@ export default function CreateProductPage() {
               <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider ml-1">
                 Fabric
               </label>
-              <div className="flex gap-2">
-                <select
-                  value={form.metarial[0]?.id || ""}
-                  onChange={(e) =>
-                    handleFieldChange(
-                      "metarial",
-                      e.target.value ? [{ id: e.target.value }] : []
-                    )
-                  }
-                  className="flex-1 px-4 py-3 bg-slate-50/70 border border-slate-200 rounded-xl outline-none font-medium text-sm text-slate-800 hover:border-slate-300 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-xs cursor-pointer"
-                >
-                  <option value="">Select Fabric</option>
-                  {common?.materials?.map((item) => (
-                    <option key={item._id} value={item._id}>
-                      {item.name}
-                    </option>
-                  ))}
-                </select>
-                {/* <button
-                  type="button"
-                  onClick={() => true}
-                  className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl font-bold text-sm hover:bg-indigo-100 transition-all flex items-center gap-1 whitespace-nowrap"
-                >
-                  <PlusCircle size={16} /> New
-                </button> */}
-              </div>
+              <SearchableSelect
+                options={(common?.materials || []).map((item) => ({
+                  label: item.name,
+                  value: item._id,
+                }))}
+                value={form.metarial[0]?.id || ""}
+                onChange={(val) =>
+                  handleFieldChange(
+                    "metarial",
+                    val ? [{ id: val }] : []
+                  )
+                }
+                placeholder="Select Fabric"
+                isClearable={true}
+              />
               {hasError("metarial") && (
                 <p className="text-red-500 text-xs">
                   {handleError("metarial")}

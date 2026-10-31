@@ -124,6 +124,7 @@ export default function AsyncSelect({
       placeholder={placeholder}
       value={options.find((opt) => opt.value === value) || null}
       isLoading={loading}
+      isSearchable={true}
       onInputChange={(val) => {
         handleInputChange(val);
         return val;
@@ -156,6 +157,12 @@ export default function AsyncSelect({
           color: "#94a3b8",
           fontSize: "14px",
           fontWeight: 400,
+        }),
+        input: (base) => ({
+          ...base,
+          color: "#0f172a",
+          fontSize: "14px",
+          fontWeight: 500,
         }),
         singleValue: (base) => ({
           ...base,
@@ -209,3 +216,6 @@ export default function AsyncSelect({
     />
   );
 }
+
+
+export { default as SearchableSelect } from "./SearchableSelect";
