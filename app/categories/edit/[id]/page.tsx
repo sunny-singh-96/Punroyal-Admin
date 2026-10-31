@@ -125,7 +125,6 @@ export default function CategoryEditPage() {
     } catch (error) {
       const msg = getErrorMessage(error);
       showErrorAlert("Cannot Update Category", msg);
-      toast.error(msg, { id: toastId });
     } finally {
       setLoading(false);
     }

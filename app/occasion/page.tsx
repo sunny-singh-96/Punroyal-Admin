@@ -155,7 +155,6 @@ export default function OccasionPage() {
     } catch (error) {
       const msg = getErrorMessage(error) || "Failed to delete occasion";
       showErrorAlert("Cannot Delete Occasion", msg);
-      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -172,7 +171,6 @@ export default function OccasionPage() {
     } catch (error) {
       const msg = getErrorMessage(error) || "Failed to update status";
       showErrorAlert("Cannot Deactivate Occasion", msg);
-      toast.error(msg);
     }
   };
 

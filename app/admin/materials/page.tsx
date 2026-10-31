@@ -69,7 +69,6 @@ export default function MaterialsPage() {
     } catch (error) {
       const msg = getErrorMessage(error);
       showErrorAlert("Cannot Delete Material", msg);
-      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -101,7 +100,6 @@ export default function MaterialsPage() {
     } catch (error) {
       const msg = getErrorMessage(error);
       showErrorAlert("Cannot Update Material", msg);
-      toast.error(msg, { id: toastId });
     } finally {
       setActionLoading(false);
     }
@@ -163,7 +161,6 @@ export default function MaterialsPage() {
       );
       const msg = getErrorMessage(error) || "Failed to update material status";
       showErrorAlert("Cannot Deactivate Material", msg);
-      toast.error(msg);
     }
   };
 
@@ -183,7 +180,6 @@ export default function MaterialsPage() {
     } catch (error) {
       const msg = getErrorMessage(error);
       showErrorAlert("Cannot Delete Material", msg);
-      toast.error(msg);
     } finally {
       setLoading(false);
     }

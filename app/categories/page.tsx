@@ -77,7 +77,6 @@ export default function CategoryLists() {
     } catch (error) {
       const msg = getErrorMessage(error) || "Failed to delete category";
       showErrorAlert("Cannot Delete Category", msg);
-      toast.error(msg);
     }
   }, []);
 
@@ -100,7 +99,6 @@ export default function CategoryLists() {
       );
       const msg = getErrorMessage(error) || "Failed to update category status";
       showErrorAlert("Cannot Deactivate Category", msg);
-      toast.error(msg);
     } finally {
       setTogglingId(null);
     }

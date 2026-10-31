@@ -1,6 +1,6 @@
 // ========================= DataGrid.tsx =========================
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Search, ChevronUp, ChevronDown, GripVertical, X } from "lucide-react";
+import { Search, ChevronUp, ChevronDown, GripVertical, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 
 export interface Header<T = unknown> {
   key: keyof T | string;
@@ -64,6 +64,22 @@ export default function DataGrid<T = unknown>({
   }, [rows, sortKey, sortOrder]);
 
   const totalPages = Math.ceil(totalRecords / pageSize);
+  const getPaginationItems = (currentPage: number, total: number): (number | "...")[] => {
+    if (total <= 7) {
+      return Array.from({ length: total }, (_, i) => i + 1);
+    }
+    if (currentPage <= 3) {
+      return [1, 2, 3, "...", total];
+    }
+    if (currentPage === 4) {
+      return [1, 2, 3, 4, 5, "...", total];
+    }
+    if (currentPage >= total - 2) {
+      return [1, "...", total - 3, total - 2, total - 1, total];
+    }
+    return [1, "...", currentPage - 1, currentPage, currentPage + 1, "...", total];
+  };
+
 
   const handleSort = (key: string) => {
     if (sortKey === key) {
@@ -255,32 +271,75 @@ export default function DataGrid<T = unknown>({
             {Math.min(page * pageSize, totalRecords)} of {totalRecords} entries
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {/* First Page (<<) */}
             <button
-              disabled={page === 1 || loading} 
-              onClick={() => onPageChange(page - 1)}
-              className="px-3 py-1 border rounded disabled:opacity-50"
+              type="button"
+              disabled={page === 1 || loading}
+              onClick={() => onPageChange(1)}
+              title="First Page"
+              className="w-9 h-9 flex items-center justify-center border border-slate-200 rounded-lg bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
             >
-              Prev
+              <ChevronsLeft size={16} />
             </button>
 
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-              <button
-                key={p}
-                disabled={loading}
-                onClick={() => onPageChange(p)}
-                className={`px-3 py-1 border rounded ${p === page ? "bg-blue-500 text-white" : ""}`}
-              >
-                {p}
-              </button>
-            ))}
-
+            {/* Prev Page (<) */}
             <button
-              disabled={page === totalPages || loading}
-              onClick={() => onPageChange(page + 1)}
-              className="px-3 py-1 border rounded disabled:opacity-50"
+              type="button"
+              disabled={page === 1 || loading}
+              onClick={() => onPageChange(page - 1)}
+              title="Previous Page"
+              className="w-9 h-9 flex items-center justify-center border border-slate-200 rounded-lg bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
             >
-              Next
+              <ChevronLeft size={16} />
+            </button>
+
+            {/* Page numbers and ellipsis */}
+            {getPaginationItems(page, totalPages).map((item, idx) =>
+              item === "..." ? (
+                <span
+                  key={`ellipsis-${idx}`}
+                  className="w-7 h-9 flex items-center justify-center text-slate-400 font-bold select-none text-sm tracking-wider"
+                >
+                  ...
+                </span>
+              ) : (
+                <button
+                  key={`page-${item}`}
+                  type="button"
+                  disabled={loading}
+                  onClick={() => onPageChange(item)}
+                  className={`w-9 h-9 flex items-center justify-center border rounded-lg text-sm font-semibold transition ${
+                    item === page
+                      ? "bg-blue-600 text-white border-blue-600 shadow-xs"
+                      : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                  }`}
+                >
+                  {item}
+                </button>
+              )
+            )}
+
+            {/* Next Page (>) */}
+            <button
+              type="button"
+              disabled={page === totalPages || totalPages === 0 || loading}
+              onClick={() => onPageChange(page + 1)}
+              title="Next Page"
+              className="w-9 h-9 flex items-center justify-center border border-slate-200 rounded-lg bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            >
+              <ChevronRight size={16} />
+            </button>
+
+            {/* Last Page (>>) */}
+            <button
+              type="button"
+              disabled={page === totalPages || totalPages === 0 || loading}
+              onClick={() => onPageChange(totalPages)}
+              title="Last Page"
+              className="w-9 h-9 flex items-center justify-center border border-slate-200 rounded-lg bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            >
+              <ChevronsRight size={16} />
             </button>
           </div>
         </div>

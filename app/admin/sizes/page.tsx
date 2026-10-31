@@ -69,7 +69,6 @@ export default function SizesPage() {
     } catch (error) {
       const msg = getErrorMessage(error);
       showErrorAlert("Cannot Delete Size", msg);
-      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -101,7 +100,6 @@ export default function SizesPage() {
     } catch (error) {
       const msg = getErrorMessage(error);
       showErrorAlert("Cannot Update Size", msg);
-      toast.error(msg, { id: toastId });
     } finally {
       setActionLoading(false);
     }
@@ -163,7 +161,6 @@ export default function SizesPage() {
       );
       const msg = getErrorMessage(error) || "Failed to update size status";
       showErrorAlert("Cannot Deactivate Size", msg);
-      toast.error(msg);
     }
   };
 
@@ -183,7 +180,6 @@ export default function SizesPage() {
     } catch (error) {
       const msg = getErrorMessage(error);
       showErrorAlert("Cannot Delete Size", msg);
-      toast.error(msg);
     } finally {
       setLoading(false);
     }

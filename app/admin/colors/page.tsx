@@ -72,7 +72,6 @@ export default function ColorsPage() {
     } catch (error) {
       const msg = getErrorMessage(error);
       showErrorAlert("Cannot Delete Color", msg);
-      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -105,7 +104,6 @@ export default function ColorsPage() {
     } catch (error) {
       const msg = getErrorMessage(error);
       showErrorAlert("Cannot Update Color", msg);
-      toast.error(msg, { id: toastId });
     } finally {
       setActionLoading(false);
     }
@@ -170,7 +168,6 @@ export default function ColorsPage() {
       );
       const msg = getErrorMessage(error) || "Failed to update color status";
       showErrorAlert("Cannot Deactivate Color", msg);
-      toast.error(msg);
     }
   };
 
@@ -190,7 +187,6 @@ export default function ColorsPage() {
     } catch (error) {
       const msg = getErrorMessage(error);
       showErrorAlert("Cannot Delete Color", msg);
-      toast.error(msg);
     } finally {
       setLoading(false);
     }
