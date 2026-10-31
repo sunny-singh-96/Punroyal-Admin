@@ -1,5 +1,6 @@
 "use client";
 
+import { convertToWebP } from "@/lib/helpers/imageToWebp";
 import { useState, useEffect, useCallback, useRef } from "react";
 import toast from "react-hot-toast";
 import { confirmDelete, showErrorAlert } from "@/lib/sweetAlert";

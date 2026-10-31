@@ -20,6 +20,7 @@ import {
   Settings,
   Tag,
   Star,
+  BookOpen,
 } from "lucide-react";
 import { orderAPI } from "@/lib/integration/orders";
 import { enquiryAPI } from "@/lib/integration/enquiry";

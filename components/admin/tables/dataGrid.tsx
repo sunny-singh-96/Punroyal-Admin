@@ -1,3 +1,5 @@
+"use client";
+
 // ========================= DataGrid.tsx =========================
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Search, ChevronUp, ChevronDown, GripVertical, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";

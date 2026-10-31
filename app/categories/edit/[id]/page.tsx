@@ -1,5 +1,6 @@
 "use client";
 
+import { convertToWebP } from "@/lib/helpers/imageToWebp";
 import { categoriesAPI } from "@/lib/integration/categories";
 import toast from "react-hot-toast";
 import { categoryValidate } from "@/validations/categories";
@@ -84,10 +85,11 @@ export default function CategoryEditPage() {
     return () => clearTimeout(delay);
   }, [id]);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] || null;
     if (!file) return;
-    setImageFile(file);
+    const webpFile = await convertToWebP(file);
+    setImageFile(webpFile);
     setFormData({ ...formData, image: "" });
     setErrors({ ...errors, image: undefined });
   };

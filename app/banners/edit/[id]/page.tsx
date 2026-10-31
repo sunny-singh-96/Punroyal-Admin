@@ -1,5 +1,6 @@
 "use client";
 
+import { convertToWebP } from "@/lib/helpers/imageToWebp";
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import toast from "react-hot-toast";
@@ -70,10 +71,11 @@ export default function EditBannerPage() {
     return () => clearTimeout(delay);
   }, [id]);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] || null;
     if (!file) return;
-    setImageFile(file);
+    const webpFile = await convertToWebP(file);
+    setImageFile(webpFile);
     setFormData((prev) => ({ ...prev, banner: "" }));
     setErrors((prev) => ({ ...prev, banner: undefined }));
   };
