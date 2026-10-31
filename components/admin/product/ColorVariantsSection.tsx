@@ -539,10 +539,11 @@ function ColorVariantsSection({
                   updated[gIdx].color_id = e.target.value;
                   setColorGroups(updated);
                 }}
-                className="bg-slate-800 text-white px-5 py-2.5 rounded-xl"
+                className="bg-slate-800 text-white px-4 py-2.5 rounded-xl border border-slate-700 hover:border-slate-500 focus:ring-2 focus:ring-indigo-500 outline-none text-xs font-semibold cursor-pointer transition shadow-sm"
               >
                 <option value="">Select Color</option>
                 {colors
+                  .filter((c: any) => c.status !== false && c.status !== "false" && c.status !== 0 && c.status !== "0")
                   .filter(
                     (c) =>
                       !colorGroups.some(
@@ -788,6 +789,7 @@ function ColorVariantsSection({
                               {sizes.length === 0 ? "Loading sizes..." : "Select Size"}
                             </option>
                             {sizes
+                              .filter((sz: any) => sz.status !== false && sz.status !== "false" && sz.status !== 0 && sz.status !== "0")
                               .filter(
                                 (sz) =>
                                   !group.sizes.some(

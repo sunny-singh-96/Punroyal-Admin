@@ -217,11 +217,22 @@ export default function CreateProductPage() {
       const response = await commonAPI.getAll();
       const resData = response?.data || response;
       if (resData?.code === "OK") {
+        const filterActive = (list: any[]) =>
+          Array.isArray(list)
+            ? list.filter(
+                (item) =>
+                  item.status !== false &&
+                  item.status !== "false" &&
+                  item.status !== 0 &&
+                  item.status !== "0"
+              )
+            : [];
+
         setCommon({
-          models: resData?.data?.models || [],
-          materials: resData?.data?.materials || [],
-          sizes: resData?.data?.sizes || [],
-          colors: resData?.data?.colors || [],
+          models: filterActive(resData?.data?.models || []),
+          materials: filterActive(resData?.data?.materials || []),
+          sizes: filterActive(resData?.data?.sizes || []),
+          colors: filterActive(resData?.data?.colors || []),
         });
       }
     } catch (error) {
@@ -592,7 +603,7 @@ export default function CreateProductPage() {
                 Category<span className="text-red-500">*</span>
               </label>
               <AsyncSelect
-                className={`w-full px-1 py-1 bg-slate-50 border-2 rounded-xl outline-none transition-all focus:bg-white ${hasError("product_type") ? "border-red-500 bg-red-50" : "border-transparent focus:border-indigo-600"}`}
+                className="w-full text-sm"
                 value={form.cat_id}
                 onChange={handleCatIdChange}
                 placeholder="Select Category"
@@ -610,7 +621,7 @@ export default function CreateProductPage() {
                 Occasion <span className="text-slate-400 font-normal">(Optional)</span>
               </label>
               <AsyncSelect
-                className="w-full px-1 py-1 bg-slate-50 border-2 rounded-xl outline-none transition-all focus:bg-white border-transparent focus:border-indigo-600"
+                className="w-full text-sm"
                 value={form.occasion_id || ""}
                 onChange={(val) => handleFieldChange("occasion_id", val)}
                 placeholder="Select Occasion"
@@ -688,7 +699,7 @@ export default function CreateProductPage() {
                     influencer_id: val,
                   }));
                 }}
-                className="w-full px-4 py-3 bg-slate-50 border-2 border-transparent rounded-xl outline-none focus:border-indigo-600"
+                className="w-full px-4 py-3 bg-slate-50/70 border border-slate-200 rounded-xl outline-none font-medium text-sm text-slate-800 hover:border-slate-300 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-xs cursor-pointer"
               >
                 <option value="">Select Influencer</option>
                 {common?.models?.map((item) => (
@@ -763,7 +774,7 @@ export default function CreateProductPage() {
                       e.target.value ? [{ id: e.target.value }] : []
                     )
                   }
-                  className={`flex-1 px-4 py-3 bg-slate-50 border-2 rounded-xl outline-none transition-all focus:bg-white ${hasError("metarial") ? "border-red-500 bg-red-50" : "border-transparent focus:border-indigo-600"}`}
+                  className="flex-1 px-4 py-3 bg-slate-50/70 border border-slate-200 rounded-xl outline-none font-medium text-sm text-slate-800 hover:border-slate-300 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-xs cursor-pointer"
                 >
                   <option value="">Select Fabric</option>
                   {common?.materials?.map((item) => (
