@@ -82,9 +82,14 @@ export default function LoginPage() {
     setLoading(true);
     const toastId = toast.loading("Verifying Admin credentials...");
     try {
+      const cleanInput = email.trim();
+      const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanInput);
+      const payload = isEmail
+        ? { email: cleanInput.toLowerCase(), identifier: cleanInput.toLowerCase(), password }
+        : { username: cleanInput, identifier: cleanInput, password };
       const response: any = await http.post(
         ENDPOINTS.LOGIN,
-        { email: email.trim(), password },
+        payload,
         {},
         false
       );
@@ -244,7 +249,7 @@ export default function LoginPage() {
           >
             <div>
               <label className="text-xs font-normal text-slate-600 block mb-1">
-                Admin Email
+                Admin Username or Email
               </label>
               <div className="relative">
                 <Mail
@@ -253,7 +258,7 @@ export default function LoginPage() {
                 />
                 <input
                   ref={emailInputRef}
-                  type="email"
+                  type="text"
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value);
@@ -264,7 +269,7 @@ export default function LoginPage() {
                       ? "border-red-400 bg-red-50/40"
                       : "border-slate-200 focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10"
                   }`}
-                  placeholder="admin@punroyal.com"
+                  placeholder="admin@punroyal.com or username"
                   autoComplete="email"
                 />
               </div>

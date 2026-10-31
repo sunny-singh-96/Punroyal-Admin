@@ -21,6 +21,7 @@ import {
   Tag,
   Star,
   BookOpen,
+  UserCheck,
 } from "lucide-react";
 import { orderAPI } from "@/lib/integration/orders";
 import { enquiryAPI } from "@/lib/integration/enquiry";
@@ -154,6 +155,11 @@ const menuItems = [
       { name: "Privacy Policy", path: "/pages/privacy" },
     ],
   },
+    {
+    name: "Profile Settings",
+    icon: UserCheck,
+    path: "/profile",
+  },
   {
     name: "Global Settings",
     icon: Settings,
@@ -163,6 +169,11 @@ const menuItems = [
     name: "Coupons",
     icon: Tag,
     path: "/coupons",
+  },
+  {
+    name: "Documentation",
+    icon: BookOpen,
+    path: "/documentation",
   },
   // {
   //   name: "Queries",

@@ -1,20 +1,18 @@
 import { LoginErrors } from "@/types/types";
 
-const validateEmail = (email: string): boolean => {
+export const validateEmail = (email: string): boolean => {
   const re = /^[^\s@]+@([^\s@]+\.)+[^\s@]+$/;
   return re.test(email);
 };
 
 export const adminLogin = (
-  email: string,
+  identifier: string,
   password: string,
   setErrors: (errors: LoginErrors) => void
 ): boolean => {
   const newErrors: LoginErrors = {};
-  if (!email || !email.trim()) {
-    newErrors.email = "Email is required";
-  } else if (!validateEmail(email)) {
-    newErrors.email = "Invalid email address";
+  if (!identifier || !identifier.trim()) {
+    newErrors.email = "Username or Email is required";
   }
   if (!password || !password.trim()) {
     newErrors.password = "Password is required";

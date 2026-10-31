@@ -17,3 +17,4 @@ export { codesAPI } from './codes';
 export { aboutUsAPI, contactUsAPI, termsAPI, privacyAPI } from './pages';
 export { occasionsAPI } from './occasions';
 export { globalSettingsAPI } from './globalSettings';
+export { profileAPI } from './profile';

@@ -23,6 +23,11 @@ export const ENDPOINTS = {
     DASHBOARD: '/index/admin/dashboard/stats',
     CLEAR_CACHE: '/index/admin/clear-cache',
     COMMON: '/index/common',
+    AUTH: {
+        GET_PROFILE: '/auth/get-profile',
+        UPDATE_PROFILE: '/auth/update-profile',
+        CHANGE_PASSWORD: '/auth/change-password',
+    },
     COMMON_HANDLER: '/index/common-handler',
     PRODUCT: {
         ADD: '/product/admin/product/add',
