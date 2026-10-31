@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
+import { confirmDelete, showErrorAlert } from "@/lib/sweetAlert";
 import { modelsValidate } from "@/validations/models";
 import { modelsAPI } from "@/lib/integration/models";
 import PageHeader from "@/components/admin/head/head";
@@ -22,12 +23,14 @@ import {
   KeyRound,
   Sparkles,
   ShieldCheck,
+  Trash2,
 } from "lucide-react";
 
 type Influencers = {
   _id: string;
   name: string;
   username?: string;
+  email?: string;
   status: boolean;
   auth_created?: boolean;
   video?: string;
@@ -71,9 +74,11 @@ export default function ModelsPage() {
   const [formData, setFormData] = useState({
     name: "",
     username: "",
+    email: "",
     password: "",
     status: true,
   });
+  const [copiedEmailId, setCopiedEmailId] = useState<string | null>(null);
   const [showCreatePassword, setShowCreatePassword] = useState(false);
 
   // Credentials Success Popup Modal state
@@ -130,6 +135,18 @@ export default function ModelsPage() {
     }
   };
 
+  const copyEmail = async (row: Influencers) => {
+    if (!row.email) return;
+    try {
+      await copyTextToClipboard(row.email);
+      setCopiedEmailId(row._id);
+      toast.success("Email copied to clipboard");
+      setTimeout(() => setCopiedEmailId(null), 2000);
+    } catch {
+      toast.error("Could not copy email");
+    }
+  };
+
   const copyField = async (text: string, fieldName: string) => {
     try {
       await copyTextToClipboard(text);
@@ -143,12 +160,14 @@ export default function ModelsPage() {
 
   const copyAllCredentials = async () => {
     if (!credentialsData) return;
-    const allText = `Punroyal Influencer Portal Credentials\n` +
-      `URL: http://194.5.157.175:5000/\n` +
-      `Name: ${credentialsData.name}\n` +
-      `Username: ${credentialsData.username}\n` +
-      `Email: ${credentialsData.email}\n` +
-      `Password: ${credentialsData.password}\n`;
+    const allText =
+      `=== Punroyal Influencer Login Details ===\n` +
+      `Portal URL : http://194.5.157.175:5000/\n` +
+      `Name       : ${credentialsData.name}\n` +
+      `Username   : ${credentialsData.username}\n` +
+      `Email      : ${credentialsData.email}\n` +
+      `Password   : ${credentialsData.password}\n` +
+      `Note       : Influencer can log in using either Username or Email.`;
     try {
       await copyTextToClipboard(allText);
       setCopiedField('all');
@@ -212,7 +231,13 @@ export default function ModelsPage() {
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     const generatedUsername = val.trim().toLowerCase().replace(/\s+/g, '');
-    setFormData({ ...formData, name: val, username: generatedUsername });
+    const defaultEmail = generatedUsername ? `${generatedUsername}@punroyal.com` : '';
+    setFormData((prev) => ({
+      ...prev,
+      name: val,
+      username: generatedUsername,
+      email: prev.email && !prev.email.endsWith('@punroyal.com') ? prev.email : defaultEmail,
+    }));
   };
 
   // Handle Active / Inactive Status Toggle (Admin can toggle status directly)
@@ -234,9 +259,31 @@ export default function ModelsPage() {
           item._id === row._id ? { ...item, status: currentStatus } : item
         )
       );
-      toast.error(getErrorMessage(error), { id: toastId });
+      const msg = getErrorMessage(error) || "Failed to update status";
+      toast.dismiss(toastId);
+      showErrorAlert("Cannot Inactivate Influencer", msg);
     }
   };
+
+  const handleDelete = useCallback(async (row: Influencers) => {
+    const isConfirmed = await confirmDelete(`Delete influencer "${row.name}"?`);
+    if (!isConfirmed) return;
+
+    try {
+      const response: any = await modelsAPI.delete(row._id);
+      if (response?.code === "OK" || response?.data?.code === "OK" || response?.status === 200 || response?._id) {
+        setData((prev) => prev.filter((item) => item._id !== row._id));
+        setTotalRecords((prev) => Math.max(0, prev - 1));
+        toast.success(`Influencer "${row.name}" deleted successfully`);
+        setReload((r) => !r);
+      } else {
+        toast.error("Failed to delete influencer");
+      }
+    } catch (error) {
+      const msg = getErrorMessage(error) || "Failed to delete influencer";
+      showErrorAlert("Cannot Delete Influencer", msg);
+    }
+  }, []);
 
   // Open Edit Influencer Name & Details
   const handleOpenEditInfluencer = useCallback((row: Influencers) => {
@@ -432,22 +479,25 @@ export default function ModelsPage() {
       }
       const passwordToUse = formData.password.trim() || generateRandomPassword();
       const rawUsername = formData.username.trim() || formData.name.trim().toLowerCase().replace(/\s+/g, '');
+      const rawEmail = (formData.email.trim() || `${rawUsername}@punroyal.com`).toLowerCase();
       const toastId = toast.loading("Creating Influencer & Auth account...");
       try {
         setLoading(true);
         const response = await modelsAPI.create({
           name: formData.name.trim(),
           username: rawUsername,
+          email: rawEmail,
           password: passwordToUse,
           role_label: roleLabel.trim(),
           status: formData.status,
         });
 
-        // Also register Auth so the influencer can log in immediately
+        // Also register Auth so the influencer can log in immediately with either username or email
         try {
           await modelsAPI.createAuth({
             name: formData.name.trim(),
             username: rawUsername,
+            email: rawEmail,
             password: passwordToUse
           });
         } catch (authErr) {
@@ -458,18 +508,18 @@ export default function ModelsPage() {
         setReload(!reload);
         toast.success(`Influencer created successfully!`, { id: toastId });
 
-        // Show Credentials Success Popup Modal
+        // Show Credentials Success Popup Modal with Copy All option
         setCredentialsData({
           name: formData.name.trim(),
           username: rawUsername,
-          email: `${rawUsername}@punroyal.com`,
+          email: rawEmail,
           password: passwordToUse,
           title: `Influencer Account Created Successfully!`
         });
         setShowCredPassword(true);
         setIsCredentialsModalOpen(true);
 
-        setFormData({ name: "", username: "", password: "", status: true });
+        setFormData({ name: "", username: "", email: "", password: "", status: true });
         setRoleLabel('');
       } catch (error) {
         toast.error(getErrorMessage(error), { id: toastId });
@@ -507,7 +557,7 @@ export default function ModelsPage() {
           setShowCredPassword(true);
           setIsCredentialsModalOpen(true);
 
-          setFormData({ name: "", username: "", password: "", status: true });
+          setFormData({ name: "", username: "", email: "", password: "", status: true });
         } else {
           toast.success("Auth registration request completed.", { id: toastId });
           if (selectedRow?._id) {
@@ -530,9 +580,11 @@ export default function ModelsPage() {
     setModalType('AUTH');
     setSelectedRow(row);
     const suggestedUsername = (row as any).username || row.name.trim().toLowerCase().replace(/\s+/g, '');
+    const suggestedEmail = (row as any).email || (suggestedUsername ? `${suggestedUsername}@punroyal.com` : '');
     setFormData({
       name: row.name,
       username: suggestedUsername,
+      email: suggestedEmail,
       password: generateRandomPassword(),
       status: true
     });
@@ -568,7 +620,7 @@ export default function ModelsPage() {
             onClick={() => {
               setModalType('MODEL');
               const randomPass = generateRandomPassword();
-              setFormData({ name: "", username: "", password: randomPass, status: true });
+              setFormData({ name: "", username: "", email: "", password: randomPass, status: true });
               setRoleLabel('');
               setShowCreatePassword(true);
               setErrors({});
@@ -593,9 +645,20 @@ export default function ModelsPage() {
         >
           {credentialsData && (
             <div className="space-y-4 py-2">
-              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-2.5 text-emerald-800 text-xs font-semibold">
-                <ShieldCheck size={18} className="text-emerald-600 shrink-0" />
-                <span>Account ready! Please copy and securely share these credentials with the influencer.</span>
+              <div className="p-3.5 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl flex items-center justify-between gap-3 text-emerald-900 text-xs font-semibold shadow-xs">
+                <div className="flex items-center gap-2.5">
+                  <ShieldCheck size={20} className="text-emerald-600 shrink-0" />
+                  <span>Account ready! Login supported via <strong>Username OR Email</strong>.</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={copyAllCredentials}
+                  className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shrink-0 shadow-sm"
+                  title="Copy all details in one click"
+                >
+                  {copiedField === 'all' ? <Check size={14} /> : <Copy size={14} />}
+                  {copiedField === 'all' ? "Copied All!" : "Copy All Details"}
+                </button>
               </div>
 
               {/* Influencer Name */}
@@ -687,21 +750,21 @@ export default function ModelsPage() {
               </div>
 
               {/* Action buttons */}
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+              <div className="flex items-center justify-between gap-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={copyAllCredentials}
+                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold transition flex items-center gap-2 shadow-md"
+                >
+                  {copiedField === 'all' ? <Check size={16} /> : <Copy size={16} />}
+                  {copiedField === 'all' ? "All Credentials Copied!" : "Copy All Credentials (ਇੱਕ ਵਾਰ 'ਚ ਸਭ ਕਾਪੀ ਕਰੋ)"}
+                </button>
                 <button
                   type="button"
                   onClick={() => setIsCredentialsModalOpen(false)}
                   className="px-5 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition"
                 >
                   Close
-                </button>
-                <button
-                  type="button"
-                  onClick={copyAllCredentials}
-                  className="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition flex items-center gap-1.5 shadow-md"
-                >
-                  {copiedField === 'all' ? <Check size={16} /> : <Copy size={16} />}
-                  {copiedField === 'all' ? "Copied All!" : "Copy All Credentials"}
                 </button>
               </div>
             </div>
@@ -1063,10 +1126,31 @@ export default function ModelsPage() {
                   type="text"
                   placeholder="e.g., samayramehta"
                   value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value.toLowerCase().replace(/\s+/g, '') })}
+                  onChange={(e) => {
+                    const un = e.target.value.toLowerCase().replace(/\s+/g, '');
+                    setFormData((prev) => ({
+                      ...prev,
+                      username: un,
+                      email: prev.email && !prev.email.endsWith('@punroyal.com') ? prev.email : (un ? `${un}@punroyal.com` : ''),
+                    }));
+                  }}
                   className="w-full px-4 py-2.5 border border-slate-300 rounded-lg font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <p className="text-xs text-slate-400 mt-1">Used by influencer to log in.</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Login Email <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  placeholder="e.g., samayra@gmail.com or samayramehta@punroyal.com"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value.toLowerCase().trim() })}
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="text-xs text-slate-400 mt-1">Influencer can log in using either this Email or Username.</p>
               </div>
 
               {/* Password with Eye Icon and Generate Button */}
@@ -1206,6 +1290,31 @@ export default function ModelsPage() {
                 ),
               },
               {
+                key: "email",
+                label: "Email",
+                render: (row: Influencers) => (
+                  row.email ? (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-mono text-slate-600">{row.email}</span>
+                      <button
+                        type="button"
+                        onClick={() => copyEmail(row)}
+                        className="p-1 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-100 transition"
+                        title="Copy email"
+                      >
+                        {copiedEmailId === row._id ? (
+                          <Check size={14} className="text-emerald-600" />
+                        ) : (
+                          <Copy size={14} />
+                        )}
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="text-slate-400 italic text-xs">Not set</span>
+                  )
+                ),
+              },
+              {
                 key: "status",
                 label: "Status",
                 render: (row: Influencers) => {
@@ -1262,7 +1371,13 @@ export default function ModelsPage() {
                     >
                       <Wallet size={13} /> Payments
                     </button>
-                    {/* DELETE BUTTON INTENTIONALLY REMOVED: Influencers cannot be deleted by admin, only set to Active/Inactive */}
+                    <button
+                      onClick={() => handleDelete(row)}
+                      className="bg-red-600 text-white px-3 py-1 rounded-md hover:bg-red-700 transition text-sm flex items-center gap-1 font-medium shadow-sm"
+                      title="Delete Influencer"
+                    >
+                      <Trash2 size={13} /> Delete
+                    </button>
                   </div>
                 ),
               },

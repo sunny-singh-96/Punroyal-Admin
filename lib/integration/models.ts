@@ -10,6 +10,7 @@ interface LazyParams {
 interface ModelData {
   name: string;
   username?: string;
+  email?: string;
   password?: string;
   status?: boolean;
   role_label?: string;
@@ -46,8 +47,10 @@ export const modelsAPI = {
       data: {
         name: data.name,
         username: data.username,
+        email: data.email,
         password: data.password,
         role_label: data.role_label,
+        status: data.status,
       }
     });
   },
@@ -74,18 +77,16 @@ export const modelsAPI = {
   },
 
   // Create auth for model
-  async createAuth(data: { name: string; username: string; password?: string }) {
+  async createAuth(data: { name: string; username: string; email?: string; password?: string }) {
     return http.post(ENDPOINTS.INFLUENCER.REGISTER, {
       name: data.name,
-      email: `${data.username}@punroyal.com`,
+      email: (data.email || `${data.username}@punroyal.com`).toLowerCase().trim(),
       username: data.username,
       password: data.password || 'password123',
       role: 'influencer'
     });
   },
 
-  // Delete model
-  
   // Change password for influencer (Admin only, old password not required)
   async changePassword(id: string, newPassword: string) {
     return http.post(ENDPOINTS.COMMON_HANDLER, {
@@ -97,6 +98,8 @@ export const modelsAPI = {
       },
     });
   },
+
+  // Delete model
   async delete(id: string) {
     return http.post(ENDPOINTS.COMMON_HANDLER, {
       action: 'delete',

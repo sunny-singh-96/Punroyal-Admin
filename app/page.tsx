@@ -125,10 +125,14 @@ export default function LoginPage() {
     setLoading(true);
     const toastId = toast.loading("Logging in as Influencer...");
     try {
-      const isEmail = identifier.includes("@");
+      let cleanIdentifier = identifier.trim();
+      if (cleanIdentifier.startsWith('@')) {
+        cleanIdentifier = cleanIdentifier.substring(1).trim();
+      }
+      const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanIdentifier);
       const payload = isEmail
-        ? { email: identifier.trim(), password }
-        : { username: identifier.trim(), password };
+        ? { email: cleanIdentifier.toLowerCase(), password }
+        : { username: cleanIdentifier, password };
 
       const response: any = await influencerAPI.login(payload);
       const token = response?.data?.token || response?.data?.data?.token || response?.token;
