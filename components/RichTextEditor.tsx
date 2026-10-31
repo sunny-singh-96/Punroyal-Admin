@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -12,13 +13,16 @@ interface RichTextEditorProps {
 }
 
 export default function RichTextEditor({ value, onChange, placeholder = 'Write something...' }: RichTextEditorProps) {
+  const isInternalUpdate = useRef(false);
+
   const editor = useEditor({
     extensions: [
       StarterKit,
       Placeholder.configure({ placeholder }),
     ],
-    content: value,
+    content: value || '',
     onUpdate: ({ editor }) => {
+      isInternalUpdate.current = true;
       onChange(editor.getHTML());
     },
     editorProps: {
@@ -26,17 +30,36 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Write s
         class: 'prose prose-sm max-w-none focus:outline-none min-h-[150px] p-4',
       },
     },
-    immediatelyRender: false, // <-- ADD THIS to avoid SSR mismatch
+    immediatelyRender: false,
   });
 
+  // Keep editor content in sync with external value (e.g. async fetch from API or reset)
+  useEffect(() => {
+    if (!editor || editor.isDestroyed) return;
+
+    if (isInternalUpdate.current) {
+      isInternalUpdate.current = false;
+      return;
+    }
+
+    const currentHTML = editor.getHTML();
+    const incomingVal = value || '';
+
+    // Only update if external value is actually different from editor HTML
+    if (incomingVal !== currentHTML && !(incomingVal === '' && currentHTML === '<p></p>')) {
+      editor.commands.setContent(incomingVal, { emitUpdate: false });
+    }
+  }, [value, editor]);
+
   if (!editor) {
-    return <div className="border border-slate-200 rounded-xl bg-slate-50 p-4 min-h-[150px]">Loading editor...</div>;
+    return <div className="border border-slate-200 rounded-xl bg-slate-50 p-4 min-h-[150px] animate-pulse">Loading editor...</div>;
   }
 
   return (
     <div className="border border-slate-200 rounded-xl overflow-hidden bg-white">
       <div className="border-b border-slate-200 p-2 flex flex-wrap gap-1 bg-slate-50">
         <button
+          type="button"
           onClick={() => editor.chain().focus().toggleBold().run()}
           className={`p-1.5 rounded-md hover:bg-slate-200 transition-colors ${editor.isActive('bold') ? 'bg-slate-200 text-indigo-600' : 'text-slate-600'}`}
           title="Bold"
@@ -44,6 +67,7 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Write s
           <Bold size={16} />
         </button>
         <button
+          type="button"
           onClick={() => editor.chain().focus().toggleItalic().run()}
           className={`p-1.5 rounded-md hover:bg-slate-200 transition-colors ${editor.isActive('italic') ? 'bg-slate-200 text-indigo-600' : 'text-slate-600'}`}
           title="Italic"
@@ -51,6 +75,7 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Write s
           <Italic size={16} />
         </button>
         <button
+          type="button"
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
           className={`p-1.5 rounded-md hover:bg-slate-200 transition-colors ${editor.isActive('heading', { level: 2 }) ? 'bg-slate-200 text-indigo-600' : 'text-slate-600'}`}
           title="Heading"
@@ -58,6 +83,7 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Write s
           <Heading size={16} />
         </button>
         <button
+          type="button"
           onClick={() => editor.chain().focus().toggleBulletList().run()}
           className={`p-1.5 rounded-md hover:bg-slate-200 transition-colors ${editor.isActive('bulletList') ? 'bg-slate-200 text-indigo-600' : 'text-slate-600'}`}
           title="Bullet List"
@@ -65,6 +91,7 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Write s
           <List size={16} />
         </button>
         <button
+          type="button"
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
           className={`p-1.5 rounded-md hover:bg-slate-200 transition-colors ${editor.isActive('orderedList') ? 'bg-slate-200 text-indigo-600' : 'text-slate-600'}`}
           title="Ordered List"
@@ -73,6 +100,7 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Write s
         </button>
         <div className="w-px h-6 bg-slate-300 mx-1"></div>
         <button
+          type="button"
           onClick={() => editor.chain().focus().undo().run()}
           className="p-1.5 rounded-md hover:bg-slate-200 transition-colors text-slate-600"
           title="Undo"
@@ -80,6 +108,7 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Write s
           <Undo size={16} />
         </button>
         <button
+          type="button"
           onClick={() => editor.chain().focus().redo().run()}
           className="p-1.5 rounded-md hover:bg-slate-200 transition-colors text-slate-600"
           title="Redo"

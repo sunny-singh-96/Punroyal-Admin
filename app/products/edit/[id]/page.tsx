@@ -1,6 +1,11 @@
 "use client";
 import { useState, useEffect, useCallback, useMemo } from "react";
-import RichTextEditor from "@/components/RichTextEditor";
+import dynamic from "next/dynamic";
+
+const RichTextEditor = dynamic(() => import("@/components/RichTextEditor"), {
+  ssr: false,
+  loading: () => <div className="border border-slate-200 rounded-xl bg-slate-50 p-4 min-h-[150px] animate-pulse" />,
+});
 import toast from "react-hot-toast";
 import { Loader2, AlertCircle, Save, Link } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
@@ -863,7 +868,6 @@ export default function CreateProductPage() {
                 Description
               </label>
               <RichTextEditor
-                key={form.description}
                 value={form.description}
                 onChange={handleDescriptionChange}
                 placeholder="Product description (supports bold, lists, headings...)"
@@ -879,10 +883,9 @@ export default function CreateProductPage() {
                 specifications
               </label>
               <RichTextEditor
-                key={form.specifications}
                 value={form.specifications}
                 onChange={handleSpecificationsChange}
-                placeholder="Product description (supports bold, lists, headings...)"
+                placeholder="Product specifications (materials, fit, care instructions...)"
               />
               {hasError("specifications") && (
                 <p className="text-red-500 text-xs mt-1">
