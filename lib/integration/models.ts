@@ -85,6 +85,18 @@ export const modelsAPI = {
   },
 
   // Delete model
+  
+  // Change password for influencer (Admin only, old password not required)
+  async changePassword(id: string, newPassword: string) {
+    return http.post(ENDPOINTS.COMMON_HANDLER, {
+      action: 'change-password',
+      module: 'models',
+      id,
+      data: {
+        newPassword,
+      },
+    });
+  },
   async delete(id: string) {
     return http.post(ENDPOINTS.COMMON_HANDLER, {
       action: 'delete',

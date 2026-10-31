@@ -1,5 +1,7 @@
 "use client";
 
+import Swal from "sweetalert2";
+
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -149,7 +151,24 @@ export default function LoginPage() {
       }, 500);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Influencer login failed";
-      toast.error(errorMessage, { id: toastId });
+      if (
+        errorMessage.toLowerCase().includes("blocked") ||
+        errorMessage.toLowerCase().includes("inactive")
+      ) {
+        toast.dismiss(toastId);
+        Swal.fire({
+          icon: "error",
+          title: "Account Blocked",
+          html: `<div style="text-align: left; font-size: 14px; color: #475569; line-height: 1.6;">
+            <p style="margin-bottom: 12px; font-weight: 600; color: #dc2626;">${errorMessage}</p>
+            <p style="margin-bottom: 0;">Your influencer account is currently deactivated. Please contact support using the contact details above to restore access.</p>
+          </div>`,
+          confirmButtonColor: "#2563eb",
+          confirmButtonText: "Close",
+        });
+      } else {
+        toast.error(errorMessage, { id: toastId });
+      }
     } finally {
       setLoading(false);
     }
