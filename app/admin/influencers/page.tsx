@@ -1254,14 +1254,7 @@ export default function ModelsPage() {
                     >
                       <KeyRound size={13} /> Password
                     </button>
-                    {!(row.auth_created || registeredAuthIds.includes(row._id)) && (
-                      <button
-                        onClick={() => handleRegisterAuth(row)}
-                        className="bg-blue-500 text-white hover:bg-blue-600 px-3 py-1 rounded-md transition text-sm shadow-sm"
-                      >
-                        Create Auth
-                      </button>
-                    )}
+                    
                     <button
                       onClick={() => router.push(`/admin/influencers/${row._id}/payments`)}
                       className="bg-indigo-600 text-white px-3 py-1 rounded-md hover:bg-indigo-700 transition text-sm flex items-center gap-1 font-medium shadow-sm"
