@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import toast from "react-hot-toast";
-import { confirmDelete } from "@/lib/sweetAlert";
+import { confirmDelete, showErrorAlert } from "@/lib/sweetAlert";
 import { occasionsAPI } from "@/lib/integration/occasions";
 import PageHeader from "@/components/admin/head/head";
 import DataGrid from "@/components/admin/tables/dataGrid";
@@ -153,7 +153,9 @@ export default function OccasionPage() {
         if (editingId === id) resetForm();
       }
     } catch (error) {
-      toast.error(getErrorMessage(error) || "Failed to delete occasion");
+      const msg = getErrorMessage(error) || "Failed to delete occasion";
+      showErrorAlert("Cannot Delete Occasion", msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -168,7 +170,9 @@ export default function OccasionPage() {
       toast.success(`Occasion ${!occ.status ? "activated" : "deactivated"}`);
       fetchOccasions();
     } catch (error) {
-      toast.error(getErrorMessage(error) || "Failed to update status");
+      const msg = getErrorMessage(error) || "Failed to update status";
+      showErrorAlert("Cannot Deactivate Occasion", msg);
+      toast.error(msg);
     }
   };
 
@@ -266,7 +270,7 @@ export default function OccasionPage() {
                         <UploadCloud size={24} />
                       </div>
                       <p className="text-xs font-medium text-slate-700">Click to upload image</p>
-                      <p className="text-[11px] text-slate-400 mt-0.5">JPG, PNG, WEBP (Max 10MB)</p>
+                      <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200/80 rounded px-2 py-0.5 mt-1">Recommended: <strong>600 × 800 px (3:4 Portrait)</strong> • Max: 10MB • JPG, PNG, WEBP</p>
                     </div>
                   )}
 

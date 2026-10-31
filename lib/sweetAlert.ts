@@ -10,14 +10,25 @@ export const confirmDelete = async (title = "Are you sure?") => {
     cancelButtonColor: "#3085d6",
     confirmButtonText: "Yes, delete it!",
   });
-  if (result.isConfirmed) {
-    await Swal.fire({
-      title: "Deleted!",
-      text: "Your item has been deleted.",
-      icon: "success",
-      timer: 1200,
-      showConfirmButton: false,
-    });
-  }
   return result.isConfirmed;
+};
+
+export const showErrorAlert = async (title = "Action Not Allowed", message = "") => {
+  return await Swal.fire({
+    icon: "error",
+    title,
+    text: message,
+    confirmButtonColor: "#d33",
+    confirmButtonText: "OK",
+  });
+};
+
+export const showSuccessAlert = async (title = "Success!", message = "") => {
+  return await Swal.fire({
+    icon: "success",
+    title,
+    text: message,
+    timer: 1500,
+    showConfirmButton: false,
+  });
 };

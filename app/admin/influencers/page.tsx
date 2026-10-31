@@ -961,7 +961,7 @@ export default function ModelsPage() {
                           : 'Click to upload video file'}
                       </p>
                       <p className="text-[11px] text-slate-400">
-                        MP4, WebM, or QuickTime format • <span className="font-semibold text-blue-600">Max {MAX_VIDEO_SIZE_MB}MB limit</span>
+                        Recommended: <strong>1080 × 1920 px (9:16 Reel)</strong> • MP4, WebM, QuickTime • <span className="font-semibold text-blue-600">Max {MAX_VIDEO_SIZE_MB}MB</span>
                       </p>
                     </div>
                   </label>

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 import { Edit2, Trash2 } from "lucide-react";
-import { confirmDelete } from "@/lib/sweetAlert";
+import { confirmDelete, showErrorAlert } from "@/lib/sweetAlert";
 import { colorsValidate } from "@/validations/colors";
 import { colorsAPI } from "@/lib/integration/colors";
 import PageHeader from "@/components/admin/head/head";
@@ -70,7 +70,9 @@ export default function ColorsPage() {
         setTotalRecords(total);
       }
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      const msg = getErrorMessage(error);
+      showErrorAlert("Cannot Delete Color", msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -101,7 +103,9 @@ export default function ColorsPage() {
         toast.success(`Color created successfully!`, { id: toastId });
       }
     } catch (error) {
-      toast.error(getErrorMessage(error), { id: toastId });
+      const msg = getErrorMessage(error);
+      showErrorAlert("Cannot Update Color", msg);
+      toast.error(msg, { id: toastId });
     } finally {
       setActionLoading(false);
     }
@@ -144,6 +148,32 @@ export default function ColorsPage() {
     }
   };
 
+  
+  // Quick status toggle
+  const handleToggleStatus = async (color: Color) => {
+    const currentActive = color.status === true || color.status === "true";
+    const nextStatus = !currentActive;
+    setData((prev) =>
+      prev.map((item) => (item._id === color._id ? { ...item, status: nextStatus } : item))
+    );
+    try {
+      await colorsAPI.update(color._id, {
+        name: color.name,
+        hex: color.hex,
+        status: nextStatus,
+      });
+      toast.success(`Color ${nextStatus ? "activated" : "deactivated"}`);
+      setReload((r) => !r);
+    } catch (error) {
+      setData((prev) =>
+        prev.map((item) => (item._id === color._id ? { ...item, status: currentActive } : item))
+      );
+      const msg = getErrorMessage(error) || "Failed to update color status";
+      showErrorAlert("Cannot Deactivate Color", msg);
+      toast.error(msg);
+    }
+  };
+
   // ✅ Delete color
   const handleDelete = useCallback(async (id: string) => {
     const isConfirmed = await confirmDelete("Delete this color?");
@@ -158,7 +188,9 @@ export default function ColorsPage() {
         setReload((r) => !r);
       }
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      const msg = getErrorMessage(error);
+      showErrorAlert("Cannot Delete Color", msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -280,15 +312,19 @@ export default function ColorsPage() {
                 render: (row: Color) => {
                   const isActive = row.status === true || row.status === "true";
                   return (
-                    <span
-                      className={`px-2.5 py-1 text-xs font-semibold rounded-full ${
+                    <button
+                      type="button"
+                      onClick={() => handleToggleStatus(row)}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition cursor-pointer shadow-xs border ${
                         isActive
-                          ? "bg-green-100 text-green-700"
-                          : "bg-gray-100 text-gray-500"
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                          : "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200"
                       }`}
+                      title="Click to toggle Active / Inactive"
                     >
+                      <span className={`w-2 h-2 rounded-full ${isActive ? "bg-emerald-500" : "bg-slate-400"}`} />
                       {isActive ? "Active" : "Inactive"}
-                    </span>
+                    </button>
                   );
                 },
               },

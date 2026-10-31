@@ -120,7 +120,7 @@ export default function CreateBannerPage() {
                     <svg className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
-                    <span>Recommended: <strong>1400px width × 580px height</strong></span>
+                    <span>Recommended: <strong>1920 × 600 px (16:5 ratio)</strong> • Max: 20MB • JPG, PNG, WEBP</span>
                   </div>
                 </div>
                 <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 text-center hover:border-blue-400 transition bg-slate-50/50">
@@ -138,7 +138,7 @@ export default function CreateBannerPage() {
                         </button>
                       </div>
                       <p className="text-[11px] text-slate-500 text-center">
-                        Recommended size: <span className="font-semibold text-slate-700">1400px width × 580px height</span>
+                        Recommended size: <span className="font-semibold text-slate-700">1920 × 600 px</span> • Max 20MB
                       </p>
                     </div>
                   ) : (
@@ -149,7 +149,7 @@ export default function CreateBannerPage() {
                         </svg>
                       </div>
                       <p className="text-xs text-slate-500">
-                        Recommended size: <span className="font-semibold text-slate-700">1400px width × 580px height</span>. Image is optional. You can upload an image or paste a URL below.
+                        Recommended size: <span className="font-semibold text-slate-700">1920 × 600 px</span> • Max 20MB. Image is optional. You can upload an image or paste a URL below.
                       </p>
                       <label className="inline-flex items-center justify-center w-full px-4 py-2.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 shadow-sm transition">
                         Select File

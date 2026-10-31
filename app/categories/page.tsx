@@ -8,7 +8,7 @@ import PageHeader from "@/components/admin/head/head";
 import { categoriesAPI } from "@/lib/integration/categories";
 import { ArrowUp, ArrowDown, Edit2, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
-import { confirmDelete } from "@/lib/sweetAlert";
+import { confirmDelete, showErrorAlert } from "@/lib/sweetAlert";
 import { getErrorMessage } from "@/lib/helpers/handlers";
 
 type Category = {
@@ -75,7 +75,9 @@ export default function CategoryLists() {
         toast.error("Failed to delete category");
       }
     } catch (error) {
-      toast.error(getErrorMessage(error) || "Failed to delete category");
+      const msg = getErrorMessage(error) || "Failed to delete category";
+      showErrorAlert("Cannot Delete Category", msg);
+      toast.error(msg);
     }
   }, []);
 
@@ -96,7 +98,9 @@ export default function CategoryLists() {
       setData((prev) =>
         prev.map((item) => (item._id === id ? { ...item, status: currentStatus } : item))
       );
-      toast.error(getErrorMessage(error) || "Failed to update category status");
+      const msg = getErrorMessage(error) || "Failed to update category status";
+      showErrorAlert("Cannot Deactivate Category", msg);
+      toast.error(msg);
     } finally {
       setTogglingId(null);
     }

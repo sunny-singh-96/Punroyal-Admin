@@ -622,9 +622,14 @@ export default function CreateProductPage() {
             <div className="space-y-1">
               <div className="w-full">
                 {/* Label */}
-                <label className="block mb-2 text-sm font-semibold text-slate-700">
-                  Upload files (Videos)
-                </label>
+                <div className="mb-1.5 flex flex-col gap-0.5">
+                  <label className="text-sm font-semibold text-slate-700">
+                    Upload files (Videos)
+                  </label>
+                  <span className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200/80 rounded px-2 py-0.5 w-fit">
+                    Recommended: <strong>720 × 1280 px (9:16 Vertical)</strong> • Max: 5MB • Format: MP4, WebM
+                  </span>
+                </div>
                 {/* Input */}
                 <input
                   type="file"

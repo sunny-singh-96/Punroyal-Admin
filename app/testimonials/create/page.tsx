@@ -127,9 +127,14 @@ export default function CreateTestimonialPage() {
             <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
               {/* AVATAR / PHOTO UPLOAD (LEFT) */}
               <div className="md:col-span-4 space-y-3">
-                <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">
-                  Client Avatar / Photo
-                </label>
+                <div className="space-y-1 mb-1">
+                  <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">
+                    Client Avatar / Photo
+                  </label>
+                  <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200/80 rounded px-2 py-0.5 inline-block">
+                    Recommended: <strong>400 × 400 px (1:1 Square)</strong> • Max: 5MB • JPG, PNG, WEBP
+                  </p>
+                </div>
                 <div className="border-2 border-dashed border-slate-200 rounded-2xl p-6 text-center hover:border-purple-400 transition bg-slate-50/50">
                   {previewUrl ? (
                     <div className="relative inline-block">

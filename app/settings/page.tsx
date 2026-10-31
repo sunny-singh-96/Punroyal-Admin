@@ -448,7 +448,10 @@ export default function SettingsPage() {
                 <label className="text-xs font-black text-slate-600 uppercase tracking-wider block mb-2">
                   Header Logo
                 </label>
-                <p className="text-xs text-slate-400 mb-3">Displayed in the main website navigation bar.</p>
+                <p className="text-xs text-slate-400 mb-1">Displayed in the main website navigation bar.</p>
+                <p className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200/80 rounded px-2 py-0.5 mb-3 inline-block">
+                  Recommended: <strong>400 × 120 px</strong> • Max: 5MB • PNG, WEBP, SVG
+                </p>
 
                 {/* Preview */}
                 <div className="w-full h-24 bg-white border border-dashed border-slate-200 rounded-xl flex items-center justify-center p-2 mb-3 overflow-hidden">
@@ -503,7 +506,10 @@ export default function SettingsPage() {
                     Same as Header
                   </button>
                 </div>
-                <p className="text-xs text-slate-400 mb-3">Displayed at the bottom of all website pages.</p>
+                <p className="text-xs text-slate-400 mb-1">Displayed at the bottom of all website pages.</p>
+                <p className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200/80 rounded px-2 py-0.5 mb-3 inline-block">
+                  Recommended: <strong>400 × 120 px</strong> • Max: 5MB • PNG, WEBP, SVG
+                </p>
 
                 {/* Preview */}
                 <div className="w-full h-24 bg-white border border-dashed border-slate-200 rounded-xl flex items-center justify-center p-2 mb-3 overflow-hidden">

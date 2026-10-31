@@ -8,6 +8,7 @@ import { useState, useEffect, useRef } from "react";
 import { CategoryError } from "@/types/types";
 import PageHeader from "@/components/admin/head/head";
 import { getErrorMessage } from "@/lib/helpers/handlers";
+import { showErrorAlert } from "@/lib/sweetAlert";
 
 export default function CategoryEditPage() {
   const router = useRouter();
@@ -122,7 +123,9 @@ export default function CategoryEditPage() {
         toast.error("Failed to update category", { id: toastId });
       }
     } catch (error) {
-      toast.error(getErrorMessage(error), { id: toastId });
+      const msg = getErrorMessage(error);
+      showErrorAlert("Cannot Update Category", msg);
+      toast.error(msg, { id: toastId });
     } finally {
       setLoading(false);
     }
@@ -161,7 +164,12 @@ export default function CategoryEditPage() {
                     </div>
                   ) : (
                     <div className="space-y-3 py-4">
-                      <p className="text-sm text-slate-500">Upload an image file or select a file</p>
+                      <div className="space-y-1">
+      <p className="text-xs font-semibold text-slate-700">Upload Category Image</p>
+      <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200/80 rounded px-2 py-1 inline-block">
+        Recommended: <strong>800 × 800 px (1:1 Square)</strong> • Max: 10MB • JPG, PNG, WEBP
+      </p>
+    </div>
                       <label className="inline-flex items-center justify-center w-full px-4 py-2.5 text-xs font-semibold text-slate-700 bg-slate-100 border border-slate-300 rounded-lg cursor-pointer hover:bg-slate-200 transition">
                         Select File
                         <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />

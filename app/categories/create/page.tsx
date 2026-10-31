@@ -124,7 +124,12 @@ export default function CategoryPage() {
                                         </div>
                                     ) : (
                                         <div className="space-y-3 py-4">
-                                            <p className="text-sm text-slate-500">Upload a category image file</p>
+                                            <div className="space-y-1">
+      <p className="text-xs font-semibold text-slate-700">Upload Category Image</p>
+      <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200/80 rounded px-2 py-1 inline-block">
+        Recommended: <strong>800 × 800 px (1:1 Square)</strong> • Max: 10MB • JPG, PNG, WEBP
+      </p>
+    </div>
                                             <label className="inline-flex items-center justify-center w-full px-4 py-2.5 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg cursor-pointer hover:bg-slate-100 transition shadow-xs">
                                                 Select File
                                                 <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />

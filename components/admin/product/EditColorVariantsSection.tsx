@@ -700,6 +700,7 @@ export default function ColorVariantsSection({
               <h4 className="text-xs font-black uppercase text-slate-400 mb-4 flex items-center gap-2">
                 <ImageIcon size={16} /> Product Images
               </h4>
+              <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200/80 rounded-md px-2.5 py-1 mb-4 inline-block font-normal">Recommended: <strong>800 × 1100 px (3:4 Portrait)</strong> • Max: 5MB per image • JPG, PNG, WEBP</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                 {["Front", "Back", "Side", "Detail"].map((role) => {
                   // Find the slot for this role, skipping soft-deleted ones

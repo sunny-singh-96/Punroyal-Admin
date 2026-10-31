@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 import { Edit2, Trash2 } from "lucide-react";
-import { confirmDelete } from "@/lib/sweetAlert";
+import { confirmDelete, showErrorAlert } from "@/lib/sweetAlert";
 import { sizesValidate } from "@/validations/materials";
 import { sizesAPI } from "@/lib/integration/sizes";
 import PageHeader from "@/components/admin/head/head";
@@ -67,7 +67,9 @@ export default function SizesPage() {
         setTotalRecords(total);
       }
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      const msg = getErrorMessage(error);
+      showErrorAlert("Cannot Delete Size", msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -97,7 +99,9 @@ export default function SizesPage() {
         toast.success(`Size created successfully!`, { id: toastId });
       }
     } catch (error) {
-      toast.error(getErrorMessage(error), { id: toastId });
+      const msg = getErrorMessage(error);
+      showErrorAlert("Cannot Update Size", msg);
+      toast.error(msg, { id: toastId });
     } finally {
       setActionLoading(false);
     }
@@ -138,6 +142,31 @@ export default function SizesPage() {
     }
   };
 
+  
+  // Quick status toggle
+  const handleToggleStatus = async (size: Size) => {
+    const currentActive = size.status === true || size.status === "true";
+    const nextStatus = !currentActive;
+    setData((prev) =>
+      prev.map((item) => (item._id === size._id ? { ...item, status: nextStatus } : item))
+    );
+    try {
+      await sizesAPI.update(size._id, {
+        name: size.name,
+        status: nextStatus,
+      });
+      toast.success(`Size ${nextStatus ? "activated" : "deactivated"}`);
+      setReload((r) => !r);
+    } catch (error) {
+      setData((prev) =>
+        prev.map((item) => (item._id === size._id ? { ...item, status: currentActive } : item))
+      );
+      const msg = getErrorMessage(error) || "Failed to update size status";
+      showErrorAlert("Cannot Deactivate Size", msg);
+      toast.error(msg);
+    }
+  };
+
   // ✅ Delete size
   const handleDelete = useCallback(async (id: string) => {
     const isConfirmed = await confirmDelete("Delete this size?");
@@ -152,7 +181,9 @@ export default function SizesPage() {
         setReload((r) => !r);
       }
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      const msg = getErrorMessage(error);
+      showErrorAlert("Cannot Delete Size", msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -230,15 +261,19 @@ export default function SizesPage() {
                 render: (row: Size) => {
                   const isActive = row.status === true || row.status === "true";
                   return (
-                    <span
-                      className={`px-2.5 py-1 text-xs font-semibold rounded-full ${
+                    <button
+                      type="button"
+                      onClick={() => handleToggleStatus(row)}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition cursor-pointer shadow-xs border ${
                         isActive
-                          ? "bg-green-100 text-green-700"
-                          : "bg-gray-100 text-gray-500"
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                          : "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200"
                       }`}
+                      title="Click to toggle Active / Inactive"
                     >
+                      <span className={`w-2 h-2 rounded-full ${isActive ? "bg-emerald-500" : "bg-slate-400"}`} />
                       {isActive ? "Active" : "Inactive"}
-                    </span>
+                    </button>
                   );
                 },
               },
