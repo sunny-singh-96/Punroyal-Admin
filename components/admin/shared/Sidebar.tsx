@@ -20,7 +20,6 @@ import {
   Settings,
   Tag,
   Star,
-  BookOpen,
   UserCheck,
 } from "lucide-react";
 import { orderAPI } from "@/lib/integration/orders";
@@ -169,11 +168,6 @@ const menuItems = [
     name: "Coupons",
     icon: Tag,
     path: "/coupons",
-  },
-  {
-    name: "Documentation",
-    icon: BookOpen,
-    path: "/documentation",
   },
   // {
   //   name: "Queries",
