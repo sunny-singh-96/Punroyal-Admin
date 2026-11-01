@@ -12,7 +12,6 @@ import {
   Loader2,
   X,
   Edit,
-  SlidersHorizontal,
   ChevronDown,
   ChevronUp,
   View,
@@ -776,7 +775,7 @@ export default function ProductsPage() {
           <div>
             <h1 className="text-3xl font-black text-slate-900">Assigned Products</h1>
             <p className="text-sm text-slate-500 mt-1">
-              {totalRecords} assigned products{hasActive ? " · Filters active" : ""}
+              {totalRecords} assigned products
             </p>
           </div>
         </div>
@@ -784,237 +783,11 @@ export default function ProductsPage() {
 
       {/* ── Body ── */}
       <div className="px-6 md:px-8 pb-8 max-w-[1600px] mx-auto flex gap-6 items-start">
-        {/* ── Sidebar ── */}
-        <aside
-          className={`shrink-0 transition-all duration-300 overflow-hidden ${showFilters ? "w-64" : "w-0"}`}
-        >
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 sticky top-6 w-64">
-            <div className="flex items-center justify-between mb-5">
-              <span className="font-black text-slate-800 text-sm">Filters</span>
-              {hasActive && (
-                <button
-                  onClick={clearAll}
-                  className="text-[11px] font-bold text-red-500 hover:text-red-600"
-                >
-                  Clear All
-                </button>
-              )}
-            </div>
-
-            {/* Category — single select */}
-            <FilterSection title="Category">
-              <div className="space-y-0.5">
-                {categories.map((c) => (
-                  <CheckItem
-                    key={c._id}
-                    label={c.name}
-                    checked={pendingFilters.cat_id === c._id}
-                    onChange={() =>
-                      setPendingField(
-                        "cat_id",
-                        pendingFilters.cat_id === c._id ? "" : c._id,
-                      )
-                    }
-                  />
-                ))}
-
-                {hasMoreCategories && (
-                  <button
-                    onClick={() => fetchCategories(categoryPage + 1)}
-                    disabled={categoryLoading}
-                    className="w-full mt-1.5 flex items-center justify-center gap-1.5 py-1.5 text-[11px] font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
-                  >
-                    {categoryLoading ? (
-                      <>
-                        <Loader2 size={11} className="animate-spin" />
-                        Loading...
-                      </>
-                    ) : (
-                      <>
-                        <ChevronDown size={11} />
-                        Show more ({categoryTotal - categories.length} more)
-                      </>
-                    )}
-                  </button>
-                )}
-
-                {!hasMoreCategories && categoryTotal > CATEGORY_PAGE_SIZE && (
-                  <p className="text-center text-[10px] text-slate-300 pt-1">
-                    All categories loaded
-                  </p>
-                )}
-              </div>
-            </FilterSection>
-
-            {/* Color — multi-select */}
-            {common.colors.length > 0 && (
-              <FilterSection title="Color">
-                <div className="max-h-44 overflow-y-auto pr-1">
-                  {common.colors.map((c) => (
-                    <CheckItem
-                      key={c._id}
-                      label={c.name}
-                      checked={pendingFilters.colors.includes(c._id)}
-                      onChange={() => togglePendingArr("colors", c._id)}
-                      dot={c.hex || c.color_code}
-                    />
-                  ))}
-                </div>
-              </FilterSection>
-            )}
-
-            {/* Size — multi-select */}
-            {common.sizes.length > 0 && (
-              <FilterSection title="Size">
-                <div className="max-h-44 overflow-y-auto pr-1">
-                  {common.sizes.map((s) => (
-                    <CheckItem
-                      key={s._id}
-                      label={s.name}
-                      checked={pendingFilters.sizes.includes(s._id)}
-                      onChange={() => togglePendingArr("sizes", s._id)}
-                    />
-                  ))}
-                </div>
-              </FilterSection>
-            )}
-
-            {/* Material — multi-select */}
-            {common.materials.length > 0 && (
-              <FilterSection title="Material">
-                <div className="max-h-44 overflow-y-auto pr-1">
-                  {common.materials.map((m) => (
-                    <CheckItem
-                      key={m._id}
-                      label={m.name}
-                      checked={pendingFilters.materials.includes(m._id)}
-                      onChange={() => togglePendingArr("materials", m._id)}
-                    />
-                  ))}
-                </div>
-              </FilterSection>
-            )}
-
-            {/* Models — multi-select */}
-            {common.models.length > 0 && (
-              <FilterSection title="Models">
-                <div className="max-h-44 overflow-y-auto pr-1">
-                  {common.models.map((m) => (
-                    <CheckItem
-                      key={m._id}
-                      label={m.name}
-                      checked={pendingFilters.models.includes(m._id)}
-                      onChange={() => togglePendingArr("models", m._id)}
-                    />
-                  ))}
-                </div>
-              </FilterSection>
-            )}
-
-            {/* Status — single select */}
-            <FilterSection title="Status">
-              {[
-                { val: "", label: "All" },
-                { val: "1", label: "Live" },
-                { val: "0", label: "Draft" },
-              ].map(({ val, label }) => (
-                <label
-                  key={val}
-                  className="flex items-center gap-2 cursor-pointer py-1 px-1 rounded-lg hover:bg-slate-50 group"
-                >
-                  <button
-                    type="button"
-                    onClick={() => setPendingField("status", val)}
-                    className="shrink-0"
-                  >
-                    {pendingFilters.status === val ? (
-                      <CheckSquare size={16} className="text-blue-600" />
-                    ) : (
-                      <Square
-                        size={16}
-                        className="text-slate-300 group-hover:text-slate-400"
-                      />
-                    )}
-                  </button>
-                  <span className="text-[13px] text-slate-700">{label}</span>
-                </label>
-              ))}
-            </FilterSection>
-
-            {/* Price Range */}
-            <FilterSection title="Price Range (₹)" defaultOpen={false}>
-              <div className="flex gap-2 pt-1">
-                <input
-                  type="number"
-                  placeholder="Min"
-                  value={pendingFilters.minPrice}
-                  onChange={(e) =>
-                    setPendingFilters((prev) => ({
-                      ...prev,
-                      minPrice: e.target.value,
-                    }))
-                  }
-                  className="w-1/2 p-2 bg-slate-100 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-400"
-                />
-                <input
-                  type="number"
-                  placeholder="Max"
-                  value={pendingFilters.maxPrice}
-                  onChange={(e) =>
-                    setPendingFilters((prev) => ({
-                      ...prev,
-                      maxPrice: e.target.value,
-                    }))
-                  }
-                  className="w-1/2 p-2 bg-slate-100 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-400"
-                />
-              </div>
-            </FilterSection>
-
-            {/* ── Bottom buttons ── */}
-            <div className="pt-3 space-y-2">
-              <button
-                onClick={applyFilters}
-                className={`w-full py-2.5 rounded-xl text-sm font-bold transition-all ${
-                  hasPending
-                    ? "bg-blue-600 text-white hover:bg-blue-700 shadow-sm shadow-blue-200"
-                    : "bg-blue-100 text-blue-400 cursor-default"
-                }`}
-              >
-                {hasPending
-                  ? `Apply Filters${pendingBadge > 0 ? ` (${pendingBadge})` : ""}`
-                  : "Filters Applied"}
-              </button>
-              <button
-                onClick={clearAll}
-                className="w-full py-2.5 bg-slate-100 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-200"
-              >
-                Clear All
-              </button>
-            </div>
-          </div>
-        </aside>
-
         {/* ── Main Content ── */}
         <div className="flex-1 min-w-0 space-y-4">
           {/* Search + filter toggle */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex flex-col sm:flex-row gap-3">
-            <button
-              onClick={() => setShowFilters((f) => !f)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-colors shrink-0 ${
-                showFilters
-                  ? "bg-slate-900 text-white border-slate-900"
-                  : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-              }`}
-            >
-              <SlidersHorizontal size={15} />
-              Filters
-              {activeBadge > 0 && (
-                <span className="ml-1 bg-blue-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-                  {activeBadge}
-                </span>
-              )}
-            </button>
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex gap-3">
+            
             <div className="relative flex-1 group">
               <Search
                 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors pointer-events-none"
