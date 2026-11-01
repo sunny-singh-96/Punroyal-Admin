@@ -176,7 +176,7 @@ export const ProductInfoModal = ({
         </div>
 
         {/* Top Info Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 bg-slate-50 rounded-xl mb-6 text-xs">
+        <div className="grid grid-cols-3 gap-3 p-4 bg-slate-50 rounded-xl mb-6 text-xs">
           <div>
             <p className="text-slate-500 font-medium">Price</p>
             <p className="font-bold text-slate-800 text-sm mt-0.5">₹{product.price}</p>
@@ -194,21 +194,6 @@ export const ProductInfoModal = ({
             <p className="font-bold text-blue-600 text-sm mt-0.5">
               {computedTotalStock} units
             </p>
-          </div>
-
-          <div>
-            <p className="text-slate-500 font-medium">Stock Status</p>
-            <span
-              className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold mt-0.5 ${
-                computedTotalStock === 0
-                  ? "bg-rose-100 text-rose-700"
-                  : computedTotalStock <= 5
-                  ? "bg-amber-100 text-amber-700"
-                  : "bg-emerald-100 text-emerald-700"
-              }`}
-            >
-              {computedTotalStock === 0 ? "Out of Stock" : computedTotalStock <= 5 ? "Low Stock" : "In Stock"}
-            </span>
           </div>
         </div>
 
@@ -310,7 +295,7 @@ export const ProductInfoModal = ({
                     <th className="py-3 px-4">Size</th>
                     <th className="py-3 px-4">Color</th>
                     <th className="py-3 px-4 text-center w-40">Stock Quantity</th>
-                    <th className="py-3 px-4 text-center">Status</th>
+                    
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -362,19 +347,7 @@ export const ProductInfoModal = ({
                             </button>
                           </div>
                         </td>
-                        <td className="py-3 px-4 text-center">
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                              currentVal === 0
-                                ? "bg-rose-100 text-rose-700"
-                                : currentVal <= 5
-                                ? "bg-amber-100 text-amber-700"
-                                : "bg-emerald-100 text-emerald-700"
-                            }`}
-                          >
-                            {currentVal === 0 ? "Out" : currentVal <= 5 ? "Low" : "In Stock"}
-                          </span>
-                        </td>
+                        
                       </tr>
                     );
                   })}

@@ -134,10 +134,25 @@ export default function ProductViewPage() {
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
+  const allImages = useMemo(() => {
+    if (Array.isArray(productImages) && productImages.length > 0) return productImages;
+    if (Array.isArray(product?.media) && product.media.length > 0) return product.media as unknown as ProductImage[];
+    return [];
+  }, [productImages, product?.media]);
+
   const filteredImages = useMemo(() => {
-    if (!selectedColor) return [];
-    return productImages.filter((item) => item.color_id === selectedColor);
-  }, [productImages, selectedColor]);
+    if (!allImages.length) return [];
+    if (!selectedColor) return allImages;
+
+    const matched = allImages.filter((item) => {
+      const cId = typeof item.color_id === 'object' && item.color_id !== null
+        ? ((item.color_id as any)._id || (item.color_id as any).id)
+        : item.color_id;
+      return String(cId || '') === String(selectedColor);
+    });
+
+    return matched.length > 0 ? matched : allImages;
+  }, [allImages, selectedColor]);
 
   useEffect(() => {
     if (!productId) {
@@ -153,14 +168,20 @@ export default function ProductViewPage() {
 
         if (response.code === "OK") {
           const productData = apiData.product;
-          const images = apiData.productImages;
+          const images = (Array.isArray(apiData.productImages) && apiData.productImages.length > 0)
+            ? apiData.productImages
+            : (Array.isArray(productData?.media) ? (productData.media as unknown as ProductImage[]) : []);
 
           setProduct(productData);
           setProductImages(images);
 
+          const colorsList = Array.isArray(productData?.colors) ? productData.colors : [];
           const initialColor =
-            productData.primaryColorId || productData.colors[0]?._id;
-          setSelectedColor(initialColor || null);
+            productData?.primaryColorId ||
+            colorsList[0]?._id ||
+            images?.[0]?.color_id ||
+            null;
+          setSelectedColor(initialColor ? String(initialColor) : null);
           setSelectedImageIndex(0);
         }
       } catch (error) {
@@ -226,11 +247,14 @@ export default function ProductViewPage() {
     );
   }
 
-  const selectedColorData = product.colors.find(
-    (color) => color._id === selectedColor,
+  const productColors = Array.isArray(product.colors) ? product.colors : [];
+  const selectedColorData = productColors.find(
+    (color) => String(color._id) === String(selectedColor),
   );
   const currentImage =
-    filteredImages.length > 0 ? filteredImages[selectedImageIndex]?.url : null;
+    filteredImages.length > 0
+      ? (filteredImages[selectedImageIndex]?.url || filteredImages[0]?.url)
+      : (allImages[0]?.url || product?.media?.[0]?.url || null);
   const priceDiscount = Math.round(
     ((product.price - product.display_price) / product.price) * 100,
   );
@@ -539,6 +563,7 @@ export default function ProductViewPage() {
               </div>
             )}
 
+            {productColors.length > 0 && (
             <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8">
               <div className="mb-6">
                 <h2 className="text-xl font-bold text-slate-900 mb-1">
@@ -551,7 +576,7 @@ export default function ProductViewPage() {
               </div>
 
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                {product.colors.map((color) => (
+                {productColors.map((color) => (
                   <button
                     key={color._id}
                     onClick={() => handleColorChange(color._id)}
@@ -589,6 +614,7 @@ export default function ProductViewPage() {
                 ))}
               </div>
             </div>
+            )}
 
             {/* Image Gallery */}
             <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8">
@@ -610,8 +636,9 @@ export default function ProductViewPage() {
                   <div className="relative w-full bg-gradient-to-br from-slate-100 to-slate-50 rounded-xl overflow-hidden aspect-square border-2 border-slate-200 group">
                     <Image
                       src={currentImage || ""}
-                      alt={`${selectedColorData?.color_name} product view`}
+                      alt={`${selectedColorData?.color_name || "Product"} product view`}
                       fill
+                      unoptimized
                       className="object-cover group-hover:scale-110 transition-transform duration-500"
                       onError={handleImageError}
                       priority
@@ -665,6 +692,7 @@ export default function ProductViewPage() {
                               src={image.url}
                               alt={`Thumbnail ${index + 1}`}
                               fill
+                              unoptimized
                               className="object-cover hover:scale-105 transition-transform duration-300"
                               onError={handleImageError}
                             />

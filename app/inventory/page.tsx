@@ -240,21 +240,7 @@ export default function InventoryCommandCenter() {
                 );
               },
             },
-            {
-              key: "status",
-              label: "Status",
-              render: (row) => (
-                <span
-                  className={`px-2.5 py-1 text-xs font-semibold rounded-full ${
-                    row.status
-                      ? "bg-green-100 text-green-700"
-                      : "bg-gray-100 text-gray-500"
-                  }`}
-                >
-                  {row.status ? "Active" : "Inactive"}
-                </span>
-              ),
-            },
+
             {
               key: "createdAt",
               label: "Created",
