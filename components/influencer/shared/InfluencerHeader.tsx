@@ -7,7 +7,7 @@ import { logoutUser } from '@/lib/middleware/auth';
 
 export default function InfluencerHeader({ setIsOpen }: { setIsOpen: (v: boolean) => void }) {
   const handleLogout = async () => {
-    await logoutUser();
+    await logoutUser('influencer');
   };
 
   return (

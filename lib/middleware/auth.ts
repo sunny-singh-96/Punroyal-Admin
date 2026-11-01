@@ -32,22 +32,58 @@ export const isAuthenticated = (): boolean => {
 /**
  * Logout user - centralized logout
  */
-export const logoutUser = async (): Promise<void> => {
+export const logoutUser = async (targetRole?: 'admin' | 'influencer'): Promise<void> => {
   if (typeof window === 'undefined') return;
-  
-  try {
-    storageUtils.clearAll();
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('auth-storage');
-    sessionStorage.clear();
-  } catch (e) {
-    console.error('Storage clear error:', e);
+
+  const path = window.location.pathname;
+  const isInfluencer =
+    targetRole === 'influencer' ||
+    (targetRole === undefined && path.startsWith('/influencer'));
+
+  if (isInfluencer) {
+    try {
+      storageUtils.clearInfluencer();
+    } catch (e) {
+      console.error('Storage clear influencer error:', e);
+    }
+
+    // Clear influencer cookies
+    document.cookie = 'influencer-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0;';
+    document.cookie = 'influencer-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0;';
+
+    // If an admin token exists, restore it as the primary cookie
+    const adminToken = storageUtils.getAdminToken();
+    if (adminToken) {
+      document.cookie = `auth-token=${adminToken}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+      document.cookie = `token=${adminToken}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+    } else {
+      document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0;';
+      document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0;';
+    }
+
+    window.location.replace('/influencer/login');
+    return;
   }
 
-  // Clear cookie
-  document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0;';
-  document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0;';
+  // Admin Logout
+  try {
+    storageUtils.clearAdmin();
+  } catch (e) {
+    console.error('Storage clear admin error:', e);
+  }
+
+  document.cookie = 'admin-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0;';
+  document.cookie = 'admin-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0;';
+
+  // If an influencer token exists, preserve it as cookie
+  const infToken = storageUtils.getInfluencerToken();
+  if (infToken) {
+    document.cookie = `auth-token=${infToken}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+    document.cookie = `token=${infToken}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+  } else {
+    document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0;';
+    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0;';
+  }
 
   window.location.replace('/');
 };

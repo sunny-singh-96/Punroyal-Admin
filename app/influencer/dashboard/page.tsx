@@ -170,7 +170,7 @@ export default function InfluencerDashboardPage() {
 
   // Handle Logout
   const handleLogout = async () => {
-    await logoutUser();
+    await logoutUser('influencer');
   };
 
   // Open Product Details Modal

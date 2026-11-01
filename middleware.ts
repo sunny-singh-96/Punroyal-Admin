@@ -17,14 +17,26 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check for token in cookies or headers
-  const token = request.cookies.get('auth-token')?.value || request.cookies.get('token')?.value;
+  const isInfluencerRoute = pathname.startsWith('/influencer');
 
-  // If not token and trying to access protected route, redirect to login
+  // Check for role-specific token in cookies or headers
+  let token = request.cookies.get('auth-token')?.value || request.cookies.get('token')?.value;
+  if (isInfluencerRoute) {
+    token =
+      request.cookies.get('influencer-token')?.value ||
+      request.cookies.get('influencer-auth-token')?.value ||
+      token;
+  } else {
+    token =
+      request.cookies.get('admin-token')?.value ||
+      request.cookies.get('admin-auth-token')?.value ||
+      token;
+  }
+
+  // If no token and trying to access protected route, redirect to login
   if (!token && !PUBLIC_ROUTES.includes(pathname)) {
-    // Store the redirect URL to return after login
     const url = request.nextUrl.clone();
-    url.pathname = pathname.startsWith('/influencer') ? '/influencer/login' : '/';
+    url.pathname = isInfluencerRoute ? '/influencer/login' : '/';
     url.searchParams.set('redirect', pathname);
     return NextResponse.redirect(url);
   }

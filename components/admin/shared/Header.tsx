@@ -80,7 +80,7 @@ export default function Header({ setIsOpen }: { setIsOpen: (v: boolean) => void 
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleLogout = async () => {
-    await logoutUser();
+    await logoutUser('admin');
   };
 
   const [clearingCache, setClearingCache] = useState(false);

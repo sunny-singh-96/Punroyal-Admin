@@ -17,6 +17,7 @@ import {
 import { toast } from "react-hot-toast";
 import Image from "next/image";
 import { useAuthStore } from "@/store/authStore";
+import { storageUtils } from "@/lib/storage";
 import {
   adminLogin,
   influencerLoginValidation,
@@ -35,7 +36,7 @@ interface LoginCardProps {
 function LoginCardContent({ initialRole = "admin" }: LoginCardProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, setAuth } = useAuthStore();
+  const { setAuth } = useAuthStore();
 
   const roleParam = searchParams.get("role") as UserRole | null;
   const [selectedRole, setSelectedRole] = useState<UserRole>(
@@ -57,20 +58,22 @@ function LoginCardContent({ initialRole = "admin" }: LoginCardProps) {
 
   const redirectTo = searchParams.get("redirect");
 
-  // Route-aware auto redirect
+  // Route-aware auto redirect: Admin checks admin session, Influencer checks influencer session
   useEffect(() => {
-    if (user && user?._id) {
-      if (initialRole === "influencer") {
-        if (user.role === "influencer") {
-          router.push(redirectTo || "/influencer/dashboard");
-        }
-      } else {
-        if (user.role === "superadmin" || user.role === "admin") {
-          router.push(redirectTo || "/dashboard");
-        }
+    if (initialRole === "influencer" || selectedRole === "influencer") {
+      const infUser = storageUtils.getInfluencerUser();
+      const infToken = storageUtils.getInfluencerToken();
+      if (infUser && infToken && infUser.role === "influencer") {
+        router.push(redirectTo || "/influencer/dashboard");
+      }
+    } else {
+      const adminUser = storageUtils.getAdminUser();
+      const adminToken = storageUtils.getAdminToken();
+      if (adminUser && adminToken && (adminUser.role === "superadmin" || adminUser.role === "admin")) {
+        router.push(redirectTo || "/dashboard");
       }
     }
-  }, [user, redirectTo, router, initialRole]);
+  }, [redirectTo, router, initialRole, selectedRole]);
 
   useEffect(() => {
     if (selectedRole === "admin") {
@@ -80,10 +83,16 @@ function LoginCardContent({ initialRole = "admin" }: LoginCardProps) {
     }
   }, [selectedRole]);
 
+  // Tab change also updates URL to /influencer/login or / without reloading
   const handleRoleChange = (role: UserRole) => {
     setSelectedRole(role);
     setErrors({});
     setPassword("");
+
+    const targetUrl = role === "influencer" ? "/influencer/login" : "/";
+    if (typeof window !== "undefined" && window.location.pathname !== targetUrl) {
+      window.history.replaceState(null, "", targetUrl);
+    }
   };
 
   const handleAdminLogin = async () => {
@@ -123,6 +132,9 @@ function LoginCardContent({ initialRole = "admin" }: LoginCardProps) {
       }
 
       setAuth(token, loggedUser);
+      storageUtils.setAdminToken(token);
+      storageUtils.setAdminUser(loggedUser);
+
       toast.success(
         response?.message || response?.data?.message || "Admin login successful!",
         { id: toastId }
@@ -139,7 +151,7 @@ function LoginCardContent({ initialRole = "admin" }: LoginCardProps) {
         ) {
           window.location.href = target;
         }
-      }, 400);
+      }, 300);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Authentication failed";
@@ -184,6 +196,9 @@ function LoginCardContent({ initialRole = "admin" }: LoginCardProps) {
       }
 
       setAuth(token, loggedUser);
+      storageUtils.setInfluencerToken(token);
+      storageUtils.setInfluencerUser(loggedUser);
+
       toast.success(
         response?.message ||
           response?.data?.message ||
@@ -202,7 +217,7 @@ function LoginCardContent({ initialRole = "admin" }: LoginCardProps) {
         ) {
           window.location.href = target;
         }
-      }, 400);
+      }, 300);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Influencer login failed";
@@ -260,7 +275,7 @@ function LoginCardContent({ initialRole = "admin" }: LoginCardProps) {
           <button
             type="button"
             onClick={() => handleRoleChange("admin")}
-            className={`flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-normal transition ${
+            className={`flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-normal transition cursor-pointer ${
               selectedRole === "admin"
                 ? "bg-white text-slate-900 shadow-xs"
                 : "text-slate-500 hover:text-slate-800"
@@ -278,7 +293,7 @@ function LoginCardContent({ initialRole = "admin" }: LoginCardProps) {
           <button
             type="button"
             onClick={() => handleRoleChange("influencer")}
-            className={`flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-normal transition ${
+            className={`flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-normal transition cursor-pointer ${
               selectedRole === "influencer"
                 ? "bg-white text-slate-900 shadow-xs"
                 : "text-slate-500 hover:text-slate-800"
@@ -366,7 +381,7 @@ function LoginCardContent({ initialRole = "admin" }: LoginCardProps) {
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
                 >
                   {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
@@ -468,7 +483,7 @@ function LoginCardContent({ initialRole = "admin" }: LoginCardProps) {
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
                 >
                   {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
@@ -526,4 +541,3 @@ export default function LoginCard({ initialRole = "admin" }: LoginCardProps) {
     </Suspense>
   );
 }
-

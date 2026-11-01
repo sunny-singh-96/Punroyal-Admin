@@ -2,6 +2,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
+import { storageUtils } from '@/lib/storage';
 import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
@@ -14,28 +15,53 @@ export default function ProtectedRoute({ children, requiredRole = 'super_admin' 
   const { user, isLoading } = useAuthStore();
 
   useEffect(() => {
-    console.log('🔐 ProtectedRoute check - user:', user, 'isLoading:', isLoading);
-    
     if (isLoading) {
-      console.log('⏳ Still loading user...');
       return;
     }
 
     if (!user) {
-      console.log('❌ No user found, redirecting to login');
-      router.push('/');
-      return;
+      // Check if role-specific user exists in storage
+      if (requiredRole === 'user') {
+        const infUser = storageUtils.getInfluencerUser();
+        const infToken = storageUtils.getInfluencerToken();
+        if (infUser && infToken) {
+          useAuthStore.getState().setAuth(infToken, infUser);
+          return;
+        }
+        router.push('/influencer/login');
+        return;
+      } else {
+        const adminUser = storageUtils.getAdminUser();
+        const adminToken = storageUtils.getAdminToken();
+        if (adminUser && adminToken) {
+          useAuthStore.getState().setAuth(adminToken, adminUser);
+          return;
+        }
+        router.push('/');
+        return;
+      }
     }
-
-    console.log('✅ User authenticated, allowing access');
 
     // Role checking
     const userRole = user.role;
     if (requiredRole === 'super_admin' && userRole === 'influencer') {
+      const adminUser = storageUtils.getAdminUser();
+      const adminToken = storageUtils.getAdminToken();
+      if (adminUser && adminToken) {
+        useAuthStore.getState().setAuth(adminToken, adminUser);
+        return;
+      }
       router.push('/influencer/dashboard');
       return;
     }
+
     if (requiredRole === 'user' && (userRole === 'superadmin' || userRole === 'admin')) {
+      const infUser = storageUtils.getInfluencerUser();
+      const infToken = storageUtils.getInfluencerToken();
+      if (infUser && infToken) {
+        useAuthStore.getState().setAuth(infToken, infUser);
+        return;
+      }
       router.push('/dashboard');
       return;
     }

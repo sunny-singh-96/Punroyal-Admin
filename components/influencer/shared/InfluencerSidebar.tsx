@@ -153,7 +153,7 @@ export default function InfluencerSidebar({ isOpen, setIsOpen }: SidebarProps) {
               <button
                 onClick={async () => {
                   setShowLogoutModal(false);
-                  await logoutUser();
+                  await logoutUser('influencer');
                 }}
                 className="flex-1 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-xl shadow transition"
               >

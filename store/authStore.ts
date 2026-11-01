@@ -29,20 +29,42 @@ export const useAuthStore = create<AuthState>()(
       setAuth: (token, user) => {
         set({ token, user, isLoading: false });
 
-        storageUtils.setToken(token);
-        storageUtils.setUser(user);
+        const isInfluencer = user?.role === 'influencer';
+        storageUtils.setToken(token, user?.role);
+        storageUtils.setUser(user, user?.role);
 
-        // Set cookie for middleware (support both auth-token and token, HTTPS-aware)
+        // Set role-specific and general cookies
         if (typeof window !== 'undefined') {
           const isSecure = window.location.protocol === 'https:' ? '; Secure' : '';
-          document.cookie = `auth-token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax${isSecure}`;
-          document.cookie = `token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax${isSecure}`;
+          const maxAge = 60 * 60 * 24 * 7;
+          if (isInfluencer) {
+            document.cookie = `influencer-token=${token}; path=/; max-age=${maxAge}; SameSite=Lax${isSecure}`;
+            document.cookie = `influencer-auth-token=${token}; path=/; max-age=${maxAge}; SameSite=Lax${isSecure}`;
+          } else {
+            document.cookie = `admin-token=${token}; path=/; max-age=${maxAge}; SameSite=Lax${isSecure}`;
+            document.cookie = `admin-auth-token=${token}; path=/; max-age=${maxAge}; SameSite=Lax${isSecure}`;
+          }
+          document.cookie = `auth-token=${token}; path=/; max-age=${maxAge}; SameSite=Lax${isSecure}`;
+          document.cookie = `token=${token}; path=/; max-age=${maxAge}; SameSite=Lax${isSecure}`;
         }
       },
 
-      logout: async () => {
-        set({ token: null, user: null, isLoading: false });
-        await logoutUser();
+      logout: async (targetRole?: 'admin' | 'influencer') => {
+        const path = typeof window !== 'undefined' ? window.location.pathname : '';
+        const isInfluencer = targetRole === 'influencer' || (targetRole === undefined && path.startsWith('/influencer'));
+        if (isInfluencer) {
+          const adminUser = storageUtils.getAdminUser();
+          const adminToken = storageUtils.getAdminToken();
+          set({
+            user: adminUser || null,
+            token: adminToken || null,
+            isLoading: false
+          });
+          await logoutUser('influencer');
+        } else {
+          set({ token: null, user: null, isLoading: false });
+          await logoutUser('admin');
+        }
       },
 
       loadUser: async () => {
@@ -69,9 +91,20 @@ export const useAuthStore = create<AuthState>()(
           return;
         }
 
-        // 1. Retrieve stored token & user synchronously
-        const storedToken = storageUtils.getToken() || get().token;
-        const storedUser = storageUtils.getUser() || get().user;
+        // 1. Retrieve stored token & user synchronously with role awareness
+        const path = typeof window !== 'undefined' ? window.location.pathname : '/';
+        const isInfluencerRoute = path.startsWith('/influencer');
+
+        let storedToken: string | null = null;
+        let storedUser: any = null;
+
+        if (isInfluencerRoute) {
+          storedToken = storageUtils.getInfluencerToken() || storageUtils.getToken() || get().token;
+          storedUser = storageUtils.getInfluencerUser() || storageUtils.getUser() || get().user;
+        } else {
+          storedToken = storageUtils.getAdminToken() || storageUtils.getToken() || get().token;
+          storedUser = storageUtils.getAdminUser() || storageUtils.getUser() || get().user;
+        }
 
         // 2. Keep the Next.js middleware cookie fresh
         if (storedToken && typeof window !== 'undefined') {
