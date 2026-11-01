@@ -15,7 +15,7 @@ export default function LayoutWrapper({
 }) {
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
-  const isLoginPage = pathname === '/';
+  const isLoginPage = pathname === '/' || pathname === '/login' || pathname === '/influencer/login';
   const { user } = useAuthStore();
 
   useEffect(() => {

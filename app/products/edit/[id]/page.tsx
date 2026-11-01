@@ -270,8 +270,8 @@ export default function CreateProductPage() {
           video_link: product?.video_link || "",
           primaryColorId: product?.primaryColorId || null,
           isPrimary: product?.isPrimary || false,
-          model_id: product?.influencer_id || product?.model?._id || product?.model_id || "",
-          influencer_id: product?.influencer_id || product?.model?._id || product?.model_id || "",
+          model_id: product?.model?._id || product?.model_id || product?.influencer_id || "",
+          influencer_id: product?.model?._id || product?.model_id || product?.influencer_id || "",
           commission: product?.commission !== undefined && product?.commission !== null ? Number(product.commission) : 0,
           commission_type: (product?.commission_type || product?.commission_Type || "percentage") as "percentage" | "flat",
           metarial: product?.materials
@@ -773,11 +773,22 @@ export default function CreateProductPage() {
                 Influencer
               </label>
               <SearchableSelect
-                options={(common?.models || []).map((item) => ({
+                options={(common?.models || []).map((item: any) => ({
                   label: item.name,
                   value: item._id,
                 }))}
-                value={form.model_id || form.influencer_id || ""}
+                value={(() => {
+                  const rawVal = String(form.model_id || form.influencer_id || "");
+                  if (!rawVal) return "";
+                  const optionsList: any[] = common?.models || [];
+                  const match = optionsList.find(
+                    (m: any) =>
+                      String(m._id) === rawVal ||
+                      (m.auth_id && String(m.auth_id) === rawVal) ||
+                      String(m.name).trim().toLowerCase() === rawVal.trim().toLowerCase()
+                  );
+                  return match ? match._id : rawVal;
+                })()}
                 onChange={(val) => {
                   setForm((prev) => ({
                     ...prev,

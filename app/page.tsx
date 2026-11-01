@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 
 import Swal from "sweetalert2";
 
@@ -441,8 +442,18 @@ export default function LoginPage() {
           </form>
         )}
 
+        {/* SWITCH TO DEDICATED INFLUENCER PORTAL */}
+        <div className="mt-4 pt-3 border-t border-slate-100 text-center">
+          <Link
+            href="/influencer/login"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 transition"
+          >
+            Influencer Partner? Go to Dedicated Portal <Sparkles size={12} className="text-amber-500" />
+          </Link>
+        </div>
+
         {/* FOOTER */}
-        <div className="mt-4 pt-3 border-t border-slate-100 flex justify-center items-center gap-3 text-[11px] font-normal text-slate-400">
+        <div className="mt-3 pt-2 border-t border-slate-100 flex justify-center items-center gap-3 text-[11px] font-normal text-slate-400">
           <span className="flex items-center gap-1">
             <Shield size={12} className="text-emerald-500" /> Secure Login
           </span>

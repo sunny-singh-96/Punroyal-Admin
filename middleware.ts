@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // Public routes that don't require authentication
-const PUBLIC_ROUTES = ['/'];
+const PUBLIC_ROUTES = ['/', '/login', '/influencer/login'];
 
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
@@ -20,11 +20,11 @@ export function middleware(request: NextRequest) {
   // Check for token in cookies or headers
   const token = request.cookies.get('auth-token')?.value || request.cookies.get('token')?.value;
 
-  // If not token and trying to access protected route, redirect to home
+  // If not token and trying to access protected route, redirect to login
   if (!token && !PUBLIC_ROUTES.includes(pathname)) {
     // Store the redirect URL to return after login
     const url = request.nextUrl.clone();
-    url.pathname = '/';
+    url.pathname = pathname.startsWith('/influencer') ? '/influencer/login' : '/';
     url.searchParams.set('redirect', pathname);
     return NextResponse.redirect(url);
   }
@@ -38,4 +38,3 @@ export const config = {
     '/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js)$).*)',
   ],
 };
-
