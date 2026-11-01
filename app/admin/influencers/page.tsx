@@ -381,11 +381,11 @@ export default function ModelsPage() {
           prev.map((item) =>
             item._id === selectedRow._id
               ? {
-                  ...item,
-                  name: editInfluencerName.trim(),
-                  role_label: roleLabel.trim(),
-                  status: editInfluencerStatus,
-                }
+                ...item,
+                name: editInfluencerName.trim(),
+                role_label: roleLabel.trim(),
+                status: editInfluencerStatus,
+              }
               : item
           )
         );
@@ -757,7 +757,7 @@ export default function ModelsPage() {
                   className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold transition flex items-center gap-2 shadow-md"
                 >
                   {copiedField === 'all' ? <Check size={16} /> : <Copy size={16} />}
-                  {copiedField === 'all' ? "All Credentials Copied!" : "Copy All Credentials (ਇੱਕ ਵਾਰ 'ਚ ਸਭ ਕਾਪੀ ਕਰੋ)"}
+                  {copiedField === 'all' ? "All Credentials Copied!" : "Copy All Credentials"}
                 </button>
                 <button
                   type="button"
@@ -1020,8 +1020,8 @@ export default function ModelsPage() {
                         {videoFile
                           ? `${videoFile.name} (${(videoFile.size / (1024 * 1024)).toFixed(1)} MB)`
                           : videoPreview
-                          ? 'Click to change video file'
-                          : 'Click to upload video file'}
+                            ? 'Click to change video file'
+                            : 'Click to upload video file'}
                       </p>
                       <p className="text-[11px] text-slate-400">
                         Recommended: <strong>1080 × 1920 px (9:16 Reel)</strong> • MP4, WebM, QuickTime • <span className="font-semibold text-blue-600">Max {MAX_VIDEO_SIZE_MB}MB</span>
@@ -1323,11 +1323,10 @@ export default function ModelsPage() {
                     <button
                       type="button"
                       onClick={() => handleToggleStatus(row)}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-all shadow-sm ${
-                        isActive
+                      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-all shadow-sm ${isActive
                           ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-300"
                           : "bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-300"
-                      }`}
+                        }`}
                       title={`Click to set ${isActive ? 'Inactive' : 'Active'}`}
                     >
                       <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-slate-400'}`} />
@@ -1363,7 +1362,7 @@ export default function ModelsPage() {
                     >
                       <KeyRound size={13} /> Password
                     </button>
-                    
+
                     <button
                       onClick={() => router.push(`/admin/influencers/${row._id}/payments`)}
                       className="bg-indigo-600 text-white px-3 py-1 rounded-md hover:bg-indigo-700 transition text-sm flex items-center gap-1 font-medium shadow-sm"
