@@ -23,8 +23,7 @@ import {
   Tag,
   Percent,
   Receipt,
-  RotateCw,
-  Truck
+  RotateCw
 } from "lucide-react";
 import PageHeader from "@/components/admin/head/head";
 import { globalSettingsAPI } from "@/lib/integration/globalSettings";
@@ -124,7 +123,6 @@ export default function SettingsPage() {
   const [couponHighlight, setCouponHighlight] = useState("");
   const [couponOptions, setCouponOptions] = useState<CouponOption[]>([]);
   const [gstRules, setGstRules] = useState<GstRule[]>(DEFAULT_GST_RULES);
-  const [shiprocketEnabled, setShiprocketEnabled] = useState(true);
 
   // File uploads
   const [headerLogoFile, setHeaderLogoFile] = useState<File | null>(null);
@@ -192,10 +190,6 @@ export default function SettingsPage() {
         setCouponHighlight(highlight);
       } else {
         setCouponHighlight("");
-      }
-
-      if (data.shiprocket_enabled !== undefined) {
-        setShiprocketEnabled(Boolean(data.shiprocket_enabled));
       }
 
       if (Array.isArray(data.gst_rules) && data.gst_rules.length > 0) {
@@ -370,7 +364,6 @@ export default function SettingsPage() {
       formData.append("topbar_messages", JSON.stringify(topbarMessages));
       formData.append("coupon_highlight", couponHighlight || "");
       formData.append("gst_rules", JSON.stringify(gstRules));
-      formData.append("shiprocket_enabled", String(shiprocketEnabled));
 
       const res: any = await globalSettingsAPI.update(formData);
       if (res?.code === "OK" || res?.success || res?.status === 200) {
@@ -410,12 +403,6 @@ export default function SettingsPage() {
       <div className="flex flex-wrap items-center gap-2.5 p-3 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
         <span className="text-xs font-bold text-slate-400 mr-1">Quick Jump:</span>
         <a
-          href="#shipping-settings"
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition border border-indigo-200 shadow-xs"
-        >
-          <Truck size={13} className="text-indigo-600" /> Shiprocket Testing Toggle
-        </a>
-        <a
           href="#gst-settings"
           className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-xl transition border border-amber-200 shadow-xs"
         >
@@ -442,67 +429,6 @@ export default function SettingsPage() {
       </div>
 
       <form onSubmit={handleSave} className="space-y-8">
-        {/* SHIPROCKET LOGISTICS SETTINGS */}
-        <div id="shipping-settings" className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden scroll-mt-6">
-          <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
-                <Truck size={20} />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-slate-800">Shiprocket Integration & Testing Mode</h2>
-                <p className="text-xs text-slate-500">Toggle whether orders should hit Shiprocket API or remain in test mode</p>
-              </div>
-            </div>
-            <div>
-              <span className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold border transition ${
-                shiprocketEnabled 
-                  ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
-                  : "bg-amber-50 text-amber-700 border-amber-200"
-              }`}>
-                <span className={`w-2 h-2 rounded-full ${shiprocketEnabled ? "bg-emerald-500 animate-pulse" : "bg-amber-500"}`} />
-                {shiprocketEnabled ? "Live Shiprocket Sync: ON" : "Testing Mode: Shiprocket Sync OFF"}
-              </span>
-            </div>
-          </div>
-
-          <div className="p-6 sm:p-8 space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 p-6 rounded-2xl bg-slate-50/80 border border-slate-200/80">
-              <div className="space-y-1.5">
-                <label className="text-sm font-black text-slate-800 flex items-center gap-2">
-                  Send Orders to Shiprocket API
-                </label>
-                <p className="text-xs text-slate-500 max-w-xl leading-relaxed">
-                  When <strong>enabled (True)</strong>, placed orders automatically hit the Shiprocket API to generate shipments and AWB tracking numbers. When <strong>disabled (False)</strong>, Shiprocket API is bypassed, allowing you to test coupon codes, payments, and checkout flows without generating live test orders in Shiprocket.
-                </p>
-              </div>
-
-              {/* iOS style Toggle Switch */}
-              <div className="flex items-center gap-3 shrink-0">
-                <span className="text-xs font-bold text-slate-600">
-                  {shiprocketEnabled ? "Enabled (True)" : "Disabled (False)"}
-                </span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={shiprocketEnabled}
-                  onClick={() => setShiprocketEnabled((v) => !v)}
-                  className={`relative inline-flex h-8 w-16 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
-                    shiprocketEnabled ? 'bg-indigo-600' : 'bg-slate-300'
-                  }`}
-                >
-                  <span
-                    aria-hidden="true"
-                    className={`pointer-events-none inline-block h-7 w-7 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                      shiprocketEnabled ? 'translate-x-8' : 'translate-x-0'
-                    }`}
-                  />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* BRANDING SECTION */}
         <div id="branding-settings" className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden scroll-mt-6">
           <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
