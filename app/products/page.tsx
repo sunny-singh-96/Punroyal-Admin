@@ -20,7 +20,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
-import { confirmDelete } from "@/lib/sweetAlert";
+import { confirmDelete, showErrorAlert } from "@/lib/sweetAlert";
 import { productsAPI } from "@/lib/integration/products";
 import { commonAPI } from "@/lib/integration/common";
 import DataGrid, { Header } from "@/components/admin/tables/dataTableWithGrid";
@@ -799,10 +799,14 @@ export default function ProductsPage() {
         setTotalRecords((prev) => Math.max(0, prev - 1));
         setSelectedProducts((prev) => prev.filter((id) => id !== productId));
       } else {
-        toast.error(res?.message || "Failed to delete product");
+        const errorMsg = res?.message || res?.error || "Failed to delete product";
+        await showErrorAlert("Cannot Delete Product", errorMsg);
+        toast.error(errorMsg);
       }
     } catch (e) {
-      toast.error(getErrorMessage(e));
+      const errorMsg = getErrorMessage(e) || "Cannot delete this product as it is associated with existing orders.";
+      await showErrorAlert("Cannot Delete Product", errorMsg);
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -828,10 +832,14 @@ export default function ProductsPage() {
         setTotalRecords((prev) => prev - selectedProducts.length);
         setSelectedProducts([]);
       } else {
-        toast.error(res?.message || "Failed to delete products");
+        const errorMsg = res?.message || res?.error || "Failed to delete products";
+        await showErrorAlert("Cannot Delete Products", errorMsg);
+        toast.error(errorMsg);
       }
     } catch (e) {
-      toast.error(getErrorMessage(e));
+      const errorMsg = getErrorMessage(e) || "Cannot delete these products as they are associated with existing orders.";
+      await showErrorAlert("Cannot Delete Products", errorMsg);
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }

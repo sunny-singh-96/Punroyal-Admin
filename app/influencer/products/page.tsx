@@ -18,7 +18,7 @@ import {
   Eye,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
-import { confirmDelete } from "@/lib/sweetAlert";
+import { confirmDelete, showErrorAlert } from "@/lib/sweetAlert";
 import { productsAPI } from "@/lib/integration/products";
 import { freelancerAPI } from "@/lib/integration/freelancer";
 import { commonAPI } from "@/lib/integration/common";
@@ -683,7 +683,8 @@ export default function ProductsPage() {
   ];
 
   const handleDeleteProduct = async (productId: string, name: string) => {
-    if (!window.confirm(`Are you sure you want to delete "${name}"?`)) return;
+    const isConfirmed = await confirmDelete(name);
+    if (!isConfirmed) return;
     try {
       setLoading(true);
       await freelancerAPI.deleteProduct(productId);
@@ -691,7 +692,9 @@ export default function ProductsPage() {
       setProducts((prev) => prev.filter((p) => p._id !== productId));
       setTotalRecords((prev) => Math.max(0, prev - 1));
     } catch (err) {
-      toast.error(getErrorMessage(err));
+      const errorMsg = getErrorMessage(err) || "Cannot delete this product as it is associated with existing orders.";
+      await showErrorAlert("Cannot Delete Product", errorMsg);
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
