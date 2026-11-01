@@ -94,7 +94,7 @@ export default function DataGrid<T = unknown>({
   }, [search, onSearch]);
 
   return (
-    <div className="max-w-7xl mx-auto p-4">
+    <div className="w-full">
       {/* Top Bar */}
       <div className="mb-4 flex items-center justify-between flex-wrap gap-3">
         

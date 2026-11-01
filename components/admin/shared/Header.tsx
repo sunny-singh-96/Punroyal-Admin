@@ -493,15 +493,7 @@ export default function Header({ setIsOpen }: { setIsOpen: (v: boolean) => void 
           <span className="hidden md:inline">Clear Cache</span>
         </button>
 
-        {/* Notifications */}
-        <button
-          onClick={() => router.push('/orders')}
-          className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-2xl relative transition-all group"
-          title="View Orders / Notifications"
-        >
-          <Bell size={20} className="group-hover:rotate-12 transition-transform" />
-          <span className="absolute top-3 right-3 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white animate-pulse"></span>
-        </button>
+
 
         <div className="h-10 w-[1px] bg-slate-100 mx-1 sm:mx-2 hidden sm:block"></div>
 

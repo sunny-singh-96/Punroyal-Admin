@@ -1,4 +1,5 @@
 "use client";
+import ColorPickerSelect from "./ColorPickerSelect";
 import {
   useState,
   useEffect,
@@ -632,42 +633,20 @@ export default function ColorVariantsSection({
           {/* Group Header */}
           <div className="bg-slate-900 p-4 md:p-6 flex justify-between items-center">
             <div className="flex items-center gap-3">
-              <select
+              <ColorPickerSelect
+                colors={colors}
+                selectedColorId={group.color_id}
                 disabled={loading}
-                value={group.color_id}
-                onChange={(e) => {
+                unavailableColorIds={colorGroups
+                  .filter((_, i) => i !== gIdx)
+                  .map((g) => g.color_id)
+                  .filter(Boolean)}
+                onSelect={(newColorId) => {
                   const updated = [...colorGroups];
-                  updated[gIdx].color_id = e.target.value;
+                  updated[gIdx].color_id = newColorId;
                   setColorGroups(updated);
                 }}
-                className="bg-slate-800 text-white px-4 py-2.5 rounded-xl border border-slate-700 hover:border-slate-500 focus:ring-2 focus:ring-indigo-500 outline-none text-xs font-semibold cursor-pointer transition shadow-sm"
-              >
-                <option value="">Select Color</option>
-                {colors
-                  .filter((c: any) => c.status !== false && c.status !== "false" && c.status !== 0 && c.status !== "0")
-                  .filter(
-                    (c) =>
-                      !colorGroups.some(
-                        (g, i) => i !== gIdx && g.color_id === c.id,
-                      ),
-                  )
-                  .map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-              </select>
-              {group.color_id &&
-                (() => {
-                  const color = colors.find((c) => c.id === group.color_id);
-                  return color?.hex ? (
-                    <span
-                      title={color.name}
-                      className="inline-block w-6 h-6 rounded-full border-2 border-white shadow"
-                      style={{ backgroundColor: color.hex }}
-                    />
-                  ) : null;
-                })()}
+              />
               {groupErrors[gIdx]?.color_id && (
                 <span className="text-red-400 text-xs ml-2">
                   {groupErrors[gIdx].color_id}

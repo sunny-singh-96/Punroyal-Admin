@@ -21,15 +21,7 @@ export default function TopBar() {
       {/* 2. Actions Area */}
       <div className="flex items-center gap-6">
         
-        {/* Notifications */}
-        <button className="relative p-2.5 text-slate-500 hover:bg-slate-50 rounded-xl transition-all">
-          <Bell size={20} />
-          {notifications > 0 && (
-            <span className="absolute top-2 right-2 w-4 h-4 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center ring-2 ring-white">
-              {notifications}
-            </span>
-          )}
-        </button>
+        
 
         <div className="h-8 w-[1px] bg-slate-100" />
 

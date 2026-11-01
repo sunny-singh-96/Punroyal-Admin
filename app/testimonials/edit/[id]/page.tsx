@@ -309,14 +309,23 @@ export default function EditTestimonialPage() {
                   <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block mb-1.5">
                     Testimonial / Review Content <span className="text-rose-500">*</span>
                   </label>
-                  <textarea
-                    required
-                    rows={4}
-                    placeholder="Write client testimonial text here..."
-                    value={formData.content}
-                    onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-purple-500 focus:outline-hidden transition text-sm leading-relaxed"
-                  />
+                  <div className="relative">
+                    <textarea
+                      required
+                      rows={4}
+                      maxLength={200}
+                      placeholder="Write client testimonial text here (max 200 characters to fit card perfectly)..."
+                      value={formData.content}
+                      onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-purple-500 focus:outline-hidden transition text-sm leading-relaxed"
+                    />
+                    <div className="flex justify-between items-center text-[11px] text-slate-400 mt-1 px-1">
+                      <span>Maximum length suitable for testimonial card box</span>
+                      <span className={formData.content.length >= 190 ? "text-amber-600 font-bold" : "text-slate-500"}>
+                        {formData.content.length} / 200 characters
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
                 <div>

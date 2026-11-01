@@ -856,10 +856,10 @@ export default function ProductsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
+    <div className="space-y-5">
       {/* ── Header ── */}
-      <div className="px-6 md:px-8 pt-8 pb-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 max-w-[1600px] mx-auto">
+      <div className="pb-1">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-black text-slate-900">Products</h1>
             <p className="text-sm text-slate-500 mt-1">
@@ -878,11 +878,10 @@ export default function ProductsPage() {
       </div>
 
       {/* ── Body ── */}
-      <div className="px-6 md:px-8 pb-8 max-w-[1600px] mx-auto flex gap-6 items-start">
+      <div className="flex gap-6 items-start">
         {/* ── Sidebar ── */}
-        <aside
-          className={`shrink-0 transition-all duration-300 overflow-hidden ${showFilters ? "w-64" : "w-0"}`}
-        >
+        {showFilters && (
+        <aside className="w-64 shrink-0 transition-all duration-300 animate-in fade-in slide-in-from-left-2 duration-200">
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 sticky top-6 w-64">
             <div className="flex items-center justify-between mb-5">
               <span className="font-black text-slate-800 text-sm">Filters</span>
@@ -1089,6 +1088,7 @@ export default function ProductsPage() {
             </div>
           </div>
         </aside>
+        )}
 
         {/* ── Main Content ── */}
         <div className="flex-1 min-w-0 space-y-4">
