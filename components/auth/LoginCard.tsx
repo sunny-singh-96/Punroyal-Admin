@@ -526,3 +526,4 @@ export default function LoginCard({ initialRole = "admin" }: LoginCardProps) {
     </Suspense>
   );
 }
+
