@@ -28,6 +28,8 @@ import { influencerAPI } from "@/lib/integration/influencer";
 import { LoginErrors } from "@/types/types";
 
 type UserRole = "admin" | "influencer";
+const ADMIN_EMAIL_PLACEHOLDER = "admin@gmail.com";
+const DEMO_USER_EMAIL = "user@gmail.com";
 
 interface LoginCardProps {
   initialRole?: UserRole;
@@ -74,6 +76,15 @@ function LoginCardContent({ initialRole = "admin" }: LoginCardProps) {
       }
     }
   }, [redirectTo, router, initialRole, selectedRole]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const storedDemoUser = window.localStorage.getItem("punroyal_demo_user_email");
+      if (!storedDemoUser) {
+        window.localStorage.setItem("punroyal_demo_user_email", DEMO_USER_EMAIL);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (selectedRole === "admin") {
@@ -342,7 +353,7 @@ function LoginCardContent({ initialRole = "admin" }: LoginCardProps) {
                       ? "border-red-400 bg-red-50/40"
                       : "border-slate-200 focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10"
                   }`}
-                  placeholder="punroyal or admin@punroyal.com"
+                  placeholder={ADMIN_EMAIL_PLACEHOLDER}
                   autoComplete="username"
                 />
               </div>
