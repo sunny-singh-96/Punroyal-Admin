@@ -23,7 +23,13 @@ import {
   Tag,
   Percent,
   Receipt,
-  RotateCw
+  RotateCw,
+  Eye,
+  EyeOff,
+  Send,
+  Server,
+  ShieldCheck,
+  Lock
 } from "lucide-react";
 import PageHeader from "@/components/admin/head/head";
 import { globalSettingsAPI } from "@/lib/integration/globalSettings";
@@ -47,6 +53,29 @@ interface CouponOption {
   _id: string;
   couponName: string;
 }
+
+
+export interface SmtpSettings {
+  host: string;
+  port: number;
+  secure: boolean;
+  user: string;
+  pass: string;
+  from_email: string;
+  from_name: string;
+  is_active: boolean;
+}
+
+const DEFAULT_SMTP: SmtpSettings = {
+  host: "",
+  port: 587,
+  secure: false,
+  user: "",
+  pass: "",
+  from_email: "",
+  from_name: "PUNROYAL",
+  is_active: true,
+};
 
 export interface GstRule {
   product_type: "unstitched" | "readymade";
@@ -123,6 +152,13 @@ export default function SettingsPage() {
   const [couponHighlight, setCouponHighlight] = useState("");
   const [couponOptions, setCouponOptions] = useState<CouponOption[]>([]);
   const [gstRules, setGstRules] = useState<GstRule[]>(DEFAULT_GST_RULES);
+  // SMTP Settings
+  const [smtp, setSmtp] = useState<SmtpSettings>(DEFAULT_SMTP);
+  const [showSmtpPassword, setShowSmtpPassword] = useState(false);
+  const [testEmail, setTestEmail] = useState("");
+  const [testingSmtp, setTestingSmtp] = useState(false);
+  const [smtpTestResult, setSmtpTestResult] = useState<{ success: boolean; message: string } | null>(null);
+
 
   // File uploads
   const [headerLogoFile, setHeaderLogoFile] = useState<File | null>(null);
@@ -192,6 +228,21 @@ export default function SettingsPage() {
         setCouponHighlight("");
       }
 
+      if (data.smtp) {
+        setSmtp({
+          host: data.smtp.host || "",
+          port: Number(data.smtp.port) || 587,
+          secure: Boolean(data.smtp.secure),
+          user: data.smtp.user || "",
+          pass: data.smtp.pass || "",
+          from_email: data.smtp.from_email || "",
+          from_name: data.smtp.from_name || "PUNROYAL",
+          is_active: data.smtp.is_active !== undefined ? Boolean(data.smtp.is_active) : true,
+        });
+        if (data.smtp.user) {
+          setTestEmail((prev) => prev || data.smtp.user);
+        }
+      }
       if (Array.isArray(data.gst_rules) && data.gst_rules.length > 0) {
         setGstRules((prev) =>
           prev.map((fixed) => {
@@ -337,6 +388,48 @@ export default function SettingsPage() {
     setTopbarMessages(updated);
   };
 
+  const handleTestSmtp = async () => {
+    if (!smtp.host.trim() || !smtp.user.trim() || !smtp.pass.trim()) {
+      toast.error("Please fill SMTP Host, User/Email, and Password first");
+      return;
+    }
+    const target = testEmail.trim() || smtp.user.trim();
+    if (!target) {
+      toast.error("Please enter an email address to send the test email to");
+      return;
+    }
+    try {
+      setTestingSmtp(true);
+      setSmtpTestResult(null);
+      const res: any = await globalSettingsAPI.testSmtp({
+        host: smtp.host,
+        port: smtp.port,
+        secure: smtp.secure,
+        user: smtp.user,
+        pass: smtp.pass,
+        from_email: smtp.from_email || smtp.user,
+        from_name: smtp.from_name || "PUNROYAL",
+        test_email: target,
+      });
+
+      if (res?.code === "OK" || res?.success || res?.status === 200) {
+        const msg = res?.data?.message || res?.message || `Test email delivered to ${target}!`;
+        toast.success(msg);
+        setSmtpTestResult({ success: true, message: msg });
+      } else {
+        const errMsg = res?.message || "SMTP test failed";
+        toast.error(errMsg);
+        setSmtpTestResult({ success: false, message: errMsg });
+      }
+    } catch (err: any) {
+      const errMsg = err?.response?.data?.message || err?.message || "Failed to connect to SMTP server";
+      toast.error(errMsg);
+      setSmtpTestResult({ success: false, message: errMsg });
+    } finally {
+      setTestingSmtp(false);
+    }
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -364,6 +457,7 @@ export default function SettingsPage() {
       formData.append("topbar_messages", JSON.stringify(topbarMessages));
       formData.append("coupon_highlight", couponHighlight || "");
       formData.append("gst_rules", JSON.stringify(gstRules));
+      formData.append("smtp", JSON.stringify(smtp));
 
       const res: any = await globalSettingsAPI.update(formData);
       if (res?.code === "OK" || res?.success || res?.status === 200) {
@@ -402,6 +496,12 @@ export default function SettingsPage() {
       {/* Quick Navigation Anchor Bar */}
       <div className="flex flex-wrap items-center gap-2.5 p-3 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
         <span className="text-xs font-bold text-slate-400 mr-1">Quick Jump:</span>
+        <a
+          href="#smtp-settings"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl transition border border-blue-200 shadow-xs"
+        >
+          <Mail size={13} className="text-blue-600" /> SMTP &amp; Email Server
+        </a>
         <a
           href="#gst-settings"
           className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-xl transition border border-amber-200 shadow-xs"
@@ -639,6 +739,233 @@ export default function SettingsPage() {
                 />
               </div>
 
+            </div>
+          </div>
+        </div>
+
+
+        {/* SMTP & EMAIL SERVER CONFIGURATION SECTION */}
+        <div id="smtp-settings" className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden scroll-mt-6">
+          <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
+                <Mail size={20} />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-slate-800">SMTP &amp; Email Server Details</h2>
+                <p className="text-xs text-slate-500">
+                  Configure outgoing mail server for OTPs, customer notifications, and store inquiries
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="flex items-center gap-2 cursor-pointer bg-white px-3 py-1.5 rounded-full border border-slate-200 shadow-xs">
+                <span className="text-xs font-bold text-slate-700">Custom SMTP:</span>
+                <input
+                  type="checkbox"
+                  checked={smtp.is_active}
+                  onChange={(e) => setSmtp((prev) => ({ ...prev, is_active: e.target.checked }))}
+                  className="w-4 h-4 text-blue-600 rounded cursor-pointer"
+                />
+                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${smtp.is_active ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-500 border border-slate-200'}`}>
+                  {smtp.is_active ? 'Enabled' : 'Disabled'}
+                </span>
+              </label>
+            </div>
+          </div>
+
+          <div className="p-6 sm:p-8 space-y-6">
+            <div className="p-4 rounded-2xl bg-blue-50/60 border border-blue-200/70 text-xs text-blue-900 flex items-start gap-3">
+              <Server size={18} className="text-blue-600 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="font-bold">Outgoing Email Server Settings:</p>
+                <p className="text-blue-800 leading-relaxed">
+                  Enter your mail server credentials below. Common providers: <strong>Gmail</strong> (smtp.gmail.com, Port 587 with Google App Password), <strong>Hostinger</strong> (smtp.hostinger.com, Port 465 SSL), <strong>Brevo/Sendinblue</strong> (smtp-relay.brevo.com, Port 587).
+                  Always use the &quot;Send Test Email&quot; tool below to verify delivery.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {/* SMTP Host */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                  <Server size={13} className="text-slate-400" /> SMTP Host / Server
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. smtp.gmail.com or smtp.hostinger.com"
+                  value={smtp.host}
+                  onChange={(e) => setSmtp((prev) => ({ ...prev, host: e.target.value }))}
+                  className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+                />
+                <span className="text-[11px] text-slate-400">Mail server hostname or IP address</span>
+              </div>
+
+              {/* SMTP Port */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                  Port Number
+                </label>
+                <input
+                  type="number"
+                  placeholder="587"
+                  value={smtp.port}
+                  onChange={(e) => {
+                    const val = Number(e.target.value) || 587;
+                    setSmtp((prev) => ({
+                      ...prev,
+                      port: val,
+                      secure: val === 465,
+                    }));
+                  }}
+                  className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+                />
+                <span className="text-[11px] text-slate-400">Usually 587 (TLS/STARTTLS) or 465 (SSL)</span>
+              </div>
+
+              {/* Security / SSL */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                  <ShieldCheck size={13} className="text-slate-400" /> Encryption Protocol
+                </label>
+                <select
+                  value={smtp.secure ? "ssl" : "tls"}
+                  onChange={(e) => {
+                    const isSSL = e.target.value === "ssl";
+                    setSmtp((prev) => ({
+                      ...prev,
+                      secure: isSSL,
+                      port: isSSL ? 465 : (prev.port === 465 ? 587 : prev.port),
+                    }));
+                  }}
+                  className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+                >
+                  <option value="tls">TLS / STARTTLS (Port 587 recommended)</option>
+                  <option value="ssl">SSL (Port 465)</option>
+                </select>
+                <span className="text-[11px] text-slate-400">Matches your mail provider&apos;s requirements</span>
+              </div>
+
+              {/* SMTP Username / Email */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                  <Mail size={13} className="text-slate-400" /> SMTP Username / Email
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. your-email@domain.com"
+                  value={smtp.user}
+                  onChange={(e) => setSmtp((prev) => ({ ...prev, user: e.target.value }))}
+                  className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+                />
+                <span className="text-[11px] text-slate-400">Login username or full email address</span>
+              </div>
+
+              {/* SMTP Password */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5"><Lock size={13} className="text-slate-400" /> Password / App Password</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowSmtpPassword((s) => !s)}
+                    className="text-[11px] text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1 cursor-pointer"
+                  >
+                    {showSmtpPassword ? <EyeOff size={12} /> : <Eye size={12} />}
+                    {showSmtpPassword ? "Hide" : "Show"}
+                  </button>
+                </label>
+                <div className="relative">
+                  <input
+                    type={showSmtpPassword ? "text" : "password"}
+                    placeholder="Enter SMTP password or App password"
+                    value={smtp.pass}
+                    onChange={(e) => setSmtp((prev) => ({ ...prev, pass: e.target.value }))}
+                    className="w-full p-3 pr-10 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition font-mono"
+                  />
+                </div>
+                <span className="text-[11px] text-slate-400">For Gmail, generate an App Password in Google Security</span>
+              </div>
+
+              {/* Sender Name */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                  From Name (Display Name)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. PUNROYAL"
+                  value={smtp.from_name}
+                  onChange={(e) => setSmtp((prev) => ({ ...prev, from_name: e.target.value }))}
+                  className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+                />
+                <span className="text-[11px] text-slate-400">Sender name displayed in recipient&apos;s inbox</span>
+              </div>
+
+              {/* Sender Email */}
+              <div className="space-y-1.5 md:col-span-2 lg:col-span-3">
+                <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                  From Email (Sender Address)
+                </label>
+                <input
+                  type="email"
+                  placeholder="e.g. orders@punroyal.com (leave blank to use SMTP Username)"
+                  value={smtp.from_email}
+                  onChange={(e) => setSmtp((prev) => ({ ...prev, from_email: e.target.value }))}
+                  className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+                />
+                <span className="text-[11px] text-slate-400">Email address from which customers will receive notifications</span>
+              </div>
+            </div>
+
+            {/* TEST EMAIL TOOL BOX */}
+            <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-50 to-blue-50/30 border border-slate-200/80 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <Send size={15} className="text-blue-600" /> Test SMTP Configuration
+                  </h4>
+                  <p className="text-xs text-slate-500">
+                    Send a test email to verify your SMTP credentials immediately without waiting for an order or OTP.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-1">
+                <input
+                  type="email"
+                  placeholder="Enter email to receive test message (e.g. your-email@gmail.com)"
+                  value={testEmail}
+                  onChange={(e) => setTestEmail(e.target.value)}
+                  className="flex-1 p-2.5 text-sm bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  type="button"
+                  disabled={testingSmtp}
+                  onClick={handleTestSmtp}
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold text-sm rounded-xl transition flex items-center justify-center gap-2 shadow-sm cursor-pointer disabled:cursor-not-allowed shrink-0"
+                >
+                  {testingSmtp ? <Loader2 size={16} className="animate-spin" /> : <Send size={14} />}
+                  <span>{testingSmtp ? "Testing Connection..." : "Send Test Email"}</span>
+                </button>
+              </div>
+
+              {smtpTestResult && (
+                <div
+                  className={`p-3.5 rounded-xl text-xs font-semibold flex items-center gap-2 ${
+                    smtpTestResult.success
+                      ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                      : "bg-red-50 text-red-800 border border-red-200"
+                  }`}
+                >
+                  {smtpTestResult.success ? (
+                    <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                  ) : (
+                    <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
+                  )}
+                  <span>{smtpTestResult.message}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>

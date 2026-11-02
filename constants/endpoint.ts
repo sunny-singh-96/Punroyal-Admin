@@ -176,6 +176,7 @@ export const ENDPOINTS = {
     GLOBAL_SETTINGS: {
         GET: '/global-settings',
         ADMIN_GET: '/global-settings/admin',
-        UPDATE: '/global-settings/admin/update'
+        UPDATE: '/global-settings/admin/update',
+        TEST_SMTP: '/global-settings/admin/test-smtp'
     }
 };

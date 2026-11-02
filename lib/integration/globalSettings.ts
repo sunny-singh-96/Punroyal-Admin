@@ -17,4 +17,7 @@ export const globalSettingsAPI = {
         : undefined
     );
   },
+  testSmtp: async (data: Record<string, unknown>) => {
+    return http.post(ENDPOINTS.GLOBAL_SETTINGS.TEST_SMTP, data);
+  },
 };
