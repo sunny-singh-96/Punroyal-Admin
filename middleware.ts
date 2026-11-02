@@ -1,10 +1,20 @@
-// middleware.ts - Next.js Edge Middleware for token validation
+// middleware.ts - Next.js Edge Middleware for token validation & canonical domain enforcement
 import { NextRequest, NextResponse } from 'next/server';
 
 // Public routes that don't require authentication
 const PUBLIC_ROUTES = ['/', '/login', '/influencer/login'];
 
 export function middleware(request: NextRequest) {
+  // Enforce canonical domain: Redirect any direct IP or port 5000 access to https://admin.punroyal.com
+  const host = request.headers.get('host') || '';
+  if (host.includes('194.5.157.175') || host.includes(':5000')) {
+    const redirectUrl = new URL(request.url);
+    redirectUrl.protocol = 'https:';
+    redirectUrl.hostname = 'admin.punroyal.com';
+    redirectUrl.port = '';
+    return NextResponse.redirect(redirectUrl, 301);
+  }
+
   const pathname = request.nextUrl.pathname;
 
   // Allow static assets, images, Next internals, or files with extensions
