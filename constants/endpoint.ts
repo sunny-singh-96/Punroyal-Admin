@@ -37,7 +37,8 @@ export const ENDPOINTS = {
         DELETE_COLOR_GROUP: '/product/admin/products',
         DELETE: '/product/admin/product',
         BULK_DELETE: '/product/admin/products/bulk-delete',
-        BULK_UPDATE_STATUS: '/product/admin/products/bulk-update-status'
+        BULK_UPDATE_STATUS: '/product/admin/products/bulk-update-status',
+        TOGGLE_FEATURED: '/product/admin/products/toggle-featured'
     },
     CATEGORY: {
         LIST: '/category/admin/category/list',

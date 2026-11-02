@@ -18,6 +18,7 @@ import {
   View,
   Eye,
   Trash2,
+  Star,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { confirmDelete, showErrorAlert } from "@/lib/sweetAlert";
@@ -59,6 +60,7 @@ interface FilterState {
   materials: string[];
   models: string[];
   status: string;
+  featured: string;
   minPrice: string;
   maxPrice: string;
 }
@@ -72,6 +74,7 @@ const EMPTY_FILTERS: FilterState = {
   materials: [],
   models: [],
   status: "",
+  featured: "",
   minPrice: "",
   maxPrice: "",
 };
@@ -137,6 +140,7 @@ interface Product {
   specifications: string;
   cat_id: string;
   status: boolean | number;
+  is_featured?: boolean;
   video: string | null;
   video_link: string;
   primaryColorId: string;
@@ -278,6 +282,7 @@ export default function ProductsPage() {
   }, [searchParam]);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [togglingFeaturedId, setTogglingFeaturedId] = useState<string | null>(null);
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
@@ -297,6 +302,7 @@ export default function ProductsPage() {
       if (f.minPrice || f.maxPrice)
         p.price = `${f.minPrice || ""},${f.maxPrice || ""}`;
       if (f.status !== "") p.status = f.status === "1" ? true : false;
+      if (f.featured !== "") p.featured = f.featured === "true";
       p.isAdmin = "true";
       return p;
     },
@@ -487,6 +493,7 @@ export default function ProductsPage() {
       appliedFilters.models.length,
       appliedFilters.cat_id ? 1 : 0,
       appliedFilters.status !== "" ? 1 : 0,
+      appliedFilters.featured !== "" ? 1 : 0,
       appliedFilters.minPrice || appliedFilters.maxPrice ? 1 : 0,
     ] as number[]
   ).reduce((a, b) => a + b, 0);
@@ -500,6 +507,7 @@ export default function ProductsPage() {
       pendingFilters.models.length,
       pendingFilters.cat_id ? 1 : 0,
       pendingFilters.status !== "" ? 1 : 0,
+      pendingFilters.featured !== "" ? 1 : 0,
       pendingFilters.minPrice || pendingFilters.maxPrice ? 1 : 0,
     ] as number[]
   ).reduce((a, b) => a + b, 0);
@@ -644,6 +652,44 @@ export default function ProductsPage() {
     },
 
     {
+      key: "is_featured",
+      label: "Featured",
+      render: (row) => {
+        const isFeat = Boolean(row.is_featured);
+        const isToggling = togglingFeaturedId === row._id;
+        return (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={isToggling}
+              onClick={() => toggleSingleProductFeatured(row._id, isFeat)}
+              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors cursor-pointer disabled:opacity-50 ${
+                isFeat ? "bg-amber-500" : "bg-slate-300"
+              }`}
+              title={isFeat ? "Click to unfeature" : "Click to feature (max 8)"}
+            >
+              <span
+                className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform shadow-xs ${
+                  isFeat ? "translate-x-4.5" : "translate-x-0.5"
+                }`}
+              />
+            </button>
+            <span
+              className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
+                isFeat
+                  ? "bg-amber-50 text-amber-700 border border-amber-200"
+                  : "bg-slate-100 text-slate-500 border border-slate-200"
+              }`}
+            >
+              <Star size={10} className={isFeat ? "fill-amber-500 text-amber-500" : "text-slate-400"} />
+              {isFeat ? "Featured" : "No"}
+            </span>
+          </div>
+        );
+      },
+    },
+
+    {
       key: "status",
       label: "Status",
       render: (row) => {
@@ -747,6 +793,45 @@ export default function ProductsPage() {
       toast.error(getErrorMessage(error) || "Failed to update product status");
     } finally {
       setTogglingId(null);
+    }
+  };
+
+  // ── Single Product Featured Toggle (Max 8) ───────────────────────────────────
+  const toggleSingleProductFeatured = async (productId: string, currentStatus?: boolean) => {
+    const isCurrentlyFeatured = Boolean(currentStatus);
+    const nextStatus = !isCurrentlyFeatured;
+
+    // Quick client-side check if enabling
+    if (nextStatus) {
+      const alreadyFeaturedCount = products.filter((p) => p.is_featured && p._id !== productId).length;
+      if (alreadyFeaturedCount >= 8) {
+        toast.error("Maximum 8 products can be featured. Please unfeature another product first.");
+        return;
+      }
+    }
+
+    setTogglingFeaturedId(productId);
+    // Optimistic UI update
+    setProducts((prev) =>
+      prev.map((p) => (p._id === productId ? { ...p, is_featured: nextStatus } : p))
+    );
+
+    try {
+      const response: any = await productsAPI.toggleFeatured(productId, nextStatus);
+      const resData = response?.data || response;
+      if (resData?.status === false || resData?.code === "BAD") {
+        throw new Error(resData?.message || "Failed to update featured status");
+      }
+      toast.success(nextStatus ? "Product marked as Featured ⭐" : "Product removed from Featured");
+    } catch (err: any) {
+      // Revert optimistic update
+      setProducts((prev) =>
+        prev.map((p) => (p._id === productId ? { ...p, is_featured: isCurrentlyFeatured } : p))
+      );
+      const errMsg = err?.response?.data?.message || err?.message || "Maximum 8 products can be featured. Please unfeature another product first.";
+      toast.error(errMsg);
+    } finally {
+      setTogglingFeaturedId(null);
     }
   };
 
@@ -1035,6 +1120,35 @@ export default function ProductsPage() {
               ))}
             </FilterSection>
 
+            {/* Featured — single select */}
+            <FilterSection title="Featured">
+              {[
+                { val: "", label: "All Products" },
+                { val: "true", label: "Featured Only (⭐)" },
+              ].map(({ val, label }) => (
+                <label
+                  key={val}
+                  className="flex items-center gap-2 cursor-pointer py-1 px-1 rounded-lg hover:bg-slate-50 group"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setPendingField("featured", val)}
+                    className="shrink-0"
+                  >
+                    {pendingFilters.featured === val ? (
+                      <CheckSquare size={16} className="text-amber-600" />
+                    ) : (
+                      <Square
+                        size={16}
+                        className="text-slate-300 group-hover:text-slate-400"
+                      />
+                    )}
+                  </button>
+                  <span className="text-[13px] text-slate-700">{label}</span>
+                </label>
+              ))}
+            </FilterSection>
+
             {/* Price Range */}
             <FilterSection title="Price Range (₹)" defaultOpen={false}>
               <div className="flex gap-2 pt-1">
@@ -1107,6 +1221,37 @@ export default function ProductsPage() {
               {activeBadge > 0 && (
                 <span className="ml-1 bg-blue-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
                   {activeBadge}
+                </span>
+              )}
+            </button>
+
+            {/* ⭐ Featured Products Quick Filter Button */}
+            <button
+              type="button"
+              onClick={() => {
+                const isCurrentlyActive = appliedFilters.featured === "true";
+                const nextFeat = isCurrentlyActive ? "" : "true";
+                const nextFilters = { ...appliedFilters, featured: nextFeat };
+                setAppliedFilters(nextFilters);
+                setPendingFilters(nextFilters);
+                setCurrentPage(1);
+                fetchProducts(nextFilters, 1);
+              }}
+              className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold border transition-all shrink-0 cursor-pointer ${
+                appliedFilters.featured === "true"
+                  ? "bg-amber-500 text-white border-amber-500 shadow-sm shadow-amber-200"
+                  : "bg-white text-amber-700 border-amber-200 hover:bg-amber-50"
+              }`}
+              title="Filter to show only featured products (max 8)"
+            >
+              <Star
+                size={15}
+                className={appliedFilters.featured === "true" ? "fill-white text-white" : "fill-amber-500 text-amber-500"}
+              />
+              <span>Featured Only</span>
+              {appliedFilters.featured === "true" && (
+                <span className="text-[10px] bg-white text-amber-700 px-1.5 py-0.5 rounded-full font-black ml-1">
+                  Active
                 </span>
               )}
             </button>

@@ -47,4 +47,11 @@ export const productsAPI = {
   async bulkDelete(productIds: string[]) {
     return await http.post(ENDPOINTS.PRODUCT.BULK_DELETE, {  productIds });
   },
+
+  async toggleFeatured(productId: string, is_featured: boolean) {
+    return await http.post(ENDPOINTS.PRODUCT.TOGGLE_FEATURED, {
+      productId,
+      is_featured,
+    });
+  },
 };
