@@ -263,75 +263,27 @@ export default function DataGrid<T = unknown>({
             {Math.min(page * pageSize, totalRecords)} of {totalRecords} entries
           </div>
 
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {/* First Page (<<) */}
-            <button
-              type="button"
-              disabled={page === 1 || loading}
-              onClick={() => onPageChange(1)}
-              title="First Page"
-              className="w-9 h-9 flex items-center justify-center border border-slate-200 rounded-lg bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
-            >
-              <ChevronsLeft size={16} />
-            </button>
-
-            {/* Prev Page (<) */}
+          <div className="flex items-center gap-2">
+            {/* Left (Prev) */}
             <button
               type="button"
               disabled={page === 1 || loading}
               onClick={() => onPageChange(page - 1)}
               title="Previous Page"
-              className="w-9 h-9 flex items-center justify-center border border-slate-200 rounded-lg bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+              className="px-3.5 py-1.5 flex items-center gap-1.5 border border-slate-200 rounded-xl bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition font-semibold text-xs shadow-xs"
             >
-              <ChevronLeft size={16} />
+              <ChevronLeft size={15} /> Prev
             </button>
 
-            {/* Page numbers and ellipsis */}
-            {getPaginationItems(page, totalPages).map((item, idx) =>
-              item === "..." ? (
-                <span
-                  key={`ellipsis-${idx}`}
-                  className="w-7 h-9 flex items-center justify-center text-slate-400 font-bold select-none text-sm tracking-wider"
-                >
-                  ...
-                </span>
-              ) : (
-                <button
-                  key={`page-${item}`}
-                  type="button"
-                  disabled={loading}
-                  onClick={() => onPageChange(item)}
-                  className={`w-9 h-9 flex items-center justify-center border rounded-lg text-sm font-semibold transition ${
-                    item === page
-                      ? "bg-blue-600 text-white border-blue-600 shadow-xs"
-                      : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                  }`}
-                >
-                  {item}
-                </button>
-              )
-            )}
-
-            {/* Next Page (>) */}
+            {/* Right (Next) */}
             <button
               type="button"
               disabled={page === totalPages || totalPages === 0 || loading}
               onClick={() => onPageChange(page + 1)}
               title="Next Page"
-              className="w-9 h-9 flex items-center justify-center border border-slate-200 rounded-lg bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+              className="px-3.5 py-1.5 flex items-center gap-1.5 border border-slate-200 rounded-xl bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition font-semibold text-xs shadow-xs"
             >
-              <ChevronRight size={16} />
-            </button>
-
-            {/* Last Page (>>) */}
-            <button
-              type="button"
-              disabled={page === totalPages || totalPages === 0 || loading}
-              onClick={() => onPageChange(totalPages)}
-              title="Last Page"
-              className="w-9 h-9 flex items-center justify-center border border-slate-200 rounded-lg bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
-            >
-              <ChevronsRight size={16} />
+              Next <ChevronRight size={15} />
             </button>
           </div>
         </div>
