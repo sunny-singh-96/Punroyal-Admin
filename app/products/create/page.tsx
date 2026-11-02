@@ -690,9 +690,9 @@ export default function CreateProductPage() {
                 Influencer
               </label>
               <SearchableSelect
-                options={(common?.models || []).map((item) => ({
+                options={(common?.models || []).map((item: any) => ({
                   label: item.name,
-                  value: item._id,
+                  value: String(item._id || item.id),
                 }))}
                 value={form.model_id || form.influencer_id || ""}
                 onChange={(val) => {

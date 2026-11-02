@@ -32,6 +32,7 @@ interface ProductFormData {
   isPrimary: boolean;
   model_id: string;
   influencer_id?: string;
+  influencer_name?: string;
   commission?: number;
   commission_type?: "percentage" | "flat";
   weight: number;
@@ -270,8 +271,9 @@ export default function CreateProductPage() {
           video_link: product?.video_link || "",
           primaryColorId: product?.primaryColorId || null,
           isPrimary: product?.isPrimary || false,
-          model_id: product?.model?._id || product?.model_id || product?.influencer_id || "",
-          influencer_id: product?.model?._id || product?.model_id || product?.influencer_id || "",
+          model_id: String(product?.model?._id || product?.model?.id || product?.influencer_id?._id || product?.influencer_id || product?.model_id || (typeof product?.model === "string" ? product.model : "") || ""),
+          influencer_id: String(product?.model?._id || product?.model?.id || product?.influencer_id?._id || product?.influencer_id || product?.model_id || (typeof product?.model === "string" ? product.model : "") || ""),
+          influencer_name: product?.model?.name || product?.influencer?.name || product?.influencer_name || "",
           commission: product?.commission !== undefined && product?.commission !== null ? Number(product.commission) : 0,
           commission_type: (product?.commission_type || product?.commission_Type || "percentage") as "percentage" | "flat",
           metarial: product?.materials
@@ -772,33 +774,47 @@ export default function CreateProductPage() {
               <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider ml-1">
                 Influencer
               </label>
-              <SearchableSelect
-                options={(common?.models || []).map((item: any) => ({
+              {(() => {
+                const list = [...(common?.models || [])];
+                const currentId = String(form.model_id || form.influencer_id || "");
+                if (currentId && !list.some((m: any) => String(m._id || m.id) === currentId)) {
+                  list.push({
+                    _id: currentId,
+                    id: currentId,
+                    name: form.influencer_name || "Assigned Influencer",
+                    status: true,
+                  } as any);
+                }
+                const options = list.map((item: any) => ({
                   label: item.name,
-                  value: item._id,
-                }))}
-                value={(() => {
-                  const rawVal = String(form.model_id || form.influencer_id || "");
-                  if (!rawVal) return "";
-                  const optionsList: any[] = common?.models || [];
-                  const match = optionsList.find(
-                    (m: any) =>
-                      String(m._id) === rawVal ||
-                      (m.auth_id && String(m.auth_id) === rawVal) ||
-                      String(m.name).trim().toLowerCase() === rawVal.trim().toLowerCase()
-                  );
-                  return match ? match._id : rawVal;
-                })()}
-                onChange={(val) => {
-                  setForm((prev) => ({
-                    ...prev,
-                    model_id: val,
-                    influencer_id: val,
-                  }));
-                }}
-                placeholder="Select Influencer"
-                isClearable={true}
-              />
+                  value: String(item._id || item.id),
+                }));
+                const rawVal = String(form.model_id || form.influencer_id || "");
+                const match = options.find(
+                  (opt) =>
+                    opt.value === rawVal ||
+                    opt.label.trim().toLowerCase() === rawVal.trim().toLowerCase()
+                );
+                const selectedVal = match ? match.value : rawVal;
+
+                return (
+                  <SearchableSelect
+                    options={options}
+                    value={selectedVal}
+                    onChange={(val) => {
+                      const selectedOpt = options.find((opt) => opt.value === val);
+                      setForm((prev) => ({
+                        ...prev,
+                        model_id: val,
+                        influencer_id: val,
+                        influencer_name: selectedOpt ? selectedOpt.label : "",
+                      }));
+                    }}
+                    placeholder="Select Influencer"
+                    isClearable={true}
+                  />
+                );
+              })()}
               {hasError("model_id") && (
                 <p className="text-red-500 text-xs">
                   {handleError("model_id")}
