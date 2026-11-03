@@ -14,16 +14,12 @@ type Props = {
   onClear?: () => void;
 };
 
-import { ORDER_STATUS_CONFIG } from "./utils";
-
 export const FiltersBar = ({ onApply, onClear }: Props) => {
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("");
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
   const handleClearAll = () => {
     setSearch("");
-    setStatus("");
     setDateRange(undefined);
     onClear?.();
   };
@@ -31,7 +27,7 @@ export const FiltersBar = ({ onApply, onClear }: Props) => {
   const handleApply = () => {
     onApply({
       search,
-      status,
+      status: "",
       dateRange: dateRange || {},
     });
   };
@@ -55,20 +51,6 @@ export const FiltersBar = ({ onApply, onClear }: Props) => {
               className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
             />
           </div>
-
-          {/* Status */}
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500"
-          >
-            <option value="">All Status</option>
-            {Object.entries(ORDER_STATUS_CONFIG).map(([key, { label }]) => (
-              <option key={key} value={key}>
-                {label}
-              </option>
-            ))}
-          </select>
 
           {/* Date */}
           <DateRangeDropdown
@@ -94,14 +76,6 @@ export const FiltersBar = ({ onApply, onClear }: Props) => {
           >
             ✖ Clear
           </button>
-
-          {/* Export */}
-          {/* <button
-            // onClick={onExport} 
-            className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm hover:bg-indigo-700 shadow transition active:scale-95"
-          >
-            <Download size={16} /> Export
-          </button> */}
         </div>
       </div>
     </div>

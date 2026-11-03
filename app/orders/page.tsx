@@ -399,8 +399,8 @@ export default function AdminOrderMaster() {
       {/* Stats Cards */}
       <StatsCards items={statsCards} />
 
-      {/* Order Status Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-6 scrollbar-thin">
+      {/* Order Status Tabs - 3 Boxes Per Row (No Horizontal Scroll) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
         {ORDER_TABS.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -408,14 +408,27 @@ export default function AdminOrderMaster() {
             <button
               key={tab.id}
               onClick={() => handleTabChange(tab)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all shadow-sm ${
+              className={`flex items-center justify-between p-4 rounded-2xl text-sm font-medium transition-all shadow-sm border ${
                 isActive
-                  ? 'bg-indigo-600 text-white shadow-indigo-200'
-                  : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200'
+                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-100 ring-2 ring-indigo-500/20'
+                  : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
               }`}
             >
-              <Icon size={16} />
-              <span>{tab.label}</span>
+              <div className="flex items-center gap-3">
+                <div className={`p-2.5 rounded-xl ${isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                  <Icon size={18} />
+                </div>
+                <span className="font-semibold text-sm tracking-tight">{tab.label}</span>
+              </div>
+              {isActive ? (
+                <span className="text-[11px] bg-white/20 text-white px-2.5 py-0.5 rounded-full font-semibold">
+                  Active
+                </span>
+              ) : (
+                <span className="text-[11px] text-slate-400">
+                  Select
+                </span>
+              )}
             </button>
           );
         })}
