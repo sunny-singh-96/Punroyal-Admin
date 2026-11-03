@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import {
   Package, ArrowUpRight,
-  CheckCircle2, Clock
+  CheckCircle2, Clock, Truck, XCircle, RotateCcw
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { StatsCards } from '@/components/admin/stateCard/stateCard';
@@ -68,7 +68,20 @@ interface Order {
   items: OrderItem[];
   payment: Payment;
   htr_items: string[];
+  awb?: string;
+  metadata?: any;
 }
+
+
+const ORDER_TABS = [
+  { id: 'all', label: 'All Orders', status: '', icon: Package },
+  { id: 'created', label: 'Order Created', status: 'created,new,confirmed,pending', icon: Clock },
+  { id: 'ready_to_ship', label: 'Ready to Ship', status: 'ready_to_ship,manifest_generated,pickup_scheduled', icon: Package },
+  { id: 'shipped', label: 'Shipped / In Transit', status: 'shipped,in_transit,out_for_delivery', icon: Truck },
+  { id: 'delivered', label: 'Delivered', status: 'delivered', icon: CheckCircle2 },
+  { id: 'cancelled', label: 'Cancelled Orders', status: 'cancelled,payment_failed', icon: XCircle },
+  { id: 'returns', label: 'Return Orders', status: 'returned,return_requested,rto_initiated,rto_delivered', icon: RotateCcw },
+];
 
 export default function AdminOrderMaster() {
   const [loading, setLoading] = useState(true);
@@ -96,7 +109,14 @@ export default function AdminOrderMaster() {
       setSearchTerm(searchParam);
     }
   }, [searchParam]);
+  const [activeTab, setActiveTab] = useState('all');
   const [statusFilter, setStatusFilter] = useState('');
+
+  const handleTabChange = (tab: (typeof ORDER_TABS)[0]) => {
+    setActiveTab(tab.id);
+    setStatusFilter(tab.status);
+    setLazyParams((p) => ({ ...p, page: 1 }));
+  };
   const [dateRange, setDateRange] = useState({ from: '', to: '' });
   const [data, setData] = useState<Order[]>([]);
   const [totalRecords, setTotalRecords] = useState(0);
@@ -379,6 +399,28 @@ export default function AdminOrderMaster() {
       {/* Stats Cards */}
       <StatsCards items={statsCards} />
 
+      {/* Order Status Tabs */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-6 scrollbar-thin">
+        {ORDER_TABS.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => handleTabChange(tab)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all shadow-sm ${
+                isActive
+                  ? 'bg-indigo-600 text-white shadow-indigo-200'
+                  : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200'
+              }`}
+            >
+              <Icon size={16} />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
       {/* Filters & Actions - Fully Responsive with Clear All */}
       <FiltersBar
         onApply={(filters) => {
@@ -472,6 +514,21 @@ export default function AdminOrderMaster() {
               ),
             },
             {
+              key: "courier_awb",
+              label: "Courier / AWB",
+              render: (row: Order) => {
+                const awb = row.awb || row.metadata?.shiprocket?.awb;
+                const courier = row.metadata?.shiprocket?.courier_name;
+                if (!awb && !courier) return <span className="text-slate-400 text-xs">—</span>;
+                return (
+                  <div className="text-xs">
+                    {courier && <div className="font-semibold text-slate-700">{courier}</div>}
+                    {awb && <div className="font-mono text-indigo-600 font-medium">{awb}</div>}
+                  </div>
+                );
+              },
+            },
+            {
               key: "order_status",
               label: "Order Status",
               render: (row: Order) => {
@@ -480,12 +537,20 @@ export default function AdminOrderMaster() {
                 const bg = cfg?.bg || 'bg-slate-100';
                 const color = cfg?.color || 'text-slate-600';
                 const label = cfg?.label || row.status;
+                const srStatus = row.metadata?.shiprocket?.last_webhook_status;
                 return (
-                  <span
-                    className={`px-2.5 py-1 text-xs font-semibold rounded-full capitalize ${bg} ${color}`}
-                  >
-                    {label}
-                  </span>
+                  <div className="flex flex-col gap-1">
+                    <span
+                      className={`px-2.5 py-1 text-xs font-semibold rounded-full capitalize w-fit ${bg} ${color}`}
+                    >
+                      {label}
+                    </span>
+                    {srStatus && String(srStatus).toLowerCase() !== statusKey && (
+                      <span className="text-[10px] text-slate-500 font-mono tracking-tight">
+                        SR: {srStatus}
+                      </span>
+                    )}
+                  </div>
                 );
               },
             },
