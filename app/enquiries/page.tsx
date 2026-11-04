@@ -159,9 +159,20 @@ export default function EnquiriesPage() {
     if (!selectedEnquiry) return;
     try {
       setUpdatingStatus(true);
-      const res = await enquiryAPI.update(selectedEnquiry._id, { status: newStatus });
+      const payload: { status: typeof newStatus; notes?: string; resolutionMessage?: string } = { status: newStatus };
+      if (adminNotes && adminNotes.trim()) {
+        payload.notes = adminNotes.trim();
+      }
+      if (newStatus === 'resolved') {
+        payload.resolutionMessage = adminNotes.trim() || 'Your enquiry has been carefully reviewed and resolved by our customer care team.';
+      }
+      const res = await enquiryAPI.update(selectedEnquiry._id, payload);
       if (res?.code === "OK") {
-        toast.success(`Status updated to ${STATUS_CONFIG[newStatus]?.label || newStatus}`);
+        if (newStatus === 'resolved') {
+          toast.success("Enquiry resolved & confirmation email sent to customer!");
+        } else {
+          toast.success(`Status updated to ${STATUS_CONFIG[newStatus]?.label || newStatus}`);
+        }
         const updatedItem = { ...selectedEnquiry, status: newStatus };
         setSelectedEnquiry(updatedItem);
         setData((prev) =>

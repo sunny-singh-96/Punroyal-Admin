@@ -21,6 +21,7 @@ import {
   Tag,
   Star,
   UserCheck,
+  Users,
 } from "lucide-react";
 import { orderAPI } from "@/lib/integration/orders";
 import { enquiryAPI } from "@/lib/integration/enquiry";
@@ -78,6 +79,11 @@ const menuItems = [
     icon: ShoppingCart,
     path: "/orders",
     badgeKey: "pending" as const,
+  },
+  {
+    name: "Customers",
+    icon: Users,
+    path: "/customers",
   },
   {
     name: "Enquiries",

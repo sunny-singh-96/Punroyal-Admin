@@ -71,7 +71,7 @@ export const enquiryAPI = {
     return http.get(`${ENDPOINTS.ENQUIRY.GET}/${id}`);
   },
 
-  async update(id: string, data: { status?: string; notes?: string }) {
+  async update(id: string, data: { status?: string; notes?: string; resolutionMessage?: string }) {
     return http.patch(`${ENDPOINTS.ENQUIRY.UPDATE}/${id}`, data);
   },
 
