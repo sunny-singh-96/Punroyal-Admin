@@ -299,7 +299,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
           </div>
 
           {/* NAVIGATION */}
-          <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-2">
+          <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-2 select-none [scrollbar-width:thin] [scrollbar-color:#cbd5e1_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
             {menuItems.map((item) => {
               const isOpen = openMenus.includes(item.name);
 
@@ -397,7 +397,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                   {item.children && (
                     <div
                       className={`ml-6 overflow-hidden transition-all duration-300 ${
-                        isOpen ? "max-h-40 mt-1" : "max-h-0"
+                        isOpen ? "max-h-[600px] mt-1" : "max-h-0"
                       }`}
                     >
                       {item.children.map((child) => {
