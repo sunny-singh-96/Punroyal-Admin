@@ -10,6 +10,7 @@ export interface EnquiryItem {
   services: string[];
   status: 'pending' | 'in_progress' | 'resolved' | 'closed';
   notes?: string;
+  resolutionMessage?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -71,7 +72,7 @@ export const enquiryAPI = {
     return http.get(`${ENDPOINTS.ENQUIRY.GET}/${id}`);
   },
 
-  async update(id: string, data: { status?: string; notes?: string; resolutionMessage?: string }) {
+  async update(id: string, data: { status?: string; notes?: string; resolutionMessage?: string; sendEmail?: boolean }) {
     return http.patch(`${ENDPOINTS.ENQUIRY.UPDATE}/${id}`, data);
   },
 

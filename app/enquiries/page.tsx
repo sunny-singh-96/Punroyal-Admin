@@ -18,6 +18,9 @@ import {
   FileText,
   Save,
   X,
+  Send,
+  Check,
+  Loader2,
 } from "lucide-react";
 import { format } from "date-fns";
 import toast from "react-hot-toast";
@@ -89,6 +92,9 @@ export default function EnquiriesPage() {
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [adminNotes, setAdminNotes] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
+  const [selectedStatusAction, setSelectedStatusAction] = useState<'pending' | 'in_progress' | 'resolved' | 'closed'>('resolved');
+  const [customerReplyMessage, setCustomerReplyMessage] = useState("");
+  const [sendCustomerEmail, setSendCustomerEmail] = useState(true);
 
   // Fetch stats
   const fetchStats = useCallback(async () => {
@@ -151,29 +157,42 @@ export default function EnquiriesPage() {
   const handleView = (item: EnquiryItem) => {
     setSelectedEnquiry(item);
     setAdminNotes(item.notes || "");
+    setSelectedStatusAction((item.status as any) || 'resolved');
+    setCustomerReplyMessage((item as any).resolutionMessage || "");
+    setSendCustomerEmail(true);
     setIsModalOpen(true);
   };
 
-  // Update Status
-  const handleUpdateStatus = async (newStatus: 'pending' | 'in_progress' | 'resolved' | 'closed') => {
+  // Update Status and send custom message to customer
+  const handleSubmitAction = async () => {
     if (!selectedEnquiry) return;
     try {
       setUpdatingStatus(true);
-      const payload: { status: typeof newStatus; notes?: string; resolutionMessage?: string } = { status: newStatus };
-      if (adminNotes && adminNotes.trim()) {
-        payload.notes = adminNotes.trim();
-      }
-      if (newStatus === 'resolved') {
-        payload.resolutionMessage = adminNotes.trim() || 'Your enquiry has been carefully reviewed and resolved by our customer care team.';
-      }
+      const payload: {
+        status: 'pending' | 'in_progress' | 'resolved' | 'closed';
+        notes?: string;
+        resolutionMessage?: string;
+        sendEmail?: boolean;
+      } = {
+        status: selectedStatusAction,
+        notes: adminNotes.trim(),
+        resolutionMessage: customerReplyMessage.trim(),
+        sendEmail: sendCustomerEmail,
+      };
+
       const res = await enquiryAPI.update(selectedEnquiry._id, payload);
       if (res?.code === "OK") {
-        if (newStatus === 'resolved') {
-          toast.success("Enquiry resolved & confirmation email sent to customer!");
+        if (sendCustomerEmail && selectedEnquiry.email) {
+          toast.success(`Enquiry saved as ${STATUS_CONFIG[selectedStatusAction]?.label} and email sent to ${selectedEnquiry.email}!`);
         } else {
-          toast.success(`Status updated to ${STATUS_CONFIG[newStatus]?.label || newStatus}`);
+          toast.success(`Enquiry status updated to ${STATUS_CONFIG[selectedStatusAction]?.label}!`);
         }
-        const updatedItem = { ...selectedEnquiry, status: newStatus };
+        const updatedItem = {
+          ...selectedEnquiry,
+          status: selectedStatusAction,
+          notes: adminNotes.trim(),
+          ...(customerReplyMessage.trim() ? { resolutionMessage: customerReplyMessage.trim() } : {}),
+        };
         setSelectedEnquiry(updatedItem);
         setData((prev) =>
           prev.map((e) => (e._id === selectedEnquiry._id ? updatedItem : e))
@@ -573,69 +592,150 @@ export default function EnquiriesPage() {
                 </div>
               </div>
 
-              {/* Status Updater */}
-              <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
-                  Update Status
-                </h4>
-                <div className="flex flex-wrap gap-2">
-                  {(
-                    [
-                      { key: "pending", label: "Pending", bg: "hover:bg-amber-100 text-amber-800" },
-                      {
-                        key: "in_progress",
-                        label: "In Progress",
-                        bg: "hover:bg-blue-100 text-blue-800",
-                      },
-                      {
-                        key: "resolved",
-                        label: "Resolved",
-                        bg: "hover:bg-emerald-100 text-emerald-800",
-                      },
-                      { key: "closed", label: "Closed", bg: "hover:bg-slate-200 text-slate-800" },
-                    ] as const
-                  ).map((st) => (
-                    <button
-                      key={st.key}
-                      disabled={updatingStatus || selectedEnquiry.status === st.key}
-                      onClick={() => handleUpdateStatus(st.key)}
-                      className={`px-3 py-1.5 text-xs font-semibold rounded-xl border transition ${
-                        selectedEnquiry.status === st.key
-                          ? "bg-slate-900 text-white border-slate-900"
-                          : `bg-white border-slate-200 ${st.bg}`
-                      }`}
-                    >
-                      {st.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Admin Internal Notes */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                    Internal Admin Notes
+              {/* Status Action & Customer Email Message Section */}
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 space-y-4 shadow-xs">
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-2.5 flex items-center justify-between">
+                    <span>1. Select Status Action</span>
+                    <span className="text-[11px] font-normal text-slate-500">Pick action to apply</span>
                   </h4>
-                  <span className="text-[11px] text-slate-400">Only visible to administrators</span>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {(
+                      [
+                        { key: "pending", label: "Pending", bg: "hover:bg-amber-50 text-amber-800 border-amber-200" },
+                        {
+                          key: "in_progress",
+                          label: "In Progress",
+                          bg: "hover:bg-blue-50 text-blue-800 border-blue-200",
+                        },
+                        {
+                          key: "resolved",
+                          label: "Resolved",
+                          bg: "hover:bg-emerald-50 text-emerald-800 border-emerald-300",
+                        },
+                        { key: "closed", label: "Closed", bg: "hover:bg-slate-100 text-slate-800 border-slate-200" },
+                      ] as const
+                    ).map((st) => {
+                      const isSelected = selectedStatusAction === st.key;
+                      return (
+                        <button
+                          key={st.key}
+                          type="button"
+                          onClick={() => {
+                            setSelectedStatusAction(st.key);
+                            if (st.key === 'resolved' && !customerReplyMessage) {
+                              setCustomerReplyMessage("Your enquiry has been carefully reviewed and resolved by our customer care team. Thank you for choosing Punroyal!");
+                            }
+                          }}
+                          className={`px-3 py-2 text-xs font-bold rounded-xl border text-center transition flex items-center justify-center gap-1.5 ${
+                            isSelected
+                              ? "bg-slate-900 text-white border-slate-900 shadow-sm"
+                              : `bg-white ${st.bg}`
+                          }`}
+                        >
+                          {isSelected && <Check size={13} className="text-amber-400" />}
+                          <span>{st.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-                <textarea
-                  rows={3}
-                  value={adminNotes}
-                  onChange={(e) => setAdminNotes(e.target.value)}
-                  placeholder="Record call logs, price quotations, or follow-up notes here..."
-                  className="w-full text-sm border border-slate-200 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <div className="mt-2 flex justify-end">
-                  <button
-                    onClick={handleSaveNotes}
-                    disabled={savingNotes}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-semibold rounded-xl transition shadow-xs"
-                  >
-                    <Save size={13} />
-                    <span>{savingNotes ? "Saving..." : "Save Notes"}</span>
-                  </button>
+
+                {/* Customer Response Message (Sent to Customer via Email) */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                      <Mail size={13} className="text-indigo-600" />
+                      <span>2. Message to Customer (Emailed Directly)</span>
+                    </label>
+                    <label className="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={sendCustomerEmail}
+                        onChange={(e) => setSendCustomerEmail(e.target.checked)}
+                        className="rounded text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5"
+                      />
+                      <span>Email to: <strong>{selectedEnquiry.email}</strong></span>
+                    </label>
+                  </div>
+                  <textarea
+                    rows={4}
+                    value={customerReplyMessage}
+                    onChange={(e) => setCustomerReplyMessage(e.target.value)}
+                    placeholder="Type the message that will be sent to the customer's email..."
+                    className="w-full text-sm border border-slate-300 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white shadow-inner leading-relaxed"
+                  />
+                  <div className="flex flex-wrap items-center gap-1.5 mt-2 text-[11px] text-slate-500">
+                    <span className="font-semibold text-slate-600">Quick templates:</span>
+                    <button
+                      type="button"
+                      onClick={() => setCustomerReplyMessage("Your enquiry has been carefully reviewed and resolved by our customer care team. Thank you for choosing Punroyal!")}
+                      className="px-2 py-0.5 rounded bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 transition"
+                    >
+                      Resolved standard
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCustomerReplyMessage("We have assigned a personal stylist to assist you. Our stylist will reach out on your phone/WhatsApp shortly.")}
+                      className="px-2 py-0.5 rounded bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 transition"
+                    >
+                      Stylist follow-up
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCustomerReplyMessage("We have noted your custom sizing request. Our team is preparing your custom order measurements.")}
+                      className="px-2 py-0.5 rounded bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 transition"
+                    >
+                      Custom sizing
+                    </button>
+                  </div>
                 </div>
+
+                {/* Internal Admin Notes */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                      Internal Admin Notes (Staff only, not emailed to customer)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleSaveNotes}
+                      disabled={savingNotes}
+                      className="text-[11px] font-semibold text-blue-600 hover:underline inline-flex items-center gap-1"
+                    >
+                      <Save size={11} /> {savingNotes ? "Saving..." : "Save internal notes only"}
+                    </button>
+                  </div>
+                  <textarea
+                    rows={2}
+                    value={adminNotes}
+                    onChange={(e) => setAdminNotes(e.target.value)}
+                    placeholder="Record internal remarks, call log, or team notes..."
+                    className="w-full text-xs border border-slate-200 rounded-xl p-2.5 focus:outline-none focus:ring-1 focus:ring-slate-400 bg-white"
+                  />
+                </div>
+
+                {/* Submit Action Button */}
+                <button
+                  type="button"
+                  disabled={updatingStatus}
+                  onClick={handleSubmitAction}
+                  className="w-full py-3 px-4 rounded-xl text-xs sm:text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 transition shadow-sm flex items-center justify-center gap-2"
+                >
+                  {updatingStatus ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Updating & Sending Email...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4" />
+                      <span>
+                        Save Status as {STATUS_CONFIG[selectedStatusAction]?.label} {sendCustomerEmail ? "& Send Email Message" : ""}
+                      </span>
+                    </>
+                  )}
+                </button>
               </div>
             </div>
 
