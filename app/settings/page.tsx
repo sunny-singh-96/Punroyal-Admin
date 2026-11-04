@@ -311,11 +311,55 @@ export default function SettingsPage() {
     }
   };
 
-  const handleNewsletterImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const convertToWebP = (file: File): Promise<File> => {
+    return new Promise((resolve) => {
+      if (file.type === "image/webp") {
+        return resolve(file);
+      }
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        const canvas = document.createElement("canvas");
+        canvas.width = img.naturalWidth || img.width;
+        canvas.height = img.naturalHeight || img.height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return resolve(file);
+        ctx.drawImage(img, 0, 0);
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) return resolve(file);
+            const baseName = file.name.replace(/\.[^/.]+$/, "");
+            const webpFile = new File([blob], `${baseName}.webp`, {
+              type: "image/webp",
+              lastModified: Date.now(),
+            });
+            resolve(webpFile);
+          },
+          "image/webp",
+          0.88
+        );
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        resolve(file);
+      };
+      img.src = objectUrl;
+    });
+  };
+
+  const handleNewsletterImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setNewsletterImageFile(file);
-      setNewsletterImagePreview(URL.createObjectURL(file));
+      try {
+        const webpFile = await convertToWebP(file);
+        setNewsletterImageFile(webpFile);
+        setNewsletterImagePreview(URL.createObjectURL(webpFile));
+        toast.success(`Newsletter image converted to WebP (${(webpFile.size / 1024).toFixed(1)} KB)`);
+      } catch {
+        setNewsletterImageFile(file);
+        setNewsletterImagePreview(URL.createObjectURL(file));
+      }
     }
   };
 

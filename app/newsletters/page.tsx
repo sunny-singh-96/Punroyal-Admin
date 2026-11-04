@@ -10,7 +10,6 @@ import {
   ToggleLeft,
   ToggleRight,
   RefreshCw,
-  Download,
 } from "lucide-react";
 import { format } from "date-fns";
 import toast from "react-hot-toast";
@@ -290,13 +289,6 @@ export default function NewslettersPage() {
             >
               <RefreshCw size={14} />
               Refresh
-            </button>
-            <button
-              onClick={handleExportCSV}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition text-sm font-semibold shadow-sm"
-            >
-              <Download size={14} />
-              Export CSV
             </button>
           </div>
         }
