@@ -11,7 +11,7 @@ export interface ProductFormData {
   specifications: string;
   cat_id: string;
   status: boolean;
-  video: File[];
+  video: (File | string)[];
   video_link: string;
   model_id: string;
   influencer_id?: string;

@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import dynamic from "next/dynamic";
 import toast from "react-hot-toast";
-import { Loader2, AlertCircle, Save } from "lucide-react";
+import { Loader2, AlertCircle, Save, Film, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { categoriesAPI, productsAPI, commonAPI, occasionsAPI } from "@/lib/integration";
 import AsyncSelect, { SearchableSelect } from "@/components/admin/select/select";
@@ -151,6 +151,8 @@ export default function CreateProductPage() {
     colorVariantsValidRef.current = isValid;
   }, []);
 
+  const videoFileInputRef = useRef<HTMLInputElement>(null);
+
   const [form, setForm] = useState<ProductFormData>({
     title: "",
     display_price: 0,
@@ -253,6 +255,21 @@ export default function CreateProductPage() {
   useEffect(() => {
     if (redirectTo) router.push(redirectTo);
   }, [redirectTo, router]);
+
+  const videoPreviewUrl = useMemo(() => {
+    if (form.video && form.video.length > 0 && form.video[0] instanceof File) {
+      return URL.createObjectURL(form.video[0]);
+    }
+    return null;
+  }, [form.video]);
+
+  useEffect(() => {
+    return () => {
+      if (videoPreviewUrl) {
+        URL.revokeObjectURL(videoPreviewUrl);
+      }
+    };
+  }, [videoPreviewUrl]);
 
   const toFormData = (data: ProductFormData): FormData => {
     const formData = new FormData();
@@ -635,32 +652,63 @@ export default function CreateProductPage() {
                 {/* Label */}
                 <div className="mb-1.5 flex flex-col gap-0.5">
                   <label className="text-sm font-semibold text-slate-700">
-                    Upload files (Videos)
+                    Upload Product Video
                   </label>
                   <span className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200/80 rounded px-2 py-0.5 w-fit">
-                    Recommended: <strong>720 × 1280 px (9:16 Vertical)</strong> • Max: 5MB • Format: MP4, WebM
+                    Recommended: <strong>720 × 1280 px (9:16 Vertical)</strong> • Max: 50MB • Format: MP4, WebM
                   </span>
                 </div>
                 {/* Input */}
                 <input
+                  ref={videoFileInputRef}
                   type="file"
-                  multiple
-                  accept="video/mp4"
+                  accept="video/mp4,video/webm"
                   onChange={(e) => {
                     const selected = Array.from(e.target.files || []);
-                    //❗check each file size
+                    // check each file size (50MB)
                     const oversized = selected.find(
-                      (file) => file.size > 5 * 1024 * 1024,
+                      (file) => file.size > 50 * 1024 * 1024,
                     );
                     if (oversized) {
-                      toast.error("Video must be under 5MB");
+                      toast.error("Video must be under 50MB");
                       e.target.value = "";
                       return;
                     }
                     handleFieldChange("video", selected);
                   }}
-                  className="block w-full text-sm text-slate-600 file:mr-3 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gray-400 file:text-white hover:file:bg-gray-500 cursor-pointer border border-slate-300 rounded-lg p-2"
+                  className="block w-full text-sm text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer border border-slate-300 rounded-lg p-2 bg-slate-50 transition"
                 />
+
+                {/* Video Preview */}
+                {videoPreviewUrl && (
+                  <div className="mt-3 p-3 bg-slate-900 rounded-xl border border-slate-800 shadow-md">
+                    <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800 text-xs text-slate-300">
+                      <span className="flex items-center gap-1.5 font-medium text-amber-400">
+                        <Film className="w-4 h-4" />
+                        Video Preview ({form.video[0]?.name || "Selected Video"})
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleFieldChange("video", []);
+                          if (videoFileInputRef.current) {
+                            videoFileInputRef.current.value = "";
+                          }
+                        }}
+                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10 px-2 py-1 rounded text-xs flex items-center gap-1 transition"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Remove Video
+                      </button>
+                    </div>
+                    <video
+                      key={videoPreviewUrl}
+                      src={videoPreviewUrl}
+                      controls
+                      playsInline
+                      className="w-full max-h-56 rounded-lg bg-black object-contain mx-auto"
+                    />
+                  </div>
+                )}
               </div>
               {hasError("video") && (
                 <p className="text-red-500 text-xs">{handleError("video")}</p>
