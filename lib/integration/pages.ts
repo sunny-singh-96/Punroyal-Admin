@@ -63,3 +63,21 @@ export const privacyAPI = {
     return http.delete(ENDPOINTS.PRIVACY.DELETE_SECTION(id));
   },
 };
+
+export const cancellationAPI = {
+  get: async () => {
+    return http.get(ENDPOINTS.CANCELLATION.GET);
+  },
+  update: async (data: any) => {
+    return http.put(ENDPOINTS.CANCELLATION.UPDATE, data);
+  },
+  addSection: async (data: { title: string; content: string }) => {
+    return http.post(ENDPOINTS.CANCELLATION.ADD_SECTION, data);
+  },
+  updateSection: async (id: string, data: { title: string; content: string }) => {
+    return http.put(ENDPOINTS.CANCELLATION.UPDATE_SECTION(id), data);
+  },
+  deleteSection: async (id: string) => {
+    return http.delete(ENDPOINTS.CANCELLATION.DELETE_SECTION(id));
+  },
+};

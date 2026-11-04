@@ -158,6 +158,7 @@ const menuItems = [
       { name: "Contact Us", path: "/pages/contact-us" },
       { name: "Terms & Conditions", path: "/pages/terms" },
       { name: "Privacy Policy", path: "/pages/privacy" },
+      { name: "Cancellation Policy", path: "/pages/cancellation-policy" },
     ],
   },
     {
