@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { categoriesAPI, productsAPI, commonAPI, occasionsAPI } from "@/lib/integration";
 import AsyncSelect, { SearchableSelect } from "@/components/admin/select/select";
 import ColorVariantsSection from "@/components/admin/product/ColorVariantsSection";
+import ErrorAlertModal from "@/components/admin/product/ErrorAlertModal";
 import { getErrorMessage } from "@/lib/helpers/handlers";
 import { productValidate } from "@/validations/product";
 import { storageUtils } from "@/lib/storage";
@@ -204,6 +205,8 @@ export default function CreateProductPage() {
   }
 
   const [errors, setErrors] = useState<ProductError>({});
+  const [errorModalOpen, setErrorModalOpen] = useState(false);
+  const [errorModalList, setErrorModalList] = useState<string[]>([]);
 
   const { volumetricWeight, appliedWeight } = useMemo(() => {
     return calculateAppliedWeight(
@@ -360,23 +363,48 @@ export default function CreateProductPage() {
     return formData;
   };
 
-  // Handle Submit
+    // Handle Submit
   const handleSubmit = async () => {
-    if (!productValidate(form, setErrors)) {
-      toast.error("Please fix the errors in the form");
-      return;
+    const validationErrors: string[] = [];
+
+    // Basic form validation
+    const isValid = productValidate(form, setErrors);
+    if (!isValid) {
+      if (!form.title.trim()) validationErrors.push("Product title is required");
+      if (!form.product_type) validationErrors.push("Product type is required (Sizes or Unstitched)");
+      if (!form.price || form.price <= 0) validationErrors.push("Base Price must be greater than 0");
+      if (!form.display_price || form.display_price <= 0) validationErrors.push("Display Price (Selling price) must be greater than 0");
+      if (!form.cat_id) validationErrors.push("Product Category must be selected");
+      if (!form.description.trim()) validationErrors.push("Product Description is required");
+      if (!form.specifications.trim()) validationErrors.push("Product Specifications are required");
+      if (form.product_type === "no_sizes" && (!form.quantity || Number(form.quantity) <= 0)) {
+        validationErrors.push("Quantity must be greater than 0 for unstitched products");
+      }
+      if (form.video_link && !form.video_link.startsWith("http")) {
+        validationErrors.push("Video link must be a valid URL starting with http:// or https://");
+      }
     }
-    if (!colorVariantsValidRef.current || variantDataRef.current.images.length === 0) {
-      toast.error(
-        "Please add at least one color variant with an image and valid sizes/stock"
-      );
+
+    // Color variants & images validation
+    const variantData = variantDataRef.current;
+    if (!colorVariantsValidRef.current || variantData.images.length === 0) {
+      if (variantData.images.length === 0) {
+        validationErrors.push("Please upload at least one image for your primary color variant");
+      } else {
+        validationErrors.push("Please check color variants: ensure each variant has an image and valid size stock quantities");
+      }
+    }
+
+    if (validationErrors.length > 0) {
+      setErrorModalList(validationErrors);
+      setErrorModalOpen(true);
+      toast.error("Please fix the validation errors");
       return;
     }
 
     setLoading(true);
-    const toastId = toast.loading("Creating...");
+    const toastId = toast.loading("Creating product...");
     try {
-      const variantData = variantDataRef.current;
       const media = variantData.images.map((img) => ({
         color_id: img.color_id,
         files: img.files
@@ -411,9 +439,17 @@ export default function CreateProductPage() {
       if (response?.data?.code === "OK") {
         toast.success(`Product created successfully!`, { id: toastId });
         setRedirectTo("/products");
+      } else {
+        const msg = response?.data?.message || "Failed to create product";
+        setErrorModalList([msg]);
+        setErrorModalOpen(true);
+        toast.error(msg, { id: toastId });
       }
     } catch (error) {
-      toast.error(getErrorMessage(error), { id: toastId });
+      const errMsg = getErrorMessage(error);
+      setErrorModalList([errMsg]);
+      setErrorModalOpen(true);
+      toast.error(errMsg, { id: toastId });
     } finally {
       setLoading(false);
     }
@@ -1050,6 +1086,12 @@ export default function CreateProductPage() {
           </button>
         </div>
       </div>
+
+      <ErrorAlertModal
+        isOpen={errorModalOpen}
+        onClose={() => setErrorModalOpen(false)}
+        errors={errorModalList}
+      />
     </div>
   );
 }

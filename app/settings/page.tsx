@@ -1214,7 +1214,7 @@ export default function SettingsPage() {
                 </button>
               </div>
               <p className="text-[11px] text-slate-500">
-                Short promo lines shown in the website top bar (one or more). Remove all to hide the top bar.
+                Short promo lines shown in the website top bar (one or more). Max 55 characters limit per line ensures seamless visibility across both mobile & desktop viewports without truncation. Remove all to hide the top bar.
               </p>
 
               {topbarMessages.length === 0 ? (
@@ -1238,13 +1238,19 @@ export default function SettingsPage() {
                       <span className="text-xs font-black text-slate-400 w-6 text-center shrink-0">
                         {index + 1}
                       </span>
-                      <input
-                        type="text"
-                        value={message}
-                        onChange={(e) => updateTopbarMessage(index, e.target.value)}
-                        placeholder="e.g. Free shipping on orders above ₹999"
-                        className="flex-1 p-2.5 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500"
-                      />
+                      <div className="flex-1 relative flex items-center">
+                        <input
+                          type="text"
+                          maxLength={55}
+                          value={message}
+                          onChange={(e) => updateTopbarMessage(index, e.target.value)}
+                          placeholder="e.g. Free shipping on orders above ₹999 (Max 55 chars)"
+                          className="w-full p-2.5 pr-14 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <span className={`absolute right-2.5 text-[10px] font-bold px-1.5 py-0.5 rounded pointer-events-none ${message.length >= 50 ? 'text-amber-600 bg-amber-50 font-black' : 'text-slate-400'}`}>
+                          {message.length}/55
+                        </span>
+                      </div>
                       <div className="flex items-center gap-0.5 shrink-0">
                         <button
                           type="button"
