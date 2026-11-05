@@ -21,6 +21,7 @@ import {
   Send,
   Check,
   Loader2,
+  Lock,
 } from "lucide-react";
 import { format } from "date-fns";
 import toast from "react-hot-toast";
@@ -96,6 +97,8 @@ export default function EnquiriesPage() {
   const [customerReplyMessage, setCustomerReplyMessage] = useState("");
   const [sendCustomerEmail, setSendCustomerEmail] = useState(true);
 
+  const isLocked = selectedEnquiry?.status === 'resolved' || selectedEnquiry?.status === 'closed';
+
   // Fetch stats
   const fetchStats = useCallback(async () => {
     try {
@@ -165,7 +168,7 @@ export default function EnquiriesPage() {
 
   // Update Status and send custom message to customer
   const handleSubmitAction = async () => {
-    if (!selectedEnquiry) return;
+    if (!selectedEnquiry || isLocked) return;
     try {
       setUpdatingStatus(true);
       const payload: {
@@ -208,7 +211,7 @@ export default function EnquiriesPage() {
 
   // Save Admin Notes
   const handleSaveNotes = async () => {
-    if (!selectedEnquiry) return;
+    if (!selectedEnquiry || isLocked) return;
     try {
       setSavingNotes(true);
       const res = await enquiryAPI.update(selectedEnquiry._id, { notes: adminNotes });
@@ -594,10 +597,27 @@ export default function EnquiriesPage() {
 
               {/* Status Action & Customer Email Message Section */}
               <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 space-y-4 shadow-xs">
+                {isLocked && (
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 flex items-center gap-3 text-emerald-800 text-xs font-semibold shadow-xs">
+                    <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
+                    <div className="flex-1">
+                      <div className="font-bold text-emerald-900">Enquiry Status: {STATUS_CONFIG[selectedEnquiry.status]?.label?.toUpperCase()} (Locked)</div>
+                      <div className="text-[11px] font-normal text-emerald-700 mt-0.5">
+                        This enquiry has been finalized & resolved. Further modifications are locked.
+                      </div>
+                    </div>
+                    <span className="inline-flex items-center gap-1 text-[11px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">
+                      <Lock size={12} /> Read Only
+                    </span>
+                  </div>
+                )}
+
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-2.5 flex items-center justify-between">
                     <span>1. Select Status Action</span>
-                    <span className="text-[11px] font-normal text-slate-500">Pick action to apply</span>
+                    <span className="text-[11px] font-normal text-slate-500">
+                      {isLocked ? "Locked - Cannot change status" : "Pick action to apply"}
+                    </span>
                   </h4>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {(
@@ -621,13 +641,17 @@ export default function EnquiriesPage() {
                         <button
                           key={st.key}
                           type="button"
+                          disabled={isLocked}
                           onClick={() => {
+                            if (isLocked) return;
                             setSelectedStatusAction(st.key);
                             if (st.key === 'resolved' && !customerReplyMessage) {
                               setCustomerReplyMessage("Your enquiry has been carefully reviewed and resolved by our customer care team. Thank you for choosing Punroyal!");
                             }
                           }}
                           className={`px-3 py-2 text-xs font-bold rounded-xl border text-center transition flex items-center justify-center gap-1.5 ${
+                            isLocked ? "opacity-40 cursor-not-allowed " : ""
+                          }${
                             isSelected
                               ? "bg-slate-900 text-white border-slate-900 shadow-sm"
                               : `bg-white ${st.bg}`
@@ -648,10 +672,11 @@ export default function EnquiriesPage() {
                       <Mail size={13} className="text-indigo-600" />
                       <span>2. Message to Customer (Emailed Directly)</span>
                     </label>
-                    <label className="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer select-none">
+                    <label className={`flex items-center gap-1.5 text-xs text-slate-600 select-none ${isLocked ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
                       <input
                         type="checkbox"
                         checked={sendCustomerEmail}
+                        disabled={isLocked}
                         onChange={(e) => setSendCustomerEmail(e.target.checked)}
                         className="rounded text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5"
                       />
@@ -661,34 +686,40 @@ export default function EnquiriesPage() {
                   <textarea
                     rows={4}
                     value={customerReplyMessage}
+                    disabled={isLocked}
+                    readOnly={isLocked}
                     onChange={(e) => setCustomerReplyMessage(e.target.value)}
-                    placeholder="Type the message that will be sent to the customer's email..."
-                    className="w-full text-sm border border-slate-300 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white shadow-inner leading-relaxed"
+                    placeholder={isLocked ? "No custom message sent or enquiry is locked." : "Type the message that will be sent to the customer's email..."}
+                    className={`w-full text-sm border border-slate-300 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent leading-relaxed ${
+                      isLocked ? "bg-slate-100 text-slate-500 cursor-not-allowed" : "bg-white shadow-inner"
+                    }`}
                   />
-                  <div className="flex flex-wrap items-center gap-1.5 mt-2 text-[11px] text-slate-500">
-                    <span className="font-semibold text-slate-600">Quick templates:</span>
-                    <button
-                      type="button"
-                      onClick={() => setCustomerReplyMessage("Your enquiry has been carefully reviewed and resolved by our customer care team. Thank you for choosing Punroyal!")}
-                      className="px-2 py-0.5 rounded bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 transition"
-                    >
-                      Resolved standard
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCustomerReplyMessage("We have assigned a personal stylist to assist you. Our stylist will reach out on your phone/WhatsApp shortly.")}
-                      className="px-2 py-0.5 rounded bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 transition"
-                    >
-                      Stylist follow-up
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCustomerReplyMessage("We have noted your custom sizing request. Our team is preparing your custom order measurements.")}
-                      className="px-2 py-0.5 rounded bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 transition"
-                    >
-                      Custom sizing
-                    </button>
-                  </div>
+                  {!isLocked && (
+                    <div className="flex flex-wrap items-center gap-1.5 mt-2 text-[11px] text-slate-500">
+                      <span className="font-semibold text-slate-600">Quick templates:</span>
+                      <button
+                        type="button"
+                        onClick={() => setCustomerReplyMessage("Your enquiry has been carefully reviewed and resolved by our customer care team. Thank you for choosing Punroyal!")}
+                        className="px-2 py-0.5 rounded bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 transition"
+                      >
+                        Resolved standard
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCustomerReplyMessage("We have assigned a personal stylist to assist you. Our stylist will reach out on your phone/WhatsApp shortly.")}
+                        className="px-2 py-0.5 rounded bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 transition"
+                      >
+                        Stylist follow-up
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCustomerReplyMessage("We have noted your custom sizing request. Our team is preparing your custom order measurements.")}
+                        className="px-2 py-0.5 rounded bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 transition"
+                      >
+                        Custom sizing
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Internal Admin Notes */}
@@ -697,45 +728,58 @@ export default function EnquiriesPage() {
                     <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
                       Internal Admin Notes (Staff only, not emailed to customer)
                     </label>
-                    <button
-                      type="button"
-                      onClick={handleSaveNotes}
-                      disabled={savingNotes}
-                      className="text-[11px] font-semibold text-blue-600 hover:underline inline-flex items-center gap-1"
-                    >
-                      <Save size={11} /> {savingNotes ? "Saving..." : "Save internal notes only"}
-                    </button>
+                    {!isLocked && (
+                      <button
+                        type="button"
+                        onClick={handleSaveNotes}
+                        disabled={savingNotes}
+                        className="text-[11px] font-semibold text-blue-600 hover:underline inline-flex items-center gap-1"
+                      >
+                        <Save size={11} /> {savingNotes ? "Saving..." : "Save internal notes only"}
+                      </button>
+                    )}
                   </div>
                   <textarea
                     rows={2}
                     value={adminNotes}
+                    disabled={isLocked}
+                    readOnly={isLocked}
                     onChange={(e) => setAdminNotes(e.target.value)}
-                    placeholder="Record internal remarks, call log, or team notes..."
-                    className="w-full text-xs border border-slate-200 rounded-xl p-2.5 focus:outline-none focus:ring-1 focus:ring-slate-400 bg-white"
+                    placeholder={isLocked ? "No internal remarks recorded." : "Record internal remarks, call log, or team notes..."}
+                    className={`w-full text-xs border border-slate-200 rounded-xl p-2.5 focus:outline-none focus:ring-1 focus:ring-slate-400 ${
+                      isLocked ? "bg-slate-100 text-slate-500 cursor-not-allowed" : "bg-white"
+                    }`}
                   />
                 </div>
 
                 {/* Submit Action Button */}
-                <button
-                  type="button"
-                  disabled={updatingStatus}
-                  onClick={handleSubmitAction}
-                  className="w-full py-3 px-4 rounded-xl text-xs sm:text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 transition shadow-sm flex items-center justify-center gap-2"
-                >
-                  {updatingStatus ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Updating & Sending Email...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Send className="w-4 h-4" />
-                      <span>
-                        Save Status as {STATUS_CONFIG[selectedStatusAction]?.label} {sendCustomerEmail ? "& Send Email Message" : ""}
-                      </span>
-                    </>
-                  )}
-                </button>
+                {isLocked ? (
+                  <div className="w-full py-3 px-4 rounded-xl text-xs sm:text-sm font-bold text-slate-500 bg-slate-200 border border-slate-300 flex items-center justify-center gap-2 cursor-not-allowed select-none">
+                    <Lock size={15} />
+                    <span>Enquiry Finalized ({STATUS_CONFIG[selectedEnquiry.status]?.label}) &bull; Modifications Locked</span>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={updatingStatus}
+                    onClick={handleSubmitAction}
+                    className="w-full py-3 px-4 rounded-xl text-xs sm:text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 transition shadow-sm flex items-center justify-center gap-2"
+                  >
+                    {updatingStatus ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Updating & Sending Email...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4" />
+                        <span>
+                          Save Status as {STATUS_CONFIG[selectedStatusAction]?.label} {sendCustomerEmail ? "& Send Email Message" : ""}
+                        </span>
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
 
