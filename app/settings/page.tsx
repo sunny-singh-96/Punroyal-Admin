@@ -56,7 +56,25 @@ interface CouponOption {
 }
 
 
-export interface SmtpSettings {
+export interface SizeChartRow {
+  size: string;
+  bust: string;
+  waist: string;
+  hip: string;
+  length: string;
+}
+
+const DEFAULT_SIZE_CHART_ROWS: SizeChartRow[] = [
+  { size: "XS", bust: "34", waist: "30", hip: "36", length: "42" },
+  { size: "S", bust: "36", waist: "32", hip: "38", length: "42" },
+  { size: "M", bust: "38", waist: "34", hip: "40", length: "43" },
+  { size: "L", bust: "40", waist: "36", hip: "42", length: "43" },
+  { size: "XL", bust: "42", waist: "38", hip: "44", length: "44" },
+  { size: "XXL", bust: "44", waist: "40", hip: "46", length: "44" },
+  { size: "3XL", bust: "46", waist: "42", hip: "48", length: "45" },
+];
+
+interface SmtpSettings {
   host: string;
   port: number;
   secure: boolean;
@@ -131,6 +149,7 @@ export default function SettingsPage() {
   const [favicon, setFavicon] = useState("");
   const [newsletterImage, setNewsletterImage] = useState("");
   const [sizeChartImage, setSizeChartImage] = useState("");
+  const [sizeChartTable, setSizeChartTable] = useState<SizeChartRow[]>(DEFAULT_SIZE_CHART_ROWS);
   const [footerDescription, setFooterDescription] = useState("");
   const [footerLinks, setFooterLinks] = useState<FooterLink[]>([
     { name: "About", link: "/about" },
@@ -494,6 +513,30 @@ export default function SettingsPage() {
     }
   };
 
+  const updateSizeChartCell = (index: number, field: keyof SizeChartRow, value: string) => {
+    setSizeChartTable((prev) => {
+      const copy = [...prev];
+      copy[index] = { ...copy[index], [field]: value };
+      return copy;
+    });
+  };
+
+  const addSizeChartRow = () => {
+    setSizeChartTable((prev) => [
+      ...prev,
+      { size: "", bust: "", waist: "", hip: "", length: "" },
+    ]);
+  };
+
+  const removeSizeChartRow = (index: number) => {
+    setSizeChartTable((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const resetSizeChartTable = () => {
+    setSizeChartTable(DEFAULT_SIZE_CHART_ROWS);
+    toast.success("Reset size chart to standard measurements");
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -513,6 +556,7 @@ export default function SettingsPage() {
       formData.append("favicon", favicon);
       formData.append("newsletter_image", newsletterImage);
       formData.append("size_chart_image", sizeChartImage);
+      formData.append("size_chart_table", JSON.stringify(sizeChartTable));
       formData.append("footer_description", footerDescription);
       formData.append("footer_links", JSON.stringify(footerLinks));
       formData.append("email", email);
@@ -574,6 +618,12 @@ export default function SettingsPage() {
           className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-xl transition border border-amber-200 shadow-xs"
         >
           <Percent size={13} className="text-amber-600" /> GST Tax Rules (Configurable)
+        </a>
+        <a
+          href="#sizechart-settings"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-xl transition border border-emerald-200 shadow-xs"
+        >
+          <Ruler size={13} className="text-emerald-600" /> Size Chart Table
         </a>
         <a
           href="#branding-settings"
@@ -852,6 +902,121 @@ export default function SettingsPage() {
           </div>
         </div>
 
+
+        {/* SIZE CHART TABLE SECTION */}
+        <div id="sizechart-settings" className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden scroll-mt-6">
+          <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
+                <Ruler size={20} />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-slate-800">Standard Size Chart & Measurement Guide</h2>
+                <p className="text-xs text-slate-500">
+                  Interactive table editor for readymade products. Edit measurements directly in the table cells. Changes saved here dynamically update the Size Chart popup on all product detail pages.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={resetSizeChartTable}
+                className="px-3 py-2 text-xs font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition shadow-xs"
+              >
+                Reset Defaults
+              </button>
+              <button
+                type="button"
+                onClick={addSizeChartRow}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-sm"
+              >
+                <Plus size={14} /> Add Size Row
+              </button>
+            </div>
+          </div>
+
+          <div className="p-6 sm:p-8 space-y-6">
+            <div className="overflow-x-auto border border-slate-200 rounded-2xl">
+              <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                <thead>
+                  <tr className="bg-slate-900 text-white font-bold text-xs uppercase tracking-wider">
+                    <th className="py-3 px-4">Size Name</th>
+                    <th className="py-3 px-4">Bust / Chest (in)</th>
+                    <th className="py-3 px-4">Waist (in)</th>
+                    <th className="py-3 px-4">Hips (in)</th>
+                    <th className="py-3 px-4">Length (in)</th>
+                    <th className="py-3 px-4 text-center w-16">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {sizeChartTable.map((row, idx) => (
+                    <tr key={idx} className="hover:bg-slate-50/60 transition-colors">
+                      <td className="p-2.5">
+                        <input
+                          type="text"
+                          value={row.size}
+                          onChange={(e) => updateSizeChartCell(idx, "size", e.target.value)}
+                          placeholder="e.g. M"
+                          className="w-full p-2 text-xs font-bold bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
+                        />
+                      </td>
+                      <td className="p-2.5">
+                        <input
+                          type="text"
+                          value={row.bust}
+                          onChange={(e) => updateSizeChartCell(idx, "bust", e.target.value)}
+                          placeholder="e.g. 38"
+                          className="w-full p-2 text-xs bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
+                        />
+                      </td>
+                      <td className="p-2.5">
+                        <input
+                          type="text"
+                          value={row.waist}
+                          onChange={(e) => updateSizeChartCell(idx, "waist", e.target.value)}
+                          placeholder="e.g. 34"
+                          className="w-full p-2 text-xs bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
+                        />
+                      </td>
+                      <td className="p-2.5">
+                        <input
+                          type="text"
+                          value={row.hip}
+                          onChange={(e) => updateSizeChartCell(idx, "hip", e.target.value)}
+                          placeholder="e.g. 40"
+                          className="w-full p-2 text-xs bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
+                        />
+                      </td>
+                      <td className="p-2.5">
+                        <input
+                          type="text"
+                          value={row.length}
+                          onChange={(e) => updateSizeChartCell(idx, "length", e.target.value)}
+                          placeholder="e.g. 43"
+                          className="w-full p-2 text-xs bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
+                        />
+                      </td>
+                      <td className="p-2.5 text-center">
+                        <button
+                          type="button"
+                          onClick={() => removeSizeChartRow(idx)}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                          title="Delete Size Row"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <p className="text-xs text-slate-500 font-medium">
+              💡 All measurements are in inches. Customers can view this guide anytime on readymade suits by clicking &quot;Convert Size / Chart&quot;.
+            </p>
+          </div>
+        </div>
 
         {/* SMTP & EMAIL SERVER CONFIGURATION SECTION */}
         <div id="smtp-settings" className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden scroll-mt-6">
