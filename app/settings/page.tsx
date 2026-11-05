@@ -148,7 +148,6 @@ export default function SettingsPage() {
   const [footerLogo, setFooterLogo] = useState("");
   const [favicon, setFavicon] = useState("");
   const [newsletterImage, setNewsletterImage] = useState("");
-  const [sizeChartImage, setSizeChartImage] = useState("");
   const [sizeChartTable, setSizeChartTable] = useState<SizeChartRow[]>(DEFAULT_SIZE_CHART_ROWS);
   const [footerDescription, setFooterDescription] = useState("");
   const [footerLinks, setFooterLinks] = useState<FooterLink[]>([
@@ -186,14 +185,12 @@ export default function SettingsPage() {
   const [footerLogoFile, setFooterLogoFile] = useState<File | null>(null);
   const [faviconFile, setFaviconFile] = useState<File | null>(null);
   const [newsletterImageFile, setNewsletterImageFile] = useState<File | null>(null);
-  const [sizeChartImageFile, setSizeChartImageFile] = useState<File | null>(null);
 
   // File previews
   const [headerLogoPreview, setHeaderLogoPreview] = useState("");
   const [footerLogoPreview, setFooterLogoPreview] = useState("");
   const [faviconPreview, setFaviconPreview] = useState("");
   const [newsletterImagePreview, setNewsletterImagePreview] = useState("");
-  const [sizeChartImagePreview, setSizeChartImagePreview] = useState("");
 
   const fetchCoupons = useCallback(async () => {
     try {
@@ -218,7 +215,6 @@ export default function SettingsPage() {
       if (data.footer_logo) setFooterLogo(data.footer_logo);
       if (data.favicon) setFavicon(data.favicon);
       if (data.newsletter_image !== undefined) setNewsletterImage(data.newsletter_image || "");
-        if (data.size_chart_image !== undefined) setSizeChartImage(data.size_chart_image || "");
       if (data.footer_description) setFooterDescription(data.footer_description);
       if (Array.isArray(data.footer_links) && data.footer_links.length > 0) {
         setFooterLinks(data.footer_links);
@@ -387,21 +383,6 @@ export default function SettingsPage() {
     }
   };
 
-  const handleSizeChartImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      try {
-        const webpFile = await convertToWebP(file);
-        setSizeChartImageFile(webpFile);
-        setSizeChartImagePreview(URL.createObjectURL(webpFile));
-        toast.success(`Size chart image converted to WebP (${(webpFile.size / 1024).toFixed(1)} KB)`);
-      } catch {
-        setSizeChartImageFile(file);
-        setSizeChartImagePreview(URL.createObjectURL(file));
-      }
-    }
-  };
-
   // Footer links management
   const addFooterLink = () => {
     setFooterLinks([...footerLinks, { name: "", link: "/" }]);
@@ -548,14 +529,12 @@ export default function SettingsPage() {
       if (footerLogoFile) formData.append("footer_logo", footerLogoFile);
       if (faviconFile) formData.append("favicon", faviconFile);
       if (newsletterImageFile) formData.append("newsletter_image", newsletterImageFile);
-      if (sizeChartImageFile) formData.append("size_chart_image", sizeChartImageFile);
 
       // Text values
       formData.append("header_logo", headerLogo);
       formData.append("footer_logo", footerLogo);
       formData.append("favicon", favicon);
       formData.append("newsletter_image", newsletterImage);
-      formData.append("size_chart_image", sizeChartImage);
       formData.append("size_chart_table", JSON.stringify(sizeChartTable));
       formData.append("footer_description", footerDescription);
       formData.append("footer_links", JSON.stringify(footerLinks));
@@ -576,7 +555,6 @@ export default function SettingsPage() {
         setFooterLogoFile(null);
         setFaviconFile(null);
         setNewsletterImageFile(null);
-        setSizeChartImageFile(null);
         fetchSettings();
       } else {
         toast.error(res?.message || "Failed to update global settings");
@@ -654,11 +632,11 @@ export default function SettingsPage() {
             </div>
             <div>
               <h2 className="text-lg font-bold text-slate-800">Brand Identity & Logos</h2>
-              <p className="text-xs text-slate-500">Header logo, footer logo, favicon, newsletter image, and size chart</p>
+              <p className="text-xs text-slate-500">Header logo, footer logo, favicon, and newsletter image</p>
             </div>
           </div>
 
-          <div className="p-6 sm:p-8 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5 gap-6">
+          <div className="p-6 sm:p-8 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
             {/* Header Logo */}
             <div className="space-y-3 p-5 rounded-2xl bg-slate-50 border border-slate-200/60 flex flex-col justify-between">
               <div>
@@ -857,51 +835,8 @@ export default function SettingsPage() {
               </div>
 
             </div>
-
-            {/* Size Chart Image */}
-            <div className="space-y-3 p-5 rounded-2xl bg-slate-50 border border-slate-200/60 flex flex-col justify-between">
-              <div>
-                <label className="text-xs font-black text-slate-600 uppercase tracking-wider block mb-2">
-                  <Ruler size={14} className="inline mr-1 text-slate-400" /> Size Chart Image
-                </label>
-                <p className="text-xs text-slate-400 mb-3">Shown in size guide modal on readymade products.</p>
-
-                <div className="w-full h-24 bg-white border border-dashed border-slate-200 rounded-xl flex items-center justify-center p-2 mb-3 overflow-hidden">
-                  {sizeChartImagePreview || sizeChartImage ? (
-                    <img
-                      src={sizeChartImagePreview || sizeChartImage}
-                      alt="Size Chart Preview"
-                      className="max-h-full max-w-full object-contain"
-                    />
-                  ) : (
-                    <span className="text-[11px] text-slate-400 font-medium">No image uploaded</span>
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-white border border-slate-200 hover:border-blue-500 rounded-xl text-xs font-bold text-slate-700 cursor-pointer transition-colors shadow-sm">
-                  <Upload size={14} className="text-blue-600" /> Upload File
-                  <input
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                    onChange={handleSizeChartImageChange}
-                    className="hidden"
-                  />
-                </label>
-                <input
-                  type="text"
-                  placeholder="Or enter image URL"
-                  value={sizeChartImage}
-                  onChange={(e) => setSizeChartImage(e.target.value)}
-                  className="w-full p-2.5 text-xs bg-white border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-            </div>
           </div>
         </div>
-
 
         {/* SIZE CHART TABLE SECTION */}
         <div id="sizechart-settings" className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden scroll-mt-6">
