@@ -8,7 +8,7 @@ export interface EnquiryItem {
   phone?: string;
   message: string;
   services: string[];
-  status: 'pending' | 'in_progress' | 'resolved' | 'closed';
+  status: 'pending' | 'in_progress' | 'resolved' | 'rejected' | 'closed';
   notes?: string;
   resolutionMessage?: string;
   createdAt: string;
@@ -18,9 +18,10 @@ export interface EnquiryItem {
 export interface EnquiryStats {
   total: number;
   pending: number;
-  in_progress: number;
+  in_progress?: number;
   resolved: number;
-  closed: number;
+  rejected?: number;
+  closed?: number;
 }
 
 export interface EnquiryLazyParams {

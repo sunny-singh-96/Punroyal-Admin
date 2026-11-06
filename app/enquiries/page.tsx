@@ -22,6 +22,7 @@ import {
   Check,
   Loader2,
   Lock,
+  XCircle,
 } from "lucide-react";
 import { format } from "date-fns";
 import toast from "react-hot-toast";
@@ -47,17 +48,23 @@ const STATUS_CONFIG: Record<
     color: "text-amber-700",
     border: "border-amber-200",
   },
-  in_progress: {
-    label: "In Progress",
-    bg: "bg-blue-50",
-    color: "text-blue-700",
-    border: "border-blue-200",
-  },
   resolved: {
     label: "Resolved",
     bg: "bg-emerald-50",
     color: "text-emerald-700",
     border: "border-emerald-200",
+  },
+  rejected: {
+    label: "Rejected",
+    bg: "bg-rose-50",
+    color: "text-rose-700",
+    border: "border-rose-200",
+  },
+  in_progress: {
+    label: "In Progress",
+    bg: "bg-blue-50",
+    color: "text-blue-700",
+    border: "border-blue-200",
   },
   closed: {
     label: "Closed",
@@ -77,6 +84,7 @@ export default function EnquiriesPage() {
     pending: 0,
     in_progress: 0,
     resolved: 0,
+    rejected: 0,
     closed: 0,
   });
 
@@ -93,11 +101,11 @@ export default function EnquiriesPage() {
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [adminNotes, setAdminNotes] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
-  const [selectedStatusAction, setSelectedStatusAction] = useState<'pending' | 'in_progress' | 'resolved' | 'closed'>('resolved');
+  const [selectedStatusAction, setSelectedStatusAction] = useState<'resolved' | 'rejected'>('resolved');
   const [customerReplyMessage, setCustomerReplyMessage] = useState("");
   const [sendCustomerEmail, setSendCustomerEmail] = useState(true);
 
-  const isLocked = selectedEnquiry?.status === 'resolved' || selectedEnquiry?.status === 'closed';
+  const isLocked = selectedEnquiry?.status === 'resolved' || selectedEnquiry?.status === 'rejected' || selectedEnquiry?.status === 'closed';
 
   // Fetch stats
   const fetchStats = useCallback(async () => {
@@ -160,8 +168,16 @@ export default function EnquiriesPage() {
   const handleView = (item: EnquiryItem) => {
     setSelectedEnquiry(item);
     setAdminNotes(item.notes || "");
-    setSelectedStatusAction((item.status as any) || 'resolved');
-    setCustomerReplyMessage((item as any).resolutionMessage || "");
+    const initialAction: 'resolved' | 'rejected' = item.status === 'rejected' ? 'rejected' : 'resolved';
+    setSelectedStatusAction(initialAction);
+    const existingMsg = (item as any).resolutionMessage || "";
+    if (existingMsg) {
+      setCustomerReplyMessage(existingMsg);
+    } else if (item.status === 'pending' || item.status === 'in_progress') {
+      setCustomerReplyMessage("Your enquiry has been carefully reviewed and resolved by our customer care team. Thank you for choosing Punroyal!");
+    } else {
+      setCustomerReplyMessage("");
+    }
     setSendCustomerEmail(true);
     setIsModalOpen(true);
   };
@@ -172,7 +188,7 @@ export default function EnquiriesPage() {
     try {
       setUpdatingStatus(true);
       const payload: {
-        status: 'pending' | 'in_progress' | 'resolved' | 'closed';
+        status: 'pending' | 'in_progress' | 'resolved' | 'rejected' | 'closed';
         notes?: string;
         resolutionMessage?: string;
         sendEmail?: boolean;
@@ -266,30 +282,30 @@ export default function EnquiriesPage() {
     {
       icon: MessageSquare,
       label: "Total Enquiries",
-      value: statsLoading ? "..." : stats.total,
+      value: statsLoading ? "..." : (stats.total || 0),
       color: "text-blue-600",
       bg: "bg-blue-50",
     },
     {
       icon: Clock,
       label: "Pending Review",
-      value: statsLoading ? "..." : stats.pending,
+      value: statsLoading ? "..." : (stats.pending || 0),
       color: "text-amber-600",
       bg: "bg-amber-50",
     },
     {
-      icon: AlertCircle,
-      label: "In Progress",
-      value: statsLoading ? "..." : stats.in_progress,
-      color: "text-indigo-600",
-      bg: "bg-indigo-50",
-    },
-    {
       icon: CheckCircle2,
       label: "Resolved",
-      value: statsLoading ? "..." : stats.resolved,
+      value: statsLoading ? "..." : (stats.resolved || 0),
       color: "text-emerald-600",
       bg: "bg-emerald-50",
+    },
+    {
+      icon: XCircle,
+      label: "Rejected",
+      value: statsLoading ? "..." : (stats.rejected || 0),
+      color: "text-rose-600",
+      bg: "bg-rose-50",
     },
   ];
 
@@ -435,9 +451,8 @@ export default function EnquiriesPage() {
           {[
             { key: "all", label: "All" },
             { key: "pending", label: "Pending" },
-            { key: "in_progress", label: "In Progress" },
             { key: "resolved", label: "Resolved" },
-            { key: "closed", label: "Closed" },
+            { key: "rejected", label: "Rejected" },
           ].map((tab) => {
             const isActive = (lazyParams.status || "all") === tab.key;
             return (
@@ -598,15 +613,27 @@ export default function EnquiriesPage() {
               {/* Status Action & Customer Email Message Section */}
               <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 space-y-4 shadow-xs">
                 {isLocked && (
-                  <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 flex items-center gap-3 text-emerald-800 text-xs font-semibold shadow-xs">
-                    <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
+                  <div className={`border rounded-xl p-3.5 flex items-center gap-3 text-xs font-semibold shadow-xs ${
+                    selectedEnquiry.status === 'rejected'
+                      ? 'bg-rose-50 border-rose-200 text-rose-800'
+                      : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                  }`}>
+                    {selectedEnquiry.status === 'rejected' ? (
+                      <XCircle size={18} className="text-rose-600 shrink-0" />
+                    ) : (
+                      <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
+                    )}
                     <div className="flex-1">
-                      <div className="font-bold text-emerald-900">Enquiry Status: {STATUS_CONFIG[selectedEnquiry.status]?.label?.toUpperCase()} (Locked)</div>
-                      <div className="text-[11px] font-normal text-emerald-700 mt-0.5">
-                        This enquiry has been finalized & resolved. Further modifications are locked.
+                      <div className="font-bold">Enquiry Status: {STATUS_CONFIG[selectedEnquiry.status]?.label?.toUpperCase() || selectedEnquiry.status?.toUpperCase()} (Locked)</div>
+                      <div className="text-[11px] font-normal opacity-90 mt-0.5">
+                        This enquiry has been finalized ({STATUS_CONFIG[selectedEnquiry.status]?.label}). Further modifications are locked.
                       </div>
                     </div>
-                    <span className="inline-flex items-center gap-1 text-[11px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">
+                    <span className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-bold ${
+                      selectedEnquiry.status === 'rejected'
+                        ? 'bg-rose-100 text-rose-800'
+                        : 'bg-emerald-100 text-emerald-800'
+                    }`}>
                       <Lock size={12} /> Read Only
                     </span>
                   </div>
@@ -619,21 +646,19 @@ export default function EnquiriesPage() {
                       {isLocked ? "Locked - Cannot change status" : "Pick action to apply"}
                     </span>
                   </h4>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div className="grid grid-cols-2 gap-3">
                     {(
                       [
-                        { key: "pending", label: "Pending", bg: "hover:bg-amber-50 text-amber-800 border-amber-200" },
-                        {
-                          key: "in_progress",
-                          label: "In Progress",
-                          bg: "hover:bg-blue-50 text-blue-800 border-blue-200",
-                        },
                         {
                           key: "resolved",
                           label: "Resolved",
                           bg: "hover:bg-emerald-50 text-emerald-800 border-emerald-300",
                         },
-                        { key: "closed", label: "Closed", bg: "hover:bg-slate-100 text-slate-800 border-slate-200" },
+                        {
+                          key: "rejected",
+                          label: "Rejected",
+                          bg: "hover:bg-rose-50 text-rose-800 border-rose-300",
+                        },
                       ] as const
                     ).map((st) => {
                       const isSelected = selectedStatusAction === st.key;
@@ -645,19 +670,21 @@ export default function EnquiriesPage() {
                           onClick={() => {
                             if (isLocked) return;
                             setSelectedStatusAction(st.key);
-                            if (st.key === 'resolved' && !customerReplyMessage) {
+                            if (st.key === 'resolved') {
                               setCustomerReplyMessage("Your enquiry has been carefully reviewed and resolved by our customer care team. Thank you for choosing Punroyal!");
+                            } else if (st.key === 'rejected') {
+                              setCustomerReplyMessage("Thank you for contacting Punroyal. After careful review, we regret to inform you that we are unable to process this request at this time.");
                             }
                           }}
-                          className={`px-3 py-2 text-xs font-bold rounded-xl border text-center transition flex items-center justify-center gap-1.5 ${
+                          className={`px-4 py-2.5 text-xs font-bold rounded-xl border text-center transition flex items-center justify-center gap-2 ${
                             isLocked ? "opacity-40 cursor-not-allowed " : ""
                           }${
                             isSelected
-                              ? "bg-slate-900 text-white border-slate-900 shadow-sm"
+                              ? (st.key === 'rejected' ? "bg-rose-600 text-white border-rose-600 shadow-sm" : "bg-emerald-600 text-white border-emerald-600 shadow-sm")
                               : `bg-white ${st.bg}`
                           }`}
                         >
-                          {isSelected && <Check size={13} className="text-amber-400" />}
+                          {isSelected && <Check size={14} className="text-white" />}
                           <span>{st.label}</span>
                         </button>
                       );
@@ -699,10 +726,23 @@ export default function EnquiriesPage() {
                       <span className="font-semibold text-slate-600">Quick templates:</span>
                       <button
                         type="button"
-                        onClick={() => setCustomerReplyMessage("Your enquiry has been carefully reviewed and resolved by our customer care team. Thank you for choosing Punroyal!")}
+                        onClick={() => {
+                          setSelectedStatusAction("resolved");
+                          setCustomerReplyMessage("Your enquiry has been carefully reviewed and resolved by our customer care team. Thank you for choosing Punroyal!");
+                        }}
                         className="px-2 py-0.5 rounded bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 transition"
                       >
                         Resolved standard
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedStatusAction("rejected");
+                          setCustomerReplyMessage("Thank you for contacting Punroyal. After careful review, we regret to inform you that we are unable to process this request at this time.");
+                        }}
+                        className="px-2 py-0.5 rounded bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 transition"
+                      >
+                        Rejected standard
                       </button>
                       <button
                         type="button"
@@ -756,14 +796,18 @@ export default function EnquiriesPage() {
                 {isLocked ? (
                   <div className="w-full py-3 px-4 rounded-xl text-xs sm:text-sm font-bold text-slate-500 bg-slate-200 border border-slate-300 flex items-center justify-center gap-2 cursor-not-allowed select-none">
                     <Lock size={15} />
-                    <span>Enquiry Finalized ({STATUS_CONFIG[selectedEnquiry.status]?.label}) &bull; Modifications Locked</span>
+                    <span>Enquiry Finalized ({STATUS_CONFIG[selectedEnquiry.status]?.label || selectedEnquiry.status}) &bull; Modifications Locked</span>
                   </div>
                 ) : (
                   <button
                     type="button"
                     disabled={updatingStatus}
                     onClick={handleSubmitAction}
-                    className="w-full py-3 px-4 rounded-xl text-xs sm:text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 transition shadow-sm flex items-center justify-center gap-2"
+                    className={`w-full py-3 px-4 rounded-xl text-xs sm:text-sm font-bold text-white transition shadow-sm flex items-center justify-center gap-2 ${
+                      selectedStatusAction === 'rejected'
+                        ? 'bg-rose-600 hover:bg-rose-700'
+                        : 'bg-emerald-600 hover:bg-emerald-700'
+                    } disabled:opacity-50`}
                   >
                     {updatingStatus ? (
                       <>
@@ -774,7 +818,7 @@ export default function EnquiriesPage() {
                       <>
                         <Send className="w-4 h-4" />
                         <span>
-                          Save Status as {STATUS_CONFIG[selectedStatusAction]?.label} {sendCustomerEmail ? "& Send Email Message" : ""}
+                          Save as {STATUS_CONFIG[selectedStatusAction]?.label} {sendCustomerEmail ? "& Send Email Message" : ""}
                         </span>
                       </>
                     )}
