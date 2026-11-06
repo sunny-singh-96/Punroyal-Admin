@@ -78,10 +78,16 @@ export default function OrderInfoModal({ isOpen, onClose, order }: Props) {
         </div>
 
         {/* Footer */}
-        <div className="mt-6 flex justify-end">
+        <div className="mt-6 flex justify-between items-center">
+          <a
+            href={`/orders/view/${order._id}`}
+            className="text-xs font-bold text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-1"
+          >
+            Open Full Order Details &rarr;
+          </a>
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm hover:bg-indigo-700"
+            className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl text-sm font-semibold transition"
           >
             Close
           </button>

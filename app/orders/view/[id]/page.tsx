@@ -80,6 +80,31 @@ export default function OrderDetailsPage() {
 
   const [loading, setLoading] = useState(false);
   const [order, setOrder] = useState<Order | null>(null);
+  const [currentStatus, setCurrentStatus] = useState<string>('');
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+
+  useEffect(() => {
+    if (order?.status) {
+      setCurrentStatus(order.status.toLowerCase());
+    }
+  }, [order?.status]);
+
+  const handleStatusChange = async (newStatus: string) => {
+    if (!orderId || !newStatus || newStatus === order?.status?.toLowerCase()) return;
+    setIsUpdatingStatus(true);
+    try {
+      await orderAPI.updateStatus(orderId, newStatus);
+      const label = ORDER_STATUS_CONFIG[newStatus]?.label || newStatus;
+      toast.success(`Order status updated to ${label}!`);
+      setOrder((prev) => prev ? { ...prev, status: newStatus } : null);
+      setCurrentStatus(newStatus);
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+      setCurrentStatus(order?.status?.toLowerCase() || '');
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
 
   const fetchOrderDetails = useCallback(async () => {
     if (!orderId) return;
@@ -125,19 +150,41 @@ export default function OrderDetailsPage() {
     <div className="p-6 md:p-10 bg-[#f6f7fb] min-h-screen">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <PageHeader title="Order Detail" subtitle={"#" + (order.order_number || "")} />
-        {(() => {
-          const statusKey = order.status?.toLowerCase() || '';
-          const cfg = ORDER_STATUS_CONFIG[statusKey];
-          const bg = cfg?.bg || 'bg-slate-100';
-          const color = cfg?.color || 'text-slate-700';
-          const border = cfg?.border || 'border-slate-200';
-          const label = cfg?.label || order.status || 'Unknown';
-          return (
-            <span className={`px-4 py-2 text-sm font-bold rounded-xl capitalize border ${bg} ${color} ${border} shadow-xs`}>
-              Status: {label}
-            </span>
-          );
-        })()}
+        <div className="flex flex-wrap items-center gap-3">
+          {(() => {
+            const statusKey = (currentStatus || order.status || '').toLowerCase();
+            const cfg = ORDER_STATUS_CONFIG[statusKey];
+            const bg = cfg?.bg || 'bg-slate-100';
+            const color = cfg?.color || 'text-slate-700';
+            const border = cfg?.border || 'border-slate-200';
+            const label = cfg?.label || order.status || 'Unknown';
+            return (
+              <span className={`px-4 py-2 text-sm font-bold rounded-xl capitalize border ${bg} ${color} ${border} shadow-xs`}>
+                Current Status: {label}
+              </span>
+            );
+          })()}
+
+          {/* Status Dropdown Option */}
+          <div className="flex items-center gap-2 bg-white px-3.5 py-2 rounded-xl border border-slate-200 shadow-xs">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Update Status:</span>
+            <select
+              value={currentStatus || order.status?.toLowerCase() || ''}
+              disabled={isUpdatingStatus}
+              onChange={(e) => handleStatusChange(e.target.value)}
+              className="text-xs font-bold text-slate-800 bg-transparent outline-none cursor-pointer pr-1 focus:ring-1 focus:ring-indigo-500 rounded"
+            >
+              <option value="created">Order Created</option>
+              <option value="confirmed">Confirmed / Processing</option>
+              <option value="ready_to_ship">Ready to Ship</option>
+              <option value="shipped">Shipped / In Transit</option>
+              <option value="delivered">Delivered</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="returned">Returned</option>
+            </select>
+            {isUpdatingStatus && <Loader2 size={14} className="animate-spin text-indigo-600 shrink-0" />}
+          </div>
+        </div>
       </div>
 
       {/* TOP STATUS CARDS */}

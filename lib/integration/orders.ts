@@ -30,4 +30,9 @@ export const orderAPI = {
   async getOrderStatus() {
     return http.get(ENDPOINTS.ORDERS.STATS);
   },
+
+  // Update order status
+  async updateStatus(orderId: string, status: string, notes?: string) {
+    return http.patch(`/order/${orderId}/${status}`, { status, notes });
+  },
 };
