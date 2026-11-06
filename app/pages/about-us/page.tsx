@@ -727,6 +727,12 @@ export default function AboutUsAdminPage() {
                             src={whoWeArePreviews[idx]}
                             alt={`Who We Are Preview ${idx + 1}`}
                             className="w-full h-full object-cover"
+                            onError={(e) => {
+                              const target = e.currentTarget;
+                              if (!target.src.includes("punroyal.com") && whoWeAreImages[idx]?.startsWith("/")) {
+                                target.src = `https://punroyal.com${whoWeAreImages[idx]}`;
+                              }
+                            }}
                           />
                         ) : (
                           <ImageIcon size={32} className="text-slate-400" />
@@ -887,6 +893,12 @@ export default function AboutUsAdminPage() {
                             src={curatedPreviews[idx]}
                             alt={`Curated Look Preview ${idx + 1}`}
                             className="w-full h-full object-cover"
+                            onError={(e) => {
+                              const target = e.currentTarget;
+                              if (!target.src.includes("punroyal.com") && curatedImages[idx]?.startsWith("/")) {
+                                target.src = `https://punroyal.com${curatedImages[idx]}`;
+                              }
+                            }}
                           />
                         ) : (
                           <ImageIcon size={32} className="text-slate-400" />
