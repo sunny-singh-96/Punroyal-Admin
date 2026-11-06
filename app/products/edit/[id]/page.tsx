@@ -515,7 +515,6 @@ export default function CreateProductPage() {
     if (validationErrors.length > 0) {
       setErrorModalList(validationErrors);
       setErrorModalOpen(true);
-      toast.error("Please fix the validation errors");
       return;
     }
 
@@ -545,16 +544,16 @@ export default function CreateProductPage() {
         toast.success(`Product updated successfully!`, { id: toastId });
         setRedirectTo("/products");
       } else {
+        toast.dismiss(toastId);
         const msg = response?.message || "Failed to update product";
         setErrorModalList([msg]);
         setErrorModalOpen(true);
-        toast.error(msg, { id: toastId });
       }
     } catch (error) {
+      toast.dismiss(toastId);
       const errMsg = getErrorMessage(error);
       setErrorModalList([errMsg]);
       setErrorModalOpen(true);
-      toast.error(errMsg, { id: toastId });
     } finally {
       setLoading(false);
     }
