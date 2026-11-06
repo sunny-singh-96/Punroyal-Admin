@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import toast from "react-hot-toast";
 import {
   Save,
@@ -18,7 +18,6 @@ import {
   Phone,
   MapPin,
   Share2,
-  ExternalLink,
   Megaphone,
   Tag,
   Percent,
@@ -30,7 +29,13 @@ import {
   Server,
   ShieldCheck,
   Lock,
-  Ruler
+  Ruler,
+  Sliders,
+  Check,
+  Search,
+  Sparkles,
+  HelpCircle,
+  AlertCircle
 } from "lucide-react";
 import PageHeader from "@/components/admin/head/head";
 import { globalSettingsAPI } from "@/lib/integration/globalSettings";
@@ -54,7 +59,6 @@ interface CouponOption {
   _id: string;
   couponName: string;
 }
-
 
 export interface SizeChartRow {
   size: string;
@@ -124,30 +128,97 @@ const DEFAULT_GST_RULES: GstRule[] = [
   },
 ];
 
+type TabId =
+  | "general"
+  | "branding"
+  | "gst"
+  | "sizechart"
+  | "smtp"
+  | "topbar"
+  | "footer"
+  | "social"
+  | "cache";
+
+interface TabItem {
+  id: TabId;
+  name: string;
+  subtitle: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  badge?: string;
+}
+
+const TABS: TabItem[] = [
+  {
+    id: "general",
+    name: "General",
+    subtitle: "Store profile, contact information, address and copyright",
+    icon: Sliders,
+  },
+  {
+    id: "branding",
+    name: "Brand & Media",
+    subtitle: "Header logo, footer logo, browser favicon, and newsletter banner",
+    icon: ImageIcon,
+  },
+  {
+    id: "gst",
+    name: "Tax & GST Rules",
+    subtitle: "Dynamic tax percentages for unstitched and readymade collections",
+    icon: Percent,
+    badge: "Dynamic",
+  },
+  {
+    id: "sizechart",
+    name: "Size Chart Guide",
+    subtitle: "Measurement specifications table for readymade suits",
+    icon: Ruler,
+  },
+  {
+    id: "smtp",
+    name: "Email Server (SMTP)",
+    subtitle: "Outgoing mail credentials, sender identities, and live testing",
+    icon: Mail,
+  },
+  {
+    id: "topbar",
+    name: "Topbar & Coupons",
+    subtitle: "Announcement ticker messages and featured storefront coupon",
+    icon: Megaphone,
+  },
+  {
+    id: "footer",
+    name: "Footer & Quick Links",
+    subtitle: "Brand footer description and editable navigation links",
+    icon: FileText,
+  },
+  {
+    id: "social",
+    name: "Social & WhatsApp",
+    subtitle: "Social media profiles and customer floating WhatsApp widget",
+    icon: Share2,
+  },
+  {
+    id: "cache",
+    name: "Website Cache",
+    subtitle: "Redis memory cache synchronization and performance",
+    icon: RotateCw,
+  },
+];
+
 export default function SettingsPage() {
+  const [activeTab, setActiveTab] = useState<TabId>("general");
+  const [tabSearch, setTabSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [clearingCache, setClearingCache] = useState(false);
-
-  const handleClearCache = async () => {
-    if (clearingCache) return;
-    setClearingCache(true);
-    try {
-      await dashboardAPI.clearWebsiteCache();
-      toast.success("Website cache cleared successfully!");
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to clear website cache");
-    } finally {
-      setClearingCache(false);
-    }
-  };
-
 
   // Form fields
   const [headerLogo, setHeaderLogo] = useState("");
   const [footerLogo, setFooterLogo] = useState("");
   const [favicon, setFavicon] = useState("");
   const [newsletterImage, setNewsletterImage] = useState("");
+  const [newsletterTitle, setNewsletterTitle] = useState("");
+  const [newsletterSubtitle, setNewsletterSubtitle] = useState("");
   const [sizeChartTable, setSizeChartTable] = useState<SizeChartRow[]>(DEFAULT_SIZE_CHART_ROWS);
   const [footerDescription, setFooterDescription] = useState("");
   const [footerLinks, setFooterLinks] = useState<FooterLink[]>([
@@ -172,13 +243,13 @@ export default function SettingsPage() {
   const [couponHighlight, setCouponHighlight] = useState("");
   const [couponOptions, setCouponOptions] = useState<CouponOption[]>([]);
   const [gstRules, setGstRules] = useState<GstRule[]>(DEFAULT_GST_RULES);
+
   // SMTP Settings
   const [smtp, setSmtp] = useState<SmtpSettings>(DEFAULT_SMTP);
   const [showSmtpPassword, setShowSmtpPassword] = useState(false);
   const [testEmail, setTestEmail] = useState("");
   const [testingSmtp, setTestingSmtp] = useState(false);
   const [smtpTestResult, setSmtpTestResult] = useState<{ success: boolean; message: string } | null>(null);
-
 
   // File uploads
   const [headerLogoFile, setHeaderLogoFile] = useState<File | null>(null);
@@ -192,6 +263,19 @@ export default function SettingsPage() {
   const [faviconPreview, setFaviconPreview] = useState("");
   const [newsletterImagePreview, setNewsletterImagePreview] = useState("");
 
+  const handleClearCache = async () => {
+    if (clearingCache) return;
+    setClearingCache(true);
+    try {
+      await dashboardAPI.clearWebsiteCache();
+      toast.success("Website cache cleared successfully!");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to clear website cache");
+    } finally {
+      setClearingCache(false);
+    }
+  };
+
   const fetchCoupons = useCallback(async () => {
     try {
       const res: any = await couponsAPI.getAll({ page: 1, limit: 200, search: "" });
@@ -201,7 +285,7 @@ export default function SettingsPage() {
         );
       }
     } catch {
-      // non-blocking; dropdown stays empty
+      // non-blocking
     }
   }, []);
 
@@ -215,6 +299,8 @@ export default function SettingsPage() {
       if (data.footer_logo) setFooterLogo(data.footer_logo);
       if (data.favicon) setFavicon(data.favicon);
       if (data.newsletter_image !== undefined) setNewsletterImage(data.newsletter_image || "");
+      if (data.newsletter_title !== undefined) setNewsletterTitle(data.newsletter_title || "");
+      if (data.newsletter_subtitle !== undefined) setNewsletterSubtitle(data.newsletter_subtitle || "");
       if (data.footer_description) setFooterDescription(data.footer_description);
       if (Array.isArray(data.footer_links) && data.footer_links.length > 0) {
         setFooterLinks(data.footer_links);
@@ -248,6 +334,10 @@ export default function SettingsPage() {
         setCouponHighlight("");
       }
 
+      if (Array.isArray(data.size_chart_table) && data.size_chart_table.length > 0) {
+        setSizeChartTable(data.size_chart_table);
+      }
+
       if (data.smtp) {
         setSmtp({
           host: data.smtp.host || "",
@@ -278,7 +368,12 @@ export default function SettingsPage() {
                 (fixedPt === "readymade" && pt === "sizes");
               return ptMatches && val === fixedVal;
             });
-            if (found && found.percentage !== undefined && found.percentage !== null && !isNaN(Number(found.percentage))) {
+            if (
+              found &&
+              found.percentage !== undefined &&
+              found.percentage !== null &&
+              !isNaN(Number(found.percentage))
+            ) {
               return { ...fixed, percentage: Number(found.percentage) };
             }
             return fixed;
@@ -420,6 +515,7 @@ export default function SettingsPage() {
     setFooterLinks(updated);
   };
 
+  // Topbar messages management
   const addTopbarMessage = () => {
     setTopbarMessages([...topbarMessages, ""]);
   };
@@ -452,6 +548,32 @@ export default function SettingsPage() {
     setTopbarMessages(updated);
   };
 
+  // Size chart management
+  const updateSizeChartCell = (index: number, field: keyof SizeChartRow, value: string) => {
+    setSizeChartTable((prev) => {
+      const copy = [...prev];
+      copy[index] = { ...copy[index], [field]: value };
+      return copy;
+    });
+  };
+
+  const addSizeChartRow = () => {
+    setSizeChartTable((prev) => [
+      ...prev,
+      { size: "", bust: "", waist: "", hip: "", length: "" },
+    ]);
+  };
+
+  const removeSizeChartRow = (index: number) => {
+    setSizeChartTable((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const resetSizeChartTable = () => {
+    setSizeChartTable(DEFAULT_SIZE_CHART_ROWS);
+    toast.success("Reset size chart to standard measurements");
+  };
+
+  // Test SMTP
   const handleTestSmtp = async () => {
     if (!smtp.host.trim() || !smtp.user.trim() || !smtp.pass.trim()) {
       toast.error("Please fill SMTP Host, User/Email, and Password first");
@@ -486,7 +608,8 @@ export default function SettingsPage() {
         setSmtpTestResult({ success: false, message: errMsg });
       }
     } catch (err: any) {
-      const errMsg = err?.response?.data?.message || err?.message || "Failed to connect to SMTP server";
+      const errMsg =
+        err?.response?.data?.message || err?.message || "Failed to connect to SMTP server";
       toast.error(errMsg);
       setSmtpTestResult({ success: false, message: errMsg });
     } finally {
@@ -494,30 +617,7 @@ export default function SettingsPage() {
     }
   };
 
-  const updateSizeChartCell = (index: number, field: keyof SizeChartRow, value: string) => {
-    setSizeChartTable((prev) => {
-      const copy = [...prev];
-      copy[index] = { ...copy[index], [field]: value };
-      return copy;
-    });
-  };
-
-  const addSizeChartRow = () => {
-    setSizeChartTable((prev) => [
-      ...prev,
-      { size: "", bust: "", waist: "", hip: "", length: "" },
-    ]);
-  };
-
-  const removeSizeChartRow = (index: number) => {
-    setSizeChartTable((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const resetSizeChartTable = () => {
-    setSizeChartTable(DEFAULT_SIZE_CHART_ROWS);
-    toast.success("Reset size chart to standard measurements");
-  };
-
+  // Handle Save
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -535,6 +635,8 @@ export default function SettingsPage() {
       formData.append("footer_logo", footerLogo);
       formData.append("favicon", favicon);
       formData.append("newsletter_image", newsletterImage);
+      formData.append("newsletter_title", newsletterTitle);
+      formData.append("newsletter_subtitle", newsletterSubtitle);
       formData.append("size_chart_table", JSON.stringify(sizeChartTable));
       formData.append("footer_description", footerDescription);
       formData.append("footer_links", JSON.stringify(footerLinks));
@@ -566,6 +668,18 @@ export default function SettingsPage() {
     }
   };
 
+  const filteredTabs = useMemo(() => {
+    if (!tabSearch.trim()) return TABS;
+    const q = tabSearch.toLowerCase();
+    return TABS.filter(
+      (t) => t.name.toLowerCase().includes(q) || t.subtitle.toLowerCase().includes(q)
+    );
+  }, [tabSearch]);
+
+  const activeTabMeta = useMemo(() => {
+    return TABS.find((t) => t.id === activeTab) || TABS[0];
+  }, [activeTab]);
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
@@ -576,1144 +690,1285 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="p-4 sm:p-8 max-w-6xl mx-auto space-y-8">
-      <PageHeader
-        title="Global Store Settings"
-        subtitle="Manage website logos, dynamic GST tax rules, store announcements, coupons, and footer details"
-      />
+    <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <PageHeader
+          title="Global Settings"
+          subtitle="Configure system-wide store branding, dynamic GST rules, SMTP server, and storefront content"
+        />
 
-      {/* Quick Navigation Anchor Bar */}
-      <div className="flex flex-wrap items-center gap-2.5 p-3 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
-        <span className="text-xs font-bold text-slate-400 mr-1">Quick Jump:</span>
-        <a
-          href="#smtp-settings"
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl transition border border-blue-200 shadow-xs"
-        >
-          <Mail size={13} className="text-blue-600" /> SMTP &amp; Email Server
-        </a>
-        <a
-          href="#gst-settings"
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-xl transition border border-amber-200 shadow-xs"
-        >
-          <Percent size={13} className="text-amber-600" /> GST Tax Rules (Configurable)
-        </a>
-        <a
-          href="#sizechart-settings"
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-xl transition border border-emerald-200 shadow-xs"
-        >
-          <Ruler size={13} className="text-emerald-600" /> Size Chart Table
-        </a>
-        <a
-          href="#branding-settings"
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-xl transition border border-slate-200/70"
-        >
-          <ImageIcon size={13} /> Brand Identity &amp; Logos
-        </a>
-        <a
-          href="#topbar-settings"
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-xl transition border border-slate-200/70"
-        >
-          <Megaphone size={13} /> Topbar &amp; Coupons
-        </a>
-        <a
-          href="#footer-settings"
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-xl transition border border-slate-200/70"
-        >
-          <FileText size={13} /> Footer &amp; Social Links
-        </a>
+        {/* Quick Search */}
+        <div className="relative w-full sm:w-72">
+          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Search settings tabs..."
+            value={tabSearch}
+            onChange={(e) => setTabSearch(e.target.value)}
+            className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500 shadow-xs"
+          />
+        </div>
       </div>
 
-      <form onSubmit={handleSave} className="space-y-8">
-        {/* BRANDING SECTION */}
-        <div id="branding-settings" className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden scroll-mt-6">
-          <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
-            <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
-              <ImageIcon size={20} />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-slate-800">Brand Identity & Logos</h2>
-              <p className="text-xs text-slate-500">Header logo, footer logo, favicon, and newsletter image</p>
-            </div>
-          </div>
-
-          <div className="p-6 sm:p-8 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-            {/* Header Logo */}
-            <div className="space-y-3 p-5 rounded-2xl bg-slate-50 border border-slate-200/60 flex flex-col justify-between">
-              <div>
-                <label className="text-xs font-black text-slate-600 uppercase tracking-wider block mb-2">
-                  Header Logo
-                </label>
-                <p className="text-xs text-slate-400 mb-1">Displayed in the main website navigation bar.</p>
-                <p className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200/80 rounded px-2 py-0.5 mb-3 inline-block">
-                  Recommended: <strong>400 × 120 px</strong> • Max: 5MB • PNG, WEBP, SVG
-                </p>
-
-                {/* Preview */}
-                <div className="w-full h-24 bg-white border border-dashed border-slate-200 rounded-xl flex items-center justify-center p-2 mb-3 overflow-hidden">
-                  <img
-                    src={headerLogoPreview || headerLogo || "/punroyal-image/punroyal_logo.webp"}
-                    alt="Header Logo Preview"
-                    className="max-h-full max-w-full object-contain"
-                    onError={(e: any) => {
-                      e.target.src = "/punroyal-image/punroyal_logo.webp";
-                    }}
-                  />
-                </div>
+      <form onSubmit={handleSave} className="space-y-6">
+        {/* Main 2-Column Vertical Tabs Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* LEFT SIDEBAR: Vertical Tabs */}
+          <div className="lg:col-span-4 xl:col-span-3">
+            <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-3 space-y-1 sticky top-6">
+              <div className="px-3 py-2 text-[11px] font-black uppercase tracking-wider text-slate-400">
+                Settings Menu
               </div>
 
-              <div className="space-y-2">
-                <label className="flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-white border border-slate-200 hover:border-blue-500 rounded-xl text-xs font-bold text-slate-700 cursor-pointer transition-colors shadow-sm">
-                  <Upload size={14} className="text-blue-600" /> Upload File
-                  <input
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                    onChange={handleHeaderLogoChange}
-                    className="hidden"
-                  />
-                </label>
-                <input
-                  type="text"
-                  placeholder="Or enter image URL"
-                  value={headerLogo}
-                  onChange={(e) => setHeaderLogo(e.target.value)}
-                  className="w-full p-2.5 text-xs bg-white border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-
-            {/* Footer Logo */}
-            <div className="space-y-3 p-5 rounded-2xl bg-slate-50 border border-slate-200/60 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-black text-slate-600 uppercase tracking-wider block">
-                    Footer Logo
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFooterLogo(headerLogo);
-                      setFooterLogoPreview(headerLogoPreview);
-                      setFooterLogoFile(headerLogoFile);
-                      toast.success("Copied Header Logo to Footer Logo");
-                    }}
-                    className="text-[11px] text-blue-600 hover:underline font-semibold"
-                  >
-                    Same as Header
-                  </button>
-                </div>
-                <p className="text-xs text-slate-400 mb-1">Displayed at the bottom of all website pages.</p>
-                <p className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200/80 rounded px-2 py-0.5 mb-3 inline-block">
-                  Recommended: <strong>400 × 120 px</strong> • Max: 5MB • PNG, WEBP, SVG
-                </p>
-
-                {/* Preview */}
-                <div className="w-full h-24 bg-white border border-dashed border-slate-200 rounded-xl flex items-center justify-center p-2 mb-3 overflow-hidden">
-                  <img
-                    src={footerLogoPreview || footerLogo || headerLogo || "/punroyal-image/punroyal_logo.webp"}
-                    alt="Footer Logo Preview"
-                    className="max-h-full max-w-full object-contain"
-                    onError={(e: any) => {
-                      e.target.src = "/punroyal-image/punroyal_logo.webp";
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-white border border-slate-200 hover:border-blue-500 rounded-xl text-xs font-bold text-slate-700 cursor-pointer transition-colors shadow-sm">
-                  <Upload size={14} className="text-blue-600" /> Upload File
-                  <input
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                    onChange={handleFooterLogoChange}
-                    className="hidden"
-                  />
-                </label>
-                <input
-                  type="text"
-                  placeholder="Or enter image URL"
-                  value={footerLogo}
-                  onChange={(e) => setFooterLogo(e.target.value)}
-                  className="w-full p-2.5 text-xs bg-white border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-
-            {/* Favicon */}
-            <div className="space-y-3 p-5 rounded-2xl bg-slate-50 border border-slate-200/60 flex flex-col justify-between">
-              <div>
-                <label className="text-xs font-black text-slate-600 uppercase tracking-wider block mb-2">
-                  Browser Favicon
-                </label>
-                <p className="text-xs text-slate-400 mb-3">Displayed in browser tabs and bookmarks bar.</p>
-
-                {/* Preview */}
-                <div className="w-full h-24 bg-white border border-dashed border-slate-200 rounded-xl flex items-center justify-center gap-4 p-2 mb-3">
-                  <div className="flex flex-col items-center gap-1">
-                    <img
-                      src={faviconPreview || favicon || "/punroyal-image/punroyal_logo.webp"}
-                      alt="Favicon Preview"
-                      className="w-8 h-8 rounded object-contain shadow-xs border p-0.5"
-                      onError={(e: any) => {
-                        e.target.src = "/punroyal-image/punroyal_logo.webp";
-                      }}
-                    />
-                    <span className="text-[10px] text-slate-400 font-mono">32x32</span>
-                  </div>
-                  <div className="flex flex-col items-center gap-1">
-                    <img
-                      src={faviconPreview || favicon || "/punroyal-image/punroyal_logo.webp"}
-                      alt="Favicon Preview"
-                      className="w-12 h-12 rounded object-contain shadow-xs border p-1"
-                      onError={(e: any) => {
-                        e.target.src = "/punroyal-image/punroyal_logo.webp";
-                      }}
-                    />
-                    <span className="text-[10px] text-slate-400 font-mono">48x48</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-white border border-slate-200 hover:border-blue-500 rounded-xl text-xs font-bold text-slate-700 cursor-pointer transition-colors shadow-sm">
-                  <Upload size={14} className="text-blue-600" /> Upload File (.ico/.png/.webp)
-                  <input
-                    type="file"
-                    accept="image/x-icon,image/png,image/webp,image/vnd.microsoft.icon,image/svg+xml"
-                    onChange={handleFaviconChange}
-                    className="hidden"
-                  />
-                </label>
-                <input
-                  type="text"
-                  placeholder="Or enter favicon URL"
-                  value={favicon}
-                  onChange={(e) => setFavicon(e.target.value)}
-                  className="w-full p-2.5 text-xs bg-white border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-
-            {/* Newsletter Image */}
-            <div className="space-y-3 p-5 rounded-2xl bg-slate-50 border border-slate-200/60 flex flex-col justify-between">
-              <div>
-                <label className="text-xs font-black text-slate-600 uppercase tracking-wider block mb-2">
-                  <Mail size={14} className="inline mr-1 text-slate-400" /> Newsletter Image
-                </label>
-                <p className="text-xs text-slate-400 mb-3">Used in newsletter signup and promotional sections.</p>
-
-                <div className="w-full h-24 bg-white border border-dashed border-slate-200 rounded-xl flex items-center justify-center p-2 mb-3 overflow-hidden">
-                  {newsletterImagePreview || newsletterImage ? (
-                    <img
-                      src={newsletterImagePreview || newsletterImage}
-                      alt="Newsletter Preview"
-                      className="max-h-full max-w-full object-contain"
-                    />
-                  ) : (
-                    <span className="text-[11px] text-slate-400 font-medium">No image uploaded</span>
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-white border border-slate-200 hover:border-blue-500 rounded-xl text-xs font-bold text-slate-700 cursor-pointer transition-colors shadow-sm">
-                  <Upload size={14} className="text-blue-600" /> Upload File
-                  <input
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                    onChange={handleNewsletterImageChange}
-                    className="hidden"
-                  />
-                </label>
-                <input
-                  type="text"
-                  placeholder="Or enter image URL"
-                  value={newsletterImage}
-                  onChange={(e) => setNewsletterImage(e.target.value)}
-                  className="w-full p-2.5 text-xs bg-white border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-            </div>
-          </div>
-        </div>
-
-        {/* SIZE CHART TABLE SECTION */}
-        <div id="sizechart-settings" className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden scroll-mt-6">
-          <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
-                <Ruler size={20} />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-slate-800">Standard Size Chart & Measurement Guide</h2>
-                <p className="text-xs text-slate-500">
-                  Interactive table editor for readymade products. Edit measurements directly in the table cells. Changes saved here dynamically update the Size Chart popup on all product detail pages.
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={resetSizeChartTable}
-                className="px-3 py-2 text-xs font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition shadow-xs"
-              >
-                Reset Defaults
-              </button>
-              <button
-                type="button"
-                onClick={addSizeChartRow}
-                className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-sm"
-              >
-                <Plus size={14} /> Add Size Row
-              </button>
-            </div>
-          </div>
-
-          <div className="p-6 sm:p-8 space-y-6">
-            <div className="overflow-x-auto border border-slate-200 rounded-2xl">
-              <table className="w-full text-left border-collapse text-xs sm:text-sm">
-                <thead>
-                  <tr className="bg-slate-900 text-white font-bold text-xs uppercase tracking-wider">
-                    <th className="py-3 px-4">Size Name</th>
-                    <th className="py-3 px-4">Bust / Chest (in)</th>
-                    <th className="py-3 px-4">Waist (in)</th>
-                    <th className="py-3 px-4">Hips (in)</th>
-                    <th className="py-3 px-4">Length (in)</th>
-                    <th className="py-3 px-4 text-center w-16">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {sizeChartTable.map((row, idx) => (
-                    <tr key={idx} className="hover:bg-slate-50/60 transition-colors">
-                      <td className="p-2.5">
-                        <input
-                          type="text"
-                          value={row.size}
-                          onChange={(e) => updateSizeChartCell(idx, "size", e.target.value)}
-                          placeholder="e.g. M"
-                          className="w-full p-2 text-xs font-bold bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
-                        />
-                      </td>
-                      <td className="p-2.5">
-                        <input
-                          type="text"
-                          value={row.bust}
-                          onChange={(e) => updateSizeChartCell(idx, "bust", e.target.value)}
-                          placeholder="e.g. 38"
-                          className="w-full p-2 text-xs bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
-                        />
-                      </td>
-                      <td className="p-2.5">
-                        <input
-                          type="text"
-                          value={row.waist}
-                          onChange={(e) => updateSizeChartCell(idx, "waist", e.target.value)}
-                          placeholder="e.g. 34"
-                          className="w-full p-2 text-xs bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
-                        />
-                      </td>
-                      <td className="p-2.5">
-                        <input
-                          type="text"
-                          value={row.hip}
-                          onChange={(e) => updateSizeChartCell(idx, "hip", e.target.value)}
-                          placeholder="e.g. 40"
-                          className="w-full p-2 text-xs bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
-                        />
-                      </td>
-                      <td className="p-2.5">
-                        <input
-                          type="text"
-                          value={row.length}
-                          onChange={(e) => updateSizeChartCell(idx, "length", e.target.value)}
-                          placeholder="e.g. 43"
-                          className="w-full p-2 text-xs bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
-                        />
-                      </td>
-                      <td className="p-2.5 text-center">
-                        <button
-                          type="button"
-                          onClick={() => removeSizeChartRow(idx)}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
-                          title="Delete Size Row"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <p className="text-xs text-slate-500 font-medium">
-              💡 All measurements are in inches. Customers can view this guide anytime on readymade suits by clicking &quot;Convert Size / Chart&quot;.
-            </p>
-          </div>
-        </div>
-
-        {/* SMTP & EMAIL SERVER CONFIGURATION SECTION */}
-        <div id="smtp-settings" className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden scroll-mt-6">
-          <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
-                <Mail size={20} />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-slate-800">SMTP &amp; Email Server Details</h2>
-                <p className="text-xs text-slate-500">
-                  Configure outgoing mail server for OTPs, customer notifications, and store inquiries
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="flex items-center gap-2 cursor-pointer bg-white px-3 py-1.5 rounded-full border border-slate-200 shadow-xs">
-                <span className="text-xs font-bold text-slate-700">Custom SMTP:</span>
-                <input
-                  type="checkbox"
-                  checked={smtp.is_active}
-                  onChange={(e) => setSmtp((prev) => ({ ...prev, is_active: e.target.checked }))}
-                  className="w-4 h-4 text-blue-600 rounded cursor-pointer"
-                />
-                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${smtp.is_active ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-500 border border-slate-200'}`}>
-                  {smtp.is_active ? 'Enabled' : 'Disabled'}
-                </span>
-              </label>
-            </div>
-          </div>
-
-          <div className="p-6 sm:p-8 space-y-6">
-            <div className="p-4 rounded-2xl bg-blue-50/60 border border-blue-200/70 text-xs text-blue-900 flex items-start gap-3">
-              <Server size={18} className="text-blue-600 shrink-0 mt-0.5" />
               <div className="space-y-1">
-                <p className="font-bold">Outgoing Email Server Settings:</p>
-                <p className="text-blue-800 leading-relaxed">
-                  Enter your mail server credentials below. Common providers: <strong>Gmail</strong> (smtp.gmail.com, Port 587 with Google App Password), <strong>Hostinger</strong> (smtp.hostinger.com, Port 465 SSL), <strong>Brevo/Sendinblue</strong> (smtp-relay.brevo.com, Port 587).
-                  Always use the &quot;Send Test Email&quot; tool below to verify delivery.
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {/* SMTP Host */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                  <Server size={13} className="text-slate-400" /> SMTP Host / Server
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. smtp.gmail.com or smtp.hostinger.com"
-                  value={smtp.host}
-                  onChange={(e) => setSmtp((prev) => ({ ...prev, host: e.target.value }))}
-                  className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
-                />
-                <span className="text-[11px] text-slate-400">Mail server hostname or IP address</span>
-              </div>
-
-              {/* SMTP Port */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                  Port Number
-                </label>
-                <input
-                  type="number"
-                  placeholder="587"
-                  value={smtp.port}
-                  onChange={(e) => {
-                    const val = Number(e.target.value) || 587;
-                    setSmtp((prev) => ({
-                      ...prev,
-                      port: val,
-                      secure: val === 465,
-                    }));
-                  }}
-                  className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
-                />
-                <span className="text-[11px] text-slate-400">Usually 587 (TLS/STARTTLS) or 465 (SSL)</span>
-              </div>
-
-              {/* Security / SSL */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                  <ShieldCheck size={13} className="text-slate-400" /> Encryption Protocol
-                </label>
-                <select
-                  value={smtp.secure ? "ssl" : "tls"}
-                  onChange={(e) => {
-                    const isSSL = e.target.value === "ssl";
-                    setSmtp((prev) => ({
-                      ...prev,
-                      secure: isSSL,
-                      port: isSSL ? 465 : (prev.port === 465 ? 587 : prev.port),
-                    }));
-                  }}
-                  className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
-                >
-                  <option value="tls">TLS / STARTTLS (Port 587 recommended)</option>
-                  <option value="ssl">SSL (Port 465)</option>
-                </select>
-                <span className="text-[11px] text-slate-400">Matches your mail provider&apos;s requirements</span>
-              </div>
-
-              {/* SMTP Username / Email */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                  <Mail size={13} className="text-slate-400" /> SMTP Username / Email
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. your-email@domain.com"
-                  value={smtp.user}
-                  onChange={(e) => setSmtp((prev) => ({ ...prev, user: e.target.value }))}
-                  className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
-                />
-                <span className="text-[11px] text-slate-400">Login username or full email address</span>
-              </div>
-
-              {/* SMTP Password */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5"><Lock size={13} className="text-slate-400" /> Password / App Password</span>
-                  <button
-                    type="button"
-                    onClick={() => setShowSmtpPassword((s) => !s)}
-                    className="text-[11px] text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1 cursor-pointer"
-                  >
-                    {showSmtpPassword ? <EyeOff size={12} /> : <Eye size={12} />}
-                    {showSmtpPassword ? "Hide" : "Show"}
-                  </button>
-                </label>
-                <div className="relative">
-                  <input
-                    type={showSmtpPassword ? "text" : "password"}
-                    placeholder="Enter SMTP password or App password"
-                    value={smtp.pass}
-                    onChange={(e) => setSmtp((prev) => ({ ...prev, pass: e.target.value }))}
-                    className="w-full p-3 pr-10 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition font-mono"
-                  />
-                </div>
-                <span className="text-[11px] text-slate-400">For Gmail, generate an App Password in Google Security</span>
-              </div>
-
-              {/* Sender Name */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                  From Name (Display Name)
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. PUNROYAL"
-                  value={smtp.from_name}
-                  onChange={(e) => setSmtp((prev) => ({ ...prev, from_name: e.target.value }))}
-                  className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
-                />
-                <span className="text-[11px] text-slate-400">Sender name displayed in recipient&apos;s inbox</span>
-              </div>
-
-              {/* Sender Email */}
-              <div className="space-y-1.5 md:col-span-2 lg:col-span-3">
-                <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                  From Email (Sender Address)
-                </label>
-                <input
-                  type="email"
-                  placeholder="e.g. orders@punroyal.com (leave blank to use SMTP Username)"
-                  value={smtp.from_email}
-                  onChange={(e) => setSmtp((prev) => ({ ...prev, from_email: e.target.value }))}
-                  className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
-                />
-                <span className="text-[11px] text-slate-400">Email address from which customers will receive notifications</span>
-              </div>
-            </div>
-
-            {/* TEST EMAIL TOOL BOX */}
-            <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-50 to-blue-50/30 border border-slate-200/80 space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div>
-                  <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                    <Send size={15} className="text-blue-600" /> Test SMTP Configuration
-                  </h4>
-                  <p className="text-xs text-slate-500">
-                    Send a test email to verify your SMTP credentials immediately without waiting for an order or OTP.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-1">
-                <input
-                  type="email"
-                  placeholder="Enter email to receive test message (e.g. your-email@gmail.com)"
-                  value={testEmail}
-                  onChange={(e) => setTestEmail(e.target.value)}
-                  className="flex-1 p-2.5 text-sm bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <button
-                  type="button"
-                  disabled={testingSmtp}
-                  onClick={handleTestSmtp}
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold text-sm rounded-xl transition flex items-center justify-center gap-2 shadow-sm cursor-pointer disabled:cursor-not-allowed shrink-0"
-                >
-                  {testingSmtp ? <Loader2 size={16} className="animate-spin" /> : <Send size={14} />}
-                  <span>{testingSmtp ? "Testing Connection..." : "Send Test Email"}</span>
-                </button>
-              </div>
-
-              {smtpTestResult && (
-                <div
-                  className={`p-3.5 rounded-xl text-xs font-semibold flex items-center gap-2 ${
-                    smtpTestResult.success
-                      ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
-                      : "bg-red-50 text-red-800 border border-red-200"
-                  }`}
-                >
-                  {smtpTestResult.success ? (
-                    <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
-                  ) : (
-                    <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
-                  )}
-                  <span>{smtpTestResult.message}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* GST TAX CONFIGURATION SECTION (PLACED PROMINENTLY NEAR TOP) */}
-        <div id="gst-settings" className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden scroll-mt-6">
-          <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-amber-50 text-amber-600 rounded-xl">
-                <Percent size={20} />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-slate-800">GST Configuration (Tax Rules)</h2>
-                <p className="text-xs text-slate-500">
-                  Fixed product categories &amp; price rules. Only GST percentages are editable by admin.
-                </p>
-              </div>
-            </div>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
-              <CheckCircle2 size={13} className="text-emerald-600" />
-              Dynamic Tax Rules Active
-            </span>
-          </div>
-
-          <div className="p-6 sm:p-8 space-y-6">
-            <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200/70 text-xs text-amber-900 flex items-start gap-3">
-              <Receipt size={18} className="text-amber-600 shrink-0 mt-0.5" />
-              <div className="space-y-1">
-                <p className="font-bold">Important Tax Policy Guidelines:</p>
-                <p className="text-amber-800 leading-relaxed">
-                  Product types and price criteria are fixed by business policy. Admins can configure only the GST percentages.
-                  These percentages dynamically drive tax calculations on product pages, the cart drawer, and checkout totals without frontend duplication.
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-              {gstRules.map((rule) => {
-                const isUnstitched = rule.value === "any";
-                const isBelow2500 = rule.value === "below2500";
-                const isAbove2500 = rule.value === "above2500";
-
-                return (
-                  <div
-                    key={rule.value}
-                    className="p-5 rounded-2xl bg-slate-50/70 border border-slate-200/80 flex flex-col justify-between space-y-4 hover:border-slate-300 transition-all shadow-sm"
-                  >
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between gap-2">
+                {filteredTabs.map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs sm:text-sm font-semibold transition-all text-left ${
+                        isActive
+                          ? "bg-slate-100 text-slate-900 shadow-xs border border-slate-200/60"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                      }`}
+                    >
+                      <div
+                        className={`p-1.5 rounded-xl shrink-0 transition-colors ${
+                          isActive
+                            ? "bg-slate-900 text-white"
+                            : "bg-slate-100 text-slate-500 group-hover:text-slate-700"
+                        }`}
+                      >
+                        <Icon size={16} />
+                      </div>
+                      <span className="flex-1 truncate">{tab.name}</span>
+                      {tab.badge && (
                         <span
-                          className={`px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wider ${
-                            isUnstitched
-                              ? "bg-purple-100 text-purple-700 border border-purple-200"
-                              : "bg-blue-100 text-blue-700 border border-blue-200"
+                          className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                            isActive
+                              ? "bg-amber-100 text-amber-800 border border-amber-200"
+                              : "bg-slate-100 text-slate-500"
                           }`}
                         >
-                          {rule.product_type}
+                          {tab.badge}
                         </span>
-                        <span className="text-[11px] font-mono text-slate-400 bg-white px-2 py-0.5 rounded-md border border-slate-200">
-                          value: {rule.value}
-                        </span>
-                      </div>
+                      )}
+                    </button>
+                  );
+                })}
 
-                      <div>
-                        <h4 className="text-sm font-bold text-slate-800">{rule.label}</h4>
-                        <p className="text-xs text-slate-500 mt-1">
-                          {isUnstitched && "Applies to all unstitched suits regardless of price."}
-                          {isBelow2500 && "Applies to readymade items with unit price ≤ ₹2,500."}
-                          {isAbove2500 && "Applies to readymade items with unit price > ₹2,500."}
-                        </p>
-                      </div>
+                {filteredTabs.length === 0 && (
+                  <p className="p-4 text-xs text-slate-400 text-center">No tabs found matching search</p>
+                )}
+              </div>
 
-                      <div className="pt-2 border-t border-slate-200/60">
-                        <div className="flex items-center justify-between text-xs text-slate-500 mb-1.5">
-                          <span className="font-semibold text-slate-700">GST Rate (%)</span>
-                          <span className="text-[11px] text-slate-400">
-                            Default: {isAbove2500 ? "18%" : "5%"}
-                          </span>
-                        </div>
-                        <div className="relative">
-                          <input
-                            type="number"
-                            min={0}
-                            max={100}
-                            step={0.1}
-                            value={rule.percentage}
-                            onChange={(e) =>
-                              handleGstPercentageChange(rule.value, parseFloat(e.target.value))
-                            }
-                            className="w-full pl-3.5 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-base font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                            required
-                          />
-                          <span className="absolute right-3.5 top-1/2 -translate-y-1/2 font-bold text-slate-400 text-sm">
-                            %
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="text-[11px] text-slate-400 flex items-center justify-between pt-2 border-t border-slate-200/40">
-                      <span>Condition: Fixed</span>
-                      <span className="font-medium text-emerald-600">Active Rate: {rule.percentage}%</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* TOPBAR & COUPON HIGHLIGHT */}
-        <div id="topbar-settings" className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden scroll-mt-6">
-          <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
-            <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
-              <Megaphone size={20} />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-slate-800">Topbar & Coupon Highlight</h2>
-              <p className="text-xs text-slate-500">
-                Announcement text for the store top bar and which coupon to feature
-              </p>
-            </div>
-          </div>
-
-          <div className="p-6 sm:p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="md:col-span-1 space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <label className="text-xs font-black text-slate-600 uppercase tracking-wider block">
-                  Topbar Messages
-                </label>
+              <div className="pt-3 border-t border-slate-100 px-2">
                 <button
                   type="button"
-                  onClick={addTopbarMessage}
-                  className="flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
+                  onClick={handleClearCache}
+                  disabled={clearingCache}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 px-3 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl transition shadow-xs disabled:opacity-50"
                 >
-                  <Plus size={14} /> Add Message
+                  <RotateCw size={13} className={clearingCache ? "animate-spin" : ""} />
+                  {clearingCache ? "Clearing..." : "Quick Clear Cache"}
                 </button>
               </div>
-              <p className="text-[11px] text-slate-500">
-                Short promo lines shown in the website top bar (one or more). Max 55 characters limit per line ensures seamless visibility across both mobile & desktop viewports without truncation. Remove all to hide the top bar.
-              </p>
+            </div>
+          </div>
 
-              {topbarMessages.length === 0 ? (
-                <div className="p-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 text-center">
-                  <p className="text-xs text-slate-500 mb-2">No top bar messages yet.</p>
+          {/* RIGHT CONTENT PANEL: Active Tab Card */}
+          <div className="lg:col-span-8 xl:col-span-9">
+            <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
+              {/* Card Header */}
+              <div className="p-6 sm:p-7 border-b border-slate-100 bg-slate-50/50 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-slate-900 text-white rounded-2xl shadow-xs">
+                    {React.createElement(activeTabMeta.icon, { size: 20 })}
+                  </div>
+                  <div>
+                    <h2 className="text-lg sm:text-xl font-bold text-slate-900">{activeTabMeta.name}</h2>
+                    <p className="text-xs text-slate-500 mt-0.5">{activeTabMeta.subtitle}</p>
+                  </div>
+                </div>
+
+                {activeTab === "sizechart" && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={resetSizeChartTable}
+                      className="px-3 py-1.5 text-xs font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition shadow-xs"
+                    >
+                      Reset Defaults
+                    </button>
+                    <button
+                      type="button"
+                      onClick={addSizeChartRow}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-xs"
+                    >
+                      <Plus size={13} /> Add Size Row
+                    </button>
+                  </div>
+                )}
+
+                {activeTab === "topbar" && (
                   <button
                     type="button"
                     onClick={addTopbarMessage}
-                    className="text-xs font-bold text-blue-600 hover:text-blue-700"
+                    className="flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs"
                   >
-                    Add your first message
+                    <Plus size={13} /> Add Message
                   </button>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {topbarMessages.map((message, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center gap-2 p-3 bg-slate-50 border border-slate-200/80 rounded-2xl"
-                    >
-                      <span className="text-xs font-black text-slate-400 w-6 text-center shrink-0">
-                        {index + 1}
-                      </span>
-                      <div className="flex-1 relative flex items-center">
+                )}
+
+                {activeTab === "footer" && (
+                  <button
+                    type="button"
+                    onClick={addFooterLink}
+                    className="flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs"
+                  >
+                    <Plus size={13} /> Add Link
+                  </button>
+                )}
+              </div>
+
+              {/* Card Body */}
+              <div className="p-6 sm:p-8">
+                {/* 1. GENERAL TAB */}
+                {activeTab === "general" && (
+                  <div className="divide-y divide-slate-100">
+                    {/* Support Email */}
+                    <div className="py-5 first:pt-0 last:pb-0 grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-6 items-center">
+                      <div className="md:col-span-5 space-y-1">
+                        <label className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
+                          <Mail size={15} className="text-slate-400" /> Support Email
+                        </label>
+                        <p className="text-xs text-slate-400">Official contact email for store notifications and alerts</p>
+                      </div>
+                      <div className="md:col-span-7">
+                        <input
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="e.g. support@punroyal.com"
+                          className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+                        />
+                        <p className="text-[11px] text-slate-400 mt-1">Displayed in website footer and customer order confirmations</p>
+                      </div>
+                    </div>
+
+                    {/* Support Phone */}
+                    <div className="py-5 grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-6 items-center">
+                      <div className="md:col-span-5 space-y-1">
+                        <label className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
+                          <Phone size={15} className="text-slate-400" /> Support Phone Number
+                        </label>
+                        <p className="text-xs text-slate-400">Customer helpline phone number</p>
+                      </div>
+                      <div className="md:col-span-7">
                         <input
                           type="text"
-                          maxLength={55}
-                          value={message}
-                          onChange={(e) => updateTopbarMessage(index, e.target.value)}
-                          placeholder="e.g. Free shipping on orders above ₹999 (Max 55 chars)"
-                          className="w-full p-2.5 pr-14 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          placeholder="e.g. +91 9816787333"
+                          className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
                         />
-                        <span className={`absolute right-2.5 text-[10px] font-bold px-1.5 py-0.5 rounded pointer-events-none ${message.length >= 50 ? 'text-amber-600 bg-amber-50 font-black' : 'text-slate-400'}`}>
-                          {message.length}/55
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-0.5 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => moveTopbarMessageUp(index)}
-                          disabled={index === 0}
-                          title="Move Up"
-                          className="p-2 text-slate-400 hover:text-slate-700 hover:bg-white rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                        >
-                          <ArrowUp size={16} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => moveTopbarMessageDown(index)}
-                          disabled={index === topbarMessages.length - 1}
-                          title="Move Down"
-                          className="p-2 text-slate-400 hover:text-slate-700 hover:bg-white rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                        >
-                          <ArrowDown size={16} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => removeTopbarMessage(index)}
-                          title="Remove Message"
-                          className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        <p className="text-[11px] text-slate-400 mt-1">Appears on topbar, footer, and powers fallback WhatsApp connect</p>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
 
-            <div>
-              <label className="text-xs font-black text-slate-600 uppercase tracking-wider block mb-2">
-                <Tag size={14} className="inline mr-1 text-slate-400" /> Coupon Highlight
-              </label>
-              <select
-                value={couponHighlight}
-                onChange={(e) => setCouponHighlight(e.target.value)}
-                className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">None — do not highlight a coupon</option>
-                {couponOptions.map((coupon) => (
-                  <option key={coupon._id} value={coupon._id}>
-                    {coupon.couponName}
-                  </option>
-                ))}
-              </select>
-              <p className="text-[11px] text-slate-500 mt-1">
-                Choose a coupon from your Coupons module to promote on the storefront.
-              </p>
-              {couponOptions.length === 0 && (
-                <p className="text-[11px] text-amber-700 mt-1">
-                  No coupons found. Create coupons under Coupons in the sidebar first.
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* FOOTER DESCRIPTION SECTION */}
-        <div id="footer-settings" className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden scroll-mt-6">
-          <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
-            <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
-              <FileText size={20} />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-slate-800">Footer Description / About Text</h2>
-              <p className="text-xs text-slate-500">The description paragraph displayed in the footer under the brand logo</p>
-            </div>
-          </div>
-
-          <div className="p-6 sm:p-8 space-y-4">
-            <label className="text-xs font-black text-slate-600 uppercase tracking-wider block">
-              Footer Description
-            </label>
-            <textarea
-              rows={4}
-              value={footerDescription}
-              onChange={(e) => setFooterDescription(e.target.value)}
-              placeholder="Enter company description shown in the footer..."
-              className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-500 leading-relaxed"
-            />
-            <p className="text-xs text-slate-400">
-              Recommended length: 2-4 sentences explaining your store, quality, and values.
-            </p>
-          </div>
-        </div>
-
-        {/* FOOTER LINKS SECTION */}
-        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-purple-50 text-purple-600 rounded-xl">
-                <Globe size={20} />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-slate-800">Editable Footer Links</h2>
-                <p className="text-xs text-slate-500">Add, remove, edit, or reorder the links shown in the Quick Links column</p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={addFooterLink}
-              className="flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 px-3.5 py-2 rounded-xl text-xs font-bold transition-all"
-            >
-              <Plus size={16} /> Add Link
-            </button>
-          </div>
-
-          <div className="p-6 sm:p-8">
-            <div className="space-y-3">
-              {footerLinks.map((item, index) => (
-                <div
-                  key={index}
-                  className="flex items-center gap-2 sm:gap-4 p-3 bg-slate-50 border border-slate-200/80 rounded-2xl hover:border-slate-300 transition-all"
-                >
-                  <span className="text-xs font-black text-slate-400 w-6 text-center">{index + 1}</span>
-
-                  <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
-                    <div>
-                      <input
-                        type="text"
-                        placeholder="Link Title (e.g., About Us)"
-                        value={item.name}
-                        onChange={(e) => updateFooterLink(index, "name", e.target.value)}
-                        className="w-full p-2.5 text-xs bg-white border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500"
-                        required
-                      />
+                    {/* Location / Address */}
+                    <div className="py-5 grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-6 items-center">
+                      <div className="md:col-span-5 space-y-1">
+                        <label className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
+                          <MapPin size={15} className="text-slate-400" /> Store Headquarters / City
+                        </label>
+                        <p className="text-xs text-slate-400">Physical address or city displayed publicly</p>
+                      </div>
+                      <div className="md:col-span-7">
+                        <input
+                          type="text"
+                          value={location}
+                          onChange={(e) => setLocation(e.target.value)}
+                          placeholder="e.g. Jagraon, Punjab"
+                          className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+                        />
+                        <p className="text-[11px] text-slate-400 mt-1">Shown in footer and contact us page</p>
+                      </div>
                     </div>
-                    <div>
-                      <input
-                        type="text"
-                        placeholder="URL (e.g., /about or https://...)"
-                        value={item.link}
-                        onChange={(e) => updateFooterLink(index, "link", e.target.value)}
-                        className="w-full p-2.5 text-xs bg-white border border-slate-200 rounded-xl font-mono text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
-                        required
-                      />
+
+                    {/* Copyright Notice */}
+                    <div className="py-5 grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-6 items-center">
+                      <div className="md:col-span-5 space-y-1">
+                        <label className="text-sm font-semibold text-slate-800 block">Copyright Notice</label>
+                        <p className="text-xs text-slate-400">Legal copyright text displayed at the bottom of all pages</p>
+                      </div>
+                      <div className="md:col-span-7">
+                        <input
+                          type="text"
+                          value={copyright}
+                          onChange={(e) => setCopyright(e.target.value)}
+                          placeholder="e.g. Copyright 2025 PUNROYAL. All Rights Reserved."
+                          className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+                        />
+                        <p className="text-[11px] text-slate-400 mt-1">Year and company legal rights</p>
+                      </div>
+                    </div>
+
+                    {/* Quick Cache Section */}
+                    <div className="py-5 last:pb-0 grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-6 items-center">
+                      <div className="md:col-span-5 space-y-1">
+                        <label className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
+                          <RotateCw size={15} className="text-amber-600" /> Storefront Cache Synchronization
+                        </label>
+                        <p className="text-xs text-slate-400">Purge server-side Redis cache if updates don&apos;t reflect immediately</p>
+                      </div>
+                      <div className="md:col-span-7 flex flex-wrap items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={handleClearCache}
+                          disabled={clearingCache}
+                          className="flex items-center gap-2 px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all active:scale-95 disabled:opacity-50"
+                        >
+                          <RotateCw size={14} className={clearingCache ? "animate-spin" : ""} />
+                          {clearingCache ? "Clearing Website Cache..." : "Clear Website Cache Now"}
+                        </button>
+                        <span className="text-[11px] text-slate-400">Refreshes banners, categories &amp; product indexes</span>
+                      </div>
                     </div>
                   </div>
+                )}
 
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => moveLinkUp(index)}
-                      disabled={index === 0}
-                      title="Move Up"
-                      className="p-2 text-slate-400 hover:text-slate-700 hover:bg-white rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                    >
-                      <ArrowUp size={16} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => moveLinkDown(index)}
-                      disabled={index === footerLinks.length - 1}
-                      title="Move Down"
-                      className="p-2 text-slate-400 hover:text-slate-700 hover:bg-white rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                    >
-                      <ArrowDown size={16} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => removeFooterLink(index)}
-                      title="Delete Link"
-                      className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                {/* 2. BRAND & MEDIA TAB */}
+                {activeTab === "branding" && (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Header Logo */}
+                      <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/70 flex flex-col justify-between space-y-4">
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="text-xs font-black text-slate-700 uppercase tracking-wider block">
+                              Header Logo
+                            </label>
+                            <span className="text-[10px] text-blue-700 bg-blue-50 border border-blue-200 rounded px-2 py-0.5 font-bold">
+                              400 × 120 px
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-400 mb-3">Main navigation bar brand logo</p>
+
+                          <div className="w-full h-24 bg-white border border-dashed border-slate-200 rounded-xl flex items-center justify-center p-2 mb-3 overflow-hidden">
+                            <img
+                              src={headerLogoPreview || headerLogo || "/punroyal-image/punroyal_logo.webp"}
+                              alt="Header Logo Preview"
+                              className="max-h-full max-w-full object-contain"
+                              onError={(e: any) => {
+                                e.target.src = "/punroyal-image/punroyal_logo.webp";
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="flex items-center justify-center gap-2 w-full py-2 px-3 bg-white border border-slate-200 hover:border-blue-500 rounded-xl text-xs font-bold text-slate-700 cursor-pointer transition-colors shadow-xs">
+                            <Upload size={13} className="text-blue-600" /> Upload Header Logo
+                            <input
+                              type="file"
+                              accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                              onChange={handleHeaderLogoChange}
+                              className="hidden"
+                            />
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="Or enter image URL"
+                            value={headerLogo}
+                            onChange={(e) => setHeaderLogo(e.target.value)}
+                            className="w-full p-2.5 text-xs bg-white border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Footer Logo */}
+                      <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/70 flex flex-col justify-between space-y-4">
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="text-xs font-black text-slate-700 uppercase tracking-wider block">
+                              Footer Logo
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFooterLogo(headerLogo);
+                                setFooterLogoPreview(headerLogoPreview);
+                                setFooterLogoFile(headerLogoFile);
+                                toast.success("Copied Header Logo to Footer Logo");
+                              }}
+                              className="text-[11px] text-blue-600 hover:underline font-bold"
+                            >
+                              Same as Header
+                            </button>
+                          </div>
+                          <p className="text-xs text-slate-400 mb-3">Displayed at the bottom of all storefront pages</p>
+
+                          <div className="w-full h-24 bg-white border border-dashed border-slate-200 rounded-xl flex items-center justify-center p-2 mb-3 overflow-hidden">
+                            <img
+                              src={footerLogoPreview || footerLogo || headerLogo || "/punroyal-image/punroyal_logo.webp"}
+                              alt="Footer Logo Preview"
+                              className="max-h-full max-w-full object-contain"
+                              onError={(e: any) => {
+                                e.target.src = "/punroyal-image/punroyal_logo.webp";
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="flex items-center justify-center gap-2 w-full py-2 px-3 bg-white border border-slate-200 hover:border-blue-500 rounded-xl text-xs font-bold text-slate-700 cursor-pointer transition-colors shadow-xs">
+                            <Upload size={13} className="text-blue-600" /> Upload Footer Logo
+                            <input
+                              type="file"
+                              accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                              onChange={handleFooterLogoChange}
+                              className="hidden"
+                            />
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="Or enter image URL"
+                            value={footerLogo}
+                            onChange={(e) => setFooterLogo(e.target.value)}
+                            className="w-full p-2.5 text-xs bg-white border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Browser Favicon */}
+                      <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/70 flex flex-col justify-between space-y-4">
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="text-xs font-black text-slate-700 uppercase tracking-wider block">
+                              Browser Favicon
+                            </label>
+                            <span className="text-[10px] text-slate-600 bg-white border border-slate-200 rounded px-2 py-0.5 font-mono">
+                              32×32 / 48×48
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-400 mb-3">Browser tab &amp; bookmark icon</p>
+
+                          <div className="w-full h-24 bg-white border border-dashed border-slate-200 rounded-xl flex items-center justify-center gap-6 p-2 mb-3">
+                            <div className="flex flex-col items-center gap-1">
+                              <img
+                                src={faviconPreview || favicon || "/punroyal-image/punroyal_logo.webp"}
+                                alt="Favicon 32"
+                                className="w-8 h-8 rounded object-contain shadow-xs border p-0.5"
+                                onError={(e: any) => {
+                                  e.target.src = "/punroyal-image/punroyal_logo.webp";
+                                }}
+                              />
+                              <span className="text-[10px] text-slate-400 font-mono">32px</span>
+                            </div>
+                            <div className="flex flex-col items-center gap-1">
+                              <img
+                                src={faviconPreview || favicon || "/punroyal-image/punroyal_logo.webp"}
+                                alt="Favicon 48"
+                                className="w-12 h-12 rounded object-contain shadow-xs border p-1"
+                                onError={(e: any) => {
+                                  e.target.src = "/punroyal-image/punroyal_logo.webp";
+                                }}
+                              />
+                              <span className="text-[10px] text-slate-400 font-mono">48px</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="flex items-center justify-center gap-2 w-full py-2 px-3 bg-white border border-slate-200 hover:border-blue-500 rounded-xl text-xs font-bold text-slate-700 cursor-pointer transition-colors shadow-xs">
+                            <Upload size={13} className="text-blue-600" /> Upload Favicon
+                            <input
+                              type="file"
+                              accept="image/x-icon,image/png,image/webp,image/vnd.microsoft.icon,image/svg+xml"
+                              onChange={handleFaviconChange}
+                              className="hidden"
+                            />
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="Or enter favicon URL"
+                            value={favicon}
+                            onChange={(e) => setFavicon(e.target.value)}
+                            className="w-full p-2.5 text-xs bg-white border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Newsletter Promotional Image */}
+                      <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/70 flex flex-col justify-between space-y-4">
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="text-xs font-black text-slate-700 uppercase tracking-wider block">
+                              Newsletter Popup Image
+                            </label>
+                            <span className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-2 py-0.5 font-bold">
+                              Auto-WebP
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-400 mb-3">Promotional image used in newsletter popup modal</p>
+
+                          <div className="w-full h-24 bg-white border border-dashed border-slate-200 rounded-xl flex items-center justify-center p-2 mb-3 overflow-hidden">
+                            {newsletterImagePreview || newsletterImage ? (
+                              <img
+                                src={newsletterImagePreview || newsletterImage}
+                                alt="Newsletter Preview"
+                                className="max-h-full max-w-full object-contain"
+                              />
+                            ) : (
+                              <span className="text-[11px] text-slate-400 font-medium">No banner uploaded</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="flex items-center justify-center gap-2 w-full py-2 px-3 bg-white border border-slate-200 hover:border-blue-500 rounded-xl text-xs font-bold text-slate-700 cursor-pointer transition-colors shadow-xs">
+                            <Upload size={13} className="text-blue-600" /> Upload Newsletter Banner
+                            <input
+                              type="file"
+                              accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                              onChange={handleNewsletterImageChange}
+                              className="hidden"
+                            />
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="Or enter banner URL"
+                            value={newsletterImage}
+                            onChange={(e) => setNewsletterImage(e.target.value)}
+                            className="w-full p-2.5 text-xs bg-white border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Newsletter Heading & Subtitle Row */}
+                    <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/70 space-y-4">
+                      <h4 className="text-xs font-black text-slate-700 uppercase tracking-wider">
+                        Newsletter Popup Text &amp; Discount Offer
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-xs font-semibold text-slate-700 block mb-1">
+                            Newsletter Popup Title
+                          </label>
+                          <input
+                            type="text"
+                            value={newsletterTitle}
+                            onChange={(e) => setNewsletterTitle(e.target.value)}
+                            placeholder="Join our style circle & get 10% off your first order!"
+                            className="w-full p-2.5 text-xs bg-white border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-semibold text-slate-700 block mb-1">
+                            Newsletter Subtitle
+                          </label>
+                          <input
+                            type="text"
+                            value={newsletterSubtitle}
+                            onChange={(e) => setNewsletterSubtitle(e.target.value)}
+                            placeholder="Stay in the loop with our Punroyal newsletter..."
+                            className="w-full p-2.5 text-xs bg-white border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                )}
+
+                {/* 3. GST & TAX CONFIGURATION TAB */}
+                {activeTab === "gst" && (
+                  <div className="space-y-6">
+                    <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/80 text-xs text-amber-900 flex items-start gap-3">
+                      <Receipt size={18} className="text-amber-600 shrink-0 mt-0.5" />
+                      <div className="space-y-1">
+                        <p className="font-bold">Dynamic Tax Calculation Architecture:</p>
+                        <p className="text-amber-800 leading-relaxed">
+                          Product types and bracket conditions are fixed by business policy. As admin, you can configure the active GST tax percentage for each category.
+                          These percentages dynamically drive tax calculations on all product pages, the cart drawer, and checkout totals without frontend duplication.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="divide-y divide-slate-100">
+                      {gstRules.map((rule) => {
+                        const isUnstitched = rule.value === "any";
+                        const isBelow2500 = rule.value === "below2500";
+                        const isAbove2500 = rule.value === "above2500";
+
+                        return (
+                          <div
+                            key={rule.value}
+                            className="py-5 first:pt-0 last:pb-0 grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-6 items-center"
+                          >
+                            <div className="md:col-span-6 space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                                    isUnstitched
+                                      ? "bg-purple-100 text-purple-700"
+                                      : "bg-blue-100 text-blue-700"
+                                  }`}
+                                >
+                                  {rule.product_type}
+                                </span>
+                                <span className="text-sm font-bold text-slate-800">{rule.label}</span>
+                              </div>
+                              <p className="text-xs text-slate-400">
+                                {isUnstitched && "Applies to all unstitched suits regardless of price"}
+                                {isBelow2500 && "Applies to readymade items with unit price ≤ ₹2,500"}
+                                {isAbove2500 && "Applies to readymade items with unit price > ₹2,500"}
+                              </p>
+                            </div>
+
+                            <div className="md:col-span-6 flex items-center justify-start md:justify-end gap-3">
+                              <div className="relative w-40">
+                                <input
+                                  type="number"
+                                  min={0}
+                                  max={100}
+                                  step={0.1}
+                                  value={rule.percentage}
+                                  onChange={(e) =>
+                                    handleGstPercentageChange(rule.value, parseFloat(e.target.value))
+                                  }
+                                  className="w-full pl-3.5 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+                                  required
+                                />
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 font-bold text-slate-400 text-xs">
+                                  %
+                                </span>
+                              </div>
+                              <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200/60 shrink-0">
+                                Active: {rule.percentage}%
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* 4. SIZE CHART GUIDE TAB */}
+                {activeTab === "sizechart" && (
+                  <div className="space-y-6">
+                    <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 text-xs text-emerald-900 flex items-start gap-3">
+                      <Ruler size={18} className="text-emerald-600 shrink-0 mt-0.5" />
+                      <div className="space-y-1">
+                        <p className="font-bold">Interactive Readymade Size Guide:</p>
+                        <p className="text-emerald-800 leading-relaxed">
+                          Measurements are in inches. Changes made here dynamically update the &quot;Convert Size / Chart&quot; modal on all readymade product detail pages.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="overflow-x-auto border border-slate-200 rounded-2xl">
+                      <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                        <thead>
+                          <tr className="bg-slate-900 text-white font-bold text-xs uppercase tracking-wider">
+                            <th className="py-3 px-4">Size Name</th>
+                            <th className="py-3 px-4">Bust / Chest (in)</th>
+                            <th className="py-3 px-4">Waist (in)</th>
+                            <th className="py-3 px-4">Hips (in)</th>
+                            <th className="py-3 px-4">Length (in)</th>
+                            <th className="py-3 px-4 text-center w-16">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {sizeChartTable.map((row, idx) => (
+                            <tr key={idx} className="hover:bg-slate-50/60 transition-colors">
+                              <td className="p-2.5">
+                                <input
+                                  type="text"
+                                  value={row.size}
+                                  onChange={(e) => updateSizeChartCell(idx, "size", e.target.value)}
+                                  placeholder="e.g. M"
+                                  className="w-full p-2 text-xs font-bold bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
+                                />
+                              </td>
+                              <td className="p-2.5">
+                                <input
+                                  type="text"
+                                  value={row.bust}
+                                  onChange={(e) => updateSizeChartCell(idx, "bust", e.target.value)}
+                                  placeholder="e.g. 38"
+                                  className="w-full p-2 text-xs bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
+                                />
+                              </td>
+                              <td className="p-2.5">
+                                <input
+                                  type="text"
+                                  value={row.waist}
+                                  onChange={(e) => updateSizeChartCell(idx, "waist", e.target.value)}
+                                  placeholder="e.g. 34"
+                                  className="w-full p-2 text-xs bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
+                                />
+                              </td>
+                              <td className="p-2.5">
+                                <input
+                                  type="text"
+                                  value={row.hip}
+                                  onChange={(e) => updateSizeChartCell(idx, "hip", e.target.value)}
+                                  placeholder="e.g. 40"
+                                  className="w-full p-2 text-xs bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
+                                />
+                              </td>
+                              <td className="p-2.5">
+                                <input
+                                  type="text"
+                                  value={row.length}
+                                  onChange={(e) => updateSizeChartCell(idx, "length", e.target.value)}
+                                  placeholder="e.g. 43"
+                                  className="w-full p-2 text-xs bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
+                                />
+                              </td>
+                              <td className="p-2.5 text-center">
+                                <button
+                                  type="button"
+                                  onClick={() => removeSizeChartRow(idx)}
+                                  className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                                  title="Delete Size Row"
+                                >
+                                  <Trash2 size={15} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* 5. SMTP & EMAIL SERVER TAB */}
+                {activeTab === "smtp" && (
+                  <div className="space-y-6">
+                    <div className="divide-y divide-slate-100">
+                      {/* Custom SMTP Toggle */}
+                      <div className="py-4 first:pt-0 grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-6 items-center">
+                        <div className="md:col-span-5 space-y-1">
+                          <label className="text-sm font-semibold text-slate-800 block">
+                            Custom SMTP Activation
+                          </label>
+                          <p className="text-xs text-slate-400">Enable custom outgoing mail server for inquiries and alerts</p>
+                        </div>
+                        <div className="md:col-span-7">
+                          <label className="inline-flex items-center gap-3 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={smtp.is_active}
+                              onChange={(e) =>
+                                setSmtp((prev) => ({ ...prev, is_active: e.target.checked }))
+                              }
+                              className="sr-only"
+                            />
+                            <div
+                              className={`w-5 h-5 rounded-md flex items-center justify-center border transition-all ${
+                                smtp.is_active
+                                  ? "bg-emerald-600 border-emerald-600 text-white"
+                                  : "bg-white border-slate-300"
+                              }`}
+                            >
+                              {smtp.is_active && <Check size={14} className="stroke-[3]" />}
+                            </div>
+                            <span className="text-sm font-medium text-slate-700">
+                              {smtp.is_active ? "Custom SMTP is Active" : "Custom SMTP is Disabled"}
+                            </span>
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* SMTP Host */}
+                      <div className="py-4 grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-6 items-center">
+                        <div className="md:col-span-5 space-y-1">
+                          <label className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
+                            <Server size={14} className="text-slate-400" /> SMTP Host / Server
+                          </label>
+                          <p className="text-xs text-slate-400">Mail server hostname or IP address</p>
+                        </div>
+                        <div className="md:col-span-7">
+                          <input
+                            type="text"
+                            placeholder="e.g. smtp.gmail.com or smtp.hostinger.com"
+                            value={smtp.host}
+                            onChange={(e) => setSmtp((prev) => ({ ...prev, host: e.target.value }))}
+                            className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+                          />
+                        </div>
+                      </div>
+
+                      {/* SMTP Port & Protocol */}
+                      <div className="py-4 grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-6 items-center">
+                        <div className="md:col-span-5 space-y-1">
+                          <label className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
+                            <ShieldCheck size={14} className="text-slate-400" /> Port &amp; Encryption
+                          </label>
+                          <p className="text-xs text-slate-400">Port 587 (TLS) or Port 465 (SSL)</p>
+                        </div>
+                        <div className="md:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <input
+                            type="number"
+                            placeholder="587"
+                            value={smtp.port}
+                            onChange={(e) => {
+                              const val = Number(e.target.value) || 587;
+                              setSmtp((prev) => ({
+                                ...prev,
+                                port: val,
+                                secure: val === 465,
+                              }));
+                            }}
+                            className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+                          />
+                          <select
+                            value={smtp.secure ? "ssl" : "tls"}
+                            onChange={(e) => {
+                              const isSSL = e.target.value === "ssl";
+                              setSmtp((prev) => ({
+                                ...prev,
+                                secure: isSSL,
+                                port: isSSL ? 465 : prev.port === 465 ? 587 : prev.port,
+                              }));
+                            }}
+                            className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+                          >
+                            <option value="tls">TLS / STARTTLS (Port 587)</option>
+                            <option value="ssl">SSL (Port 465)</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* SMTP Username */}
+                      <div className="py-4 grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-6 items-center">
+                        <div className="md:col-span-5 space-y-1">
+                          <label className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
+                            <Mail size={14} className="text-slate-400" /> SMTP Username / Email
+                          </label>
+                          <p className="text-xs text-slate-400">Account login username or email</p>
+                        </div>
+                        <div className="md:col-span-7">
+                          <input
+                            type="text"
+                            placeholder="e.g. orders@punroyal.com"
+                            value={smtp.user}
+                            onChange={(e) => setSmtp((prev) => ({ ...prev, user: e.target.value }))}
+                            className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+                          />
+                        </div>
+                      </div>
+
+                      {/* SMTP Password */}
+                      <div className="py-4 grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-6 items-center">
+                        <div className="md:col-span-5 space-y-1">
+                          <label className="text-sm font-semibold text-slate-800 flex items-center justify-between pr-4">
+                            <span className="flex items-center gap-1.5">
+                              <Lock size={14} className="text-slate-400" /> Password / App Password
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setShowSmtpPassword((s) => !s)}
+                              className="text-[11px] text-blue-600 hover:text-blue-700 font-bold flex items-center gap-1"
+                            >
+                              {showSmtpPassword ? <EyeOff size={11} /> : <Eye size={11} />}
+                              {showSmtpPassword ? "Hide" : "Show"}
+                            </button>
+                          </label>
+                          <p className="text-xs text-slate-400">For Gmail, use a 16-character Google App Password</p>
+                        </div>
+                        <div className="md:col-span-7">
+                          <input
+                            type={showSmtpPassword ? "text" : "password"}
+                            placeholder="Enter password"
+                            value={smtp.pass}
+                            onChange={(e) => setSmtp((prev) => ({ ...prev, pass: e.target.value }))}
+                            className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition font-mono"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Sender Name & Email */}
+                      <div className="py-4 grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-6 items-center">
+                        <div className="md:col-span-5 space-y-1">
+                          <label className="text-sm font-semibold text-slate-800 block">Sender Name &amp; Email</label>
+                          <p className="text-xs text-slate-400">Display name &amp; sender address seen in customer inboxes</p>
+                        </div>
+                        <div className="md:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <input
+                            type="text"
+                            placeholder="e.g. PUNROYAL"
+                            value={smtp.from_name}
+                            onChange={(e) =>
+                              setSmtp((prev) => ({ ...prev, from_name: e.target.value }))
+                            }
+                            className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+                          />
+                          <input
+                            type="email"
+                            placeholder="Sender email (or leave blank)"
+                            value={smtp.from_email}
+                            onChange={(e) =>
+                              setSmtp((prev) => ({ ...prev, from_email: e.target.value }))
+                            }
+                            className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Test Email Box */}
+                    <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-50 to-blue-50/40 border border-slate-200/80 space-y-3">
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                          <Send size={15} className="text-blue-600" /> Send Live SMTP Test Message
+                        </h4>
+                        <p className="text-xs text-slate-500">
+                          Verify your SMTP connection immediately without creating a test order.
+                        </p>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-1">
+                        <input
+                          type="email"
+                          placeholder="Recipient email address (e.g. your-email@gmail.com)"
+                          value={testEmail}
+                          onChange={(e) => setTestEmail(e.target.value)}
+                          className="flex-1 p-2.5 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <button
+                          type="button"
+                          disabled={testingSmtp}
+                          onClick={handleTestSmtp}
+                          className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold text-xs sm:text-sm rounded-xl transition flex items-center justify-center gap-2 shadow-xs shrink-0"
+                        >
+                          {testingSmtp ? <Loader2 size={15} className="animate-spin" /> : <Send size={13} />}
+                          <span>{testingSmtp ? "Testing..." : "Send Test Email"}</span>
+                        </button>
+                      </div>
+
+                      {smtpTestResult && (
+                        <div
+                          className={`p-3 rounded-xl text-xs font-semibold flex items-center gap-2 ${
+                            smtpTestResult.success
+                              ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                              : "bg-red-50 text-red-800 border border-red-200"
+                          }`}
+                        >
+                          {smtpTestResult.success ? (
+                            <CheckCircle2 size={15} className="text-emerald-600 shrink-0" />
+                          ) : (
+                            <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
+                          )}
+                          <span>{smtpTestResult.message}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* 6. TOPBAR & COUPONS TAB */}
+                {activeTab === "topbar" && (
+                  <div className="divide-y divide-slate-100">
+                    {/* Featured Coupon Highlight */}
+                    <div className="py-5 first:pt-0 grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-6 items-center">
+                      <div className="md:col-span-5 space-y-1">
+                        <label className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
+                          <Tag size={15} className="text-indigo-600" /> Featured Store Coupon
+                        </label>
+                        <p className="text-xs text-slate-400">Choose a coupon to highlight on the homepage and cart drawer</p>
+                      </div>
+                      <div className="md:col-span-7">
+                        <select
+                          value={couponHighlight}
+                          onChange={(e) => setCouponHighlight(e.target.value)}
+                          className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+                        >
+                          <option value="">None — do not highlight a coupon</option>
+                          {couponOptions.map((coupon) => (
+                            <option key={coupon._id} value={coupon._id}>
+                              {coupon.couponName}
+                            </option>
+                          ))}
+                        </select>
+                        {couponOptions.length === 0 && (
+                          <p className="text-[11px] text-amber-700 mt-1">
+                            No active coupons found. Create coupons in the Coupons module first.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Announcement Tickers */}
+                    <div className="py-5 last:pb-0 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <label className="text-sm font-semibold text-slate-800 block">
+                            Topbar Announcements Ticker
+                          </label>
+                          <p className="text-xs text-slate-400">
+                            Short promo messages rotated in the topbar (max 55 characters per message)
+                          </p>
+                        </div>
+                      </div>
+
+                      {topbarMessages.length === 0 ? (
+                        <div className="p-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50 text-center">
+                          <p className="text-xs text-slate-500 mb-2">No topbar messages added yet.</p>
+                          <button
+                            type="button"
+                            onClick={addTopbarMessage}
+                            className="text-xs font-bold text-blue-600 hover:text-blue-700"
+                          >
+                            + Add first topbar message
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="space-y-2.5">
+                          {topbarMessages.map((message, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center gap-2 p-3 bg-slate-50 border border-slate-200/80 rounded-2xl"
+                            >
+                              <span className="text-xs font-black text-slate-400 w-6 text-center shrink-0">
+                                {index + 1}
+                              </span>
+                              <div className="flex-1 relative flex items-center">
+                                <input
+                                  type="text"
+                                  maxLength={55}
+                                  value={message}
+                                  onChange={(e) => updateTopbarMessage(index, e.target.value)}
+                                  placeholder="e.g. Free shipping on all prepaid orders (Max 55 chars)"
+                                  className="w-full p-2.5 pr-14 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                                <span
+                                  className={`absolute right-2.5 text-[10px] font-bold px-1.5 py-0.5 rounded pointer-events-none ${
+                                    message.length >= 50
+                                      ? "text-amber-600 bg-amber-50 font-black"
+                                      : "text-slate-400"
+                                  }`}
+                                >
+                                  {message.length}/55
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-0.5 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => moveTopbarMessageUp(index)}
+                                  disabled={index === 0}
+                                  title="Move Up"
+                                  className="p-2 text-slate-400 hover:text-slate-700 hover:bg-white rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                                >
+                                  <ArrowUp size={15} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => moveTopbarMessageDown(index)}
+                                  disabled={index === topbarMessages.length - 1}
+                                  title="Move Down"
+                                  className="p-2 text-slate-400 hover:text-slate-700 hover:bg-white rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                                >
+                                  <ArrowDown size={15} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => removeTopbarMessage(index)}
+                                  title="Remove Message"
+                                  className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                >
+                                  <Trash2 size={15} />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* 7. FOOTER & QUICK LINKS TAB */}
+                {activeTab === "footer" && (
+                  <div className="space-y-6">
+                    {/* Footer Description */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-slate-800 block">
+                        Brand Footer About Text
+                      </label>
+                      <textarea
+                        rows={4}
+                        value={footerDescription}
+                        onChange={(e) => setFooterDescription(e.target.value)}
+                        placeholder="Enter brand description displayed below the footer logo..."
+                        className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white leading-relaxed"
+                      />
+                      <p className="text-xs text-slate-400">
+                        2-4 sentences explaining craftsmanship, quality, and heritage
+                      </p>
+                    </div>
+
+                    {/* Footer Quick Links */}
+                    <div className="space-y-3 pt-4 border-t border-slate-100">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <label className="text-sm font-semibold text-slate-800 block">
+                            Quick Links Navigation
+                          </label>
+                          <p className="text-xs text-slate-400">
+                            Reorder, edit, or append links in the footer quick links column
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2.5">
+                        {footerLinks.map((item, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center gap-2 sm:gap-3 p-3 bg-slate-50 border border-slate-200/80 rounded-2xl"
+                          >
+                            <span className="text-xs font-black text-slate-400 w-6 text-center shrink-0">
+                              {index + 1}
+                            </span>
+                            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              <input
+                                type="text"
+                                placeholder="Link Title (e.g. About Us)"
+                                value={item.name}
+                                onChange={(e) => updateFooterLink(index, "name", e.target.value)}
+                                className="w-full p-2.5 text-xs bg-white border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500"
+                                required
+                              />
+                              <input
+                                type="text"
+                                placeholder="URL (e.g. /about or /track-order)"
+                                value={item.link}
+                                onChange={(e) => updateFooterLink(index, "link", e.target.value)}
+                                className="w-full p-2.5 text-xs bg-white border border-slate-200 rounded-xl font-mono text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
+                                required
+                              />
+                            </div>
+                            <div className="flex items-center gap-0.5 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => moveLinkUp(index)}
+                                disabled={index === 0}
+                                title="Move Up"
+                                className="p-2 text-slate-400 hover:text-slate-700 hover:bg-white rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                              >
+                                <ArrowUp size={15} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => moveLinkDown(index)}
+                                disabled={index === footerLinks.length - 1}
+                                title="Move Down"
+                                className="p-2 text-slate-400 hover:text-slate-700 hover:bg-white rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                              >
+                                <ArrowDown size={15} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => removeFooterLink(index)}
+                                title="Delete Link"
+                                className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 8. SOCIAL MEDIA & WHATSAPP TAB */}
+                {activeTab === "social" && (
+                  <div className="divide-y divide-slate-100">
+                    {/* WhatsApp */}
+                    <div className="py-4 first:pt-0 grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-6 items-center">
+                      <div className="md:col-span-5 space-y-1">
+                        <label className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
+                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
+                          WhatsApp Floating Widget
+                        </label>
+                        <p className="text-xs text-slate-400">
+                          Powers the floating green WhatsApp chat button on all customer pages
+                        </p>
+                      </div>
+                      <div className="md:col-span-7">
+                        <input
+                          type="text"
+                          value={socialLinks.whatsapp}
+                          onChange={(e) =>
+                            setSocialLinks({ ...socialLinks, whatsapp: e.target.value })
+                          }
+                          placeholder={phone ? `e.g. ${phone} or https://wa.me/...` : "+91 9816787333"}
+                          className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+                        />
+                        <p className="text-[11px] text-slate-400 mt-1">
+                          If left blank, Support Phone ({phone || "+91 9816787333"}) is used automatically
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Instagram */}
+                    <div className="py-4 grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-6 items-center">
+                      <div className="md:col-span-5 space-y-1">
+                        <label className="text-sm font-semibold text-slate-800 block">Instagram Profile URL</label>
+                        <p className="text-xs text-slate-400">Official Instagram page link</p>
+                      </div>
+                      <div className="md:col-span-7">
+                        <input
+                          type="url"
+                          value={socialLinks.instagram}
+                          onChange={(e) =>
+                            setSocialLinks({ ...socialLinks, instagram: e.target.value })
+                          }
+                          placeholder="https://instagram.com/pun_royal1"
+                          className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Facebook */}
+                    <div className="py-4 grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-6 items-center">
+                      <div className="md:col-span-5 space-y-1">
+                        <label className="text-sm font-semibold text-slate-800 block">Facebook Page URL</label>
+                        <p className="text-xs text-slate-400">Official Facebook page link</p>
+                      </div>
+                      <div className="md:col-span-7">
+                        <input
+                          type="url"
+                          value={socialLinks.facebook}
+                          onChange={(e) =>
+                            setSocialLinks({ ...socialLinks, facebook: e.target.value })
+                          }
+                          placeholder="https://facebook.com/..."
+                          className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+                        />
+                      </div>
+                    </div>
+
+                    {/* YouTube */}
+                    <div className="py-4 grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-6 items-center">
+                      <div className="md:col-span-5 space-y-1">
+                        <label className="text-sm font-semibold text-slate-800 block">YouTube Channel URL</label>
+                        <p className="text-xs text-slate-400">Official YouTube channel link</p>
+                      </div>
+                      <div className="md:col-span-7">
+                        <input
+                          type="url"
+                          value={socialLinks.youtube}
+                          onChange={(e) =>
+                            setSocialLinks({ ...socialLinks, youtube: e.target.value })
+                          }
+                          placeholder="https://youtube.com/@Pun_Royal"
+                          className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Twitter / X */}
+                    <div className="py-4 last:pb-0 grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-6 items-center">
+                      <div className="md:col-span-5 space-y-1">
+                        <label className="text-sm font-semibold text-slate-800 block">Twitter / X URL</label>
+                        <p className="text-xs text-slate-400">Official X/Twitter account</p>
+                      </div>
+                      <div className="md:col-span-7">
+                        <input
+                          type="url"
+                          value={socialLinks.twitter}
+                          onChange={(e) =>
+                            setSocialLinks({ ...socialLinks, twitter: e.target.value })
+                          }
+                          placeholder="https://x.com/..."
+                          className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 9. CACHE & PERFORMANCE TAB */}
+                {activeTab === "cache" && (
+                  <div className="space-y-6">
+                    <div className="p-5 rounded-2xl bg-amber-50/70 border border-amber-200/80 space-y-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center text-amber-800">
+                          <RotateCw size={16} />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-bold text-slate-900">Redis In-Memory Cache</h4>
+                          <p className="text-xs text-slate-500">Fast storefront data caching engine</p>
+                        </div>
+                      </div>
+                      <p className="text-xs text-amber-900 leading-relaxed">
+                        To guarantee high throughput, the customer website caches product listings, collection pages, banners, occasion links, and global store settings in Redis.
+                        Whenever you make critical catalog changes that you want to see reflected right away, use the button below to flush the store cache.
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-slate-50 border border-slate-200/80">
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-800">Purge Complete Website Cache</h4>
+                        <p className="text-xs text-slate-500">Flushes all cache tags without restarting the server</p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleClearCache}
+                        disabled={clearingCache}
+                        className="flex items-center justify-center gap-2 px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-xs transition-all active:scale-95 disabled:opacity-50"
+                      >
+                        <RotateCw size={15} className={clearingCache ? "animate-spin" : ""} />
+                        {clearingCache ? "Purging Cache..." : "Clear Website Cache Now"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* CONTACT & SOCIAL DETAILS */}
-        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
-            <div className="p-2.5 bg-amber-50 text-amber-600 rounded-xl">
-              <Share2 size={20} />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-slate-800">Contact Info & Social Links</h2>
-              <p className="text-xs text-slate-500">Contact information and social profiles displayed across the footer</p>
-            </div>
+        {/* BOTTOM STICKY SAVE ACTION BAR */}
+        <div className="sticky bottom-4 z-20 bg-white/95 backdrop-blur-md p-4 rounded-2xl border border-slate-200/80 shadow-lg flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-600">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-pulse" />
+            <span>Editing tab:</span>
+            <span className="text-slate-900 font-bold bg-slate-100 px-2 py-0.5 rounded-lg">
+              {activeTabMeta.name}
+            </span>
           </div>
 
-          <div className="p-6 sm:p-8 space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div>
-                <label className="text-xs font-black text-slate-600 uppercase tracking-wider block mb-2">
-                  <Mail size={14} className="inline mr-1 text-slate-400" /> Support Email
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="support@punroyal.com"
-                  className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-black text-slate-600 uppercase tracking-wider block mb-2">
-                  <Phone size={14} className="inline mr-1 text-slate-400" /> Support Phone
-                </label>
-                <input
-                  type="text"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+91 9816787333"
-                  className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-black text-slate-600 uppercase tracking-wider block mb-2">
-                  <MapPin size={14} className="inline mr-1 text-slate-400" /> Location / Address
-                </label>
-                <input
-                  type="text"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder="Jagraon, Punjab"
-                  className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-black text-slate-600 uppercase tracking-wider block mb-2">
-                  Copyright Notice
-                </label>
-                <input
-                  type="text"
-                  value={copyright}
-                  onChange={(e) => setCopyright(e.target.value)}
-                  placeholder="Copyright 2025 PUNROYAL. All Rights Reserved."
-                  className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-
-            <hr className="border-slate-100" />
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div>
-                <label className="text-xs font-black text-slate-600 uppercase tracking-wider block mb-2">
-                  Facebook URL
-                </label>
-                <input
-                  type="url"
-                  value={socialLinks.facebook}
-                  onChange={(e) => setSocialLinks({ ...socialLinks, facebook: e.target.value })}
-                  placeholder="https://facebook.com/..."
-                  className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-black text-slate-600 uppercase tracking-wider block mb-2">
-                  Instagram URL
-                </label>
-                <input
-                  type="url"
-                  value={socialLinks.instagram}
-                  onChange={(e) => setSocialLinks({ ...socialLinks, instagram: e.target.value })}
-                  placeholder="https://instagram.com/..."
-                  className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-black text-slate-600 uppercase tracking-wider block mb-2">
-                  YouTube URL
-                </label>
-                <input
-                  type="url"
-                  value={socialLinks.youtube}
-                  onChange={(e) => setSocialLinks({ ...socialLinks, youtube: e.target.value })}
-                  placeholder="https://youtube.com/..."
-                  className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-black text-slate-600 uppercase tracking-wider block mb-2">
-                  WhatsApp Number / Link <span className="text-slate-400 font-normal lowercase">(Store Floating Button)</span>
-                </label>
-                <input
-                  type="text"
-                  value={socialLinks.whatsapp}
-                  onChange={(e) => setSocialLinks({ ...socialLinks, whatsapp: e.target.value })}
-                  placeholder={phone ? `e.g. ${phone} or https://wa.me/...` : "e.g. +91 9816787333 or 9816787333"}
-                  className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <p className="text-[11px] text-slate-500 mt-1">
-                  Floating WhatsApp button on store will connect directly to this number. If empty, Support Phone ({phone || "+91 9816787333"}) is used.
-                </p>
-              </div>
-
-              <div>
-                <label className="text-xs font-black text-slate-600 uppercase tracking-wider block mb-2">
-                  Twitter / X URL
-                </label>
-                <input
-                  type="url"
-                  value={socialLinks.twitter}
-                  onChange={(e) => setSocialLinks({ ...socialLinks, twitter: e.target.value })}
-                  placeholder="https://x.com/..."
-                  className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        
-        {/* WEBSITE CACHE & PERFORMANCE */}
-        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xs mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2.5 mb-1.5">
-                <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-700">
-                  <RotateCw size={18} />
-                </div>
-                <h3 className="text-base font-bold text-slate-800">Website Cache & Synchronization</h3>
-              </div>
-              <p className="text-xs text-slate-500 max-w-xl">
-                Clear all cached pages, banners, product collections, and occasions stored in Redis memory. Use this whenever changes are not reflecting immediately on the live frontend.
-              </p>
-            </div>
+          <div className="flex items-center gap-3 ml-auto">
             <button
-              type="button"
-              onClick={handleClearCache}
-              disabled={clearingCache}
-              className="flex items-center justify-center gap-2 px-5 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-sm font-bold shadow-xs transition-all active:scale-95 disabled:opacity-50 cursor-pointer shrink-0"
+              type="submit"
+              disabled={saving}
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-7 py-3 rounded-xl font-bold text-xs sm:text-sm shadow-md shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95"
             >
-              <RotateCw size={16} className={clearingCache ? "animate-spin" : ""} />
-              {clearingCache ? "Clearing Cache..." : "Clear Website Cache"}
+              {saving ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" /> Saving Changes...
+                </>
+              ) : (
+                <>
+                  <Save size={16} /> Save Global Settings
+                </>
+              )}
             </button>
           </div>
-        </div>
-
-        {/* SAVE BUTTON */}
-        <div className="sticky bottom-6 z-20 flex justify-end">
-          <button
-            type="submit"
-            disabled={saving}
-            className="flex items-center gap-2.5 bg-blue-600 hover:bg-blue-700 text-white px-8 py-3.5 rounded-2xl font-bold shadow-xl shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95"
-          >
-            {saving ? (
-              <>
-                <Loader2 size={18} className="animate-spin" /> Saving Settings...
-              </>
-            ) : (
-              <>
-                <Save size={18} /> Save Global Settings
-              </>
-            )}
-          </button>
         </div>
       </form>
     </div>
