@@ -15,6 +15,7 @@ interface OccasionItem {
   title: string;
   image?: string;
   status: boolean;
+  order?: number;
   createdAt?: string;
 }
 
@@ -27,6 +28,7 @@ export default function OccasionPage() {
   // Form editing state
   const [editingId, setEditingId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
+  const [order, setOrder] = useState<number>(1);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
   const [status, setStatus] = useState(true);
@@ -70,6 +72,7 @@ export default function OccasionPage() {
   const resetForm = () => {
     setEditingId(null);
     setTitle("");
+    setOrder(1);
     setImageFile(null);
     setPreviewUrl("");
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -79,6 +82,7 @@ export default function OccasionPage() {
   const handleStartEdit = (occ: OccasionItem) => {
     setEditingId(occ._id);
     setTitle(occ.title || "");
+    setOrder(occ.order ?? 1);
     setImageFile(null);
     setPreviewUrl(occ.image || "");
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -115,6 +119,7 @@ export default function OccasionPage() {
       const payload = new FormData();
       payload.append("title", title.trim());
       payload.append("status", String(status));
+      payload.append("order", String(order ?? 1));
 
       if (imageFile) {
         payload.append("image", imageFile);
@@ -222,19 +227,36 @@ export default function OccasionPage() {
                   />
                 </div>
 
-                <div>
-                  <label className="text-xs font-medium text-slate-700 block mb-1">
-                    Status
-                  </label>
-                  <label className="inline-flex items-center gap-2 cursor-pointer text-xs font-normal text-slate-700 pt-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-medium text-slate-700 block mb-1">
+                      Display Order (1st, 2nd, 3rd, etc.)
+                    </label>
                     <input
-                      type="checkbox"
-                      checked={status}
-                      onChange={(e) => setStatus(e.target.checked)}
-                      className="rounded border-slate-300 text-slate-900 focus:ring-slate-900 h-4 w-4"
+                      type="number"
+                      min="1"
+                      value={order}
+                      onChange={(e) => setOrder(parseInt(e.target.value, 10) || 1)}
+                      placeholder="e.g. 1"
+                      className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 font-normal"
                     />
-                    <span>Active on store (Display to customers)</span>
-                  </label>
+                    <p className="text-[11px] text-slate-400 mt-1">Lower numbers appear first on the store</p>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-slate-700 block mb-1">
+                      Status
+                    </label>
+                    <label className="inline-flex items-center gap-2 cursor-pointer text-xs font-normal text-slate-700 pt-2">
+                      <input
+                        type="checkbox"
+                        checked={status}
+                        onChange={(e) => setStatus(e.target.checked)}
+                        className="rounded border-slate-300 text-slate-900 focus:ring-slate-900 h-4 w-4"
+                      />
+                      <span>Active on store</span>
+                    </label>
+                  </div>
                 </div>
               </div>
 
@@ -386,6 +408,15 @@ export default function OccasionPage() {
                       </span>
                     </div>
                   </div>
+                ),
+              },
+              {
+                key: "order",
+                label: "Display Order",
+                render: (row) => (
+                  <span className="inline-flex items-center justify-center min-w-[36px] px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 font-bold text-xs border border-slate-200">
+                    #{row.order ?? 1}
+                  </span>
                 ),
               },
               {
