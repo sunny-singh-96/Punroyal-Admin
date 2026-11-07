@@ -7,6 +7,7 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { validateToken, logoutUser } from "@/lib/middleware/auth";
 import { Loader2 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
+import { useSettingsStore, updateDocumentFavicon } from "@/store/settingsStore";
 
 export default function LayoutWrapper({
   children,
@@ -17,10 +18,18 @@ export default function LayoutWrapper({
   const pathname = usePathname();
   const isLoginPage = pathname === '/' || pathname === '/login' || pathname === '/influencer/login';
   const { user } = useAuthStore();
+  const { favicon, fetchSettings } = useSettingsStore();
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    fetchSettings();
+  }, [fetchSettings]);
+
+  useEffect(() => {
+    if (favicon) {
+      updateDocumentFavicon(favicon);
+    }
+  }, [favicon]);
 
   useEffect(() => {
     // Check token validity on route change (only on protected pages)

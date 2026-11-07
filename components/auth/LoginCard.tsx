@@ -26,6 +26,7 @@ import { ENDPOINTS } from "@/constants/endpoint";
 import { http } from "@/lib/integration/http";
 import { influencerAPI } from "@/lib/integration/influencer";
 import { LoginErrors } from "@/types/types";
+import { useSettingsStore } from "@/store/settingsStore";
 
 type UserRole = "admin" | "influencer";
 const ADMIN_EMAIL_PLACEHOLDER = "admin@gmail.com";
@@ -39,6 +40,8 @@ function LoginCardContent({ initialRole = "admin" }: LoginCardProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { setAuth } = useAuthStore();
+  const { headerLogo, favicon, brandName } = useSettingsStore();
+  const logoSrc = headerLogo || favicon || "/punroyal-logo.png";
 
   const roleParam = searchParams.get("role") as UserRole | null;
   const [selectedRole, setSelectedRole] = useState<UserRole>(
@@ -260,20 +263,19 @@ function LoginCardContent({ initialRole = "admin" }: LoginCardProps) {
       <div className="w-full max-w-[380px] bg-white border border-slate-200/90 p-6 rounded-2xl shadow-sm">
         {/* LOGO & TITLE */}
         <div className="flex items-center gap-3 mb-4 pb-3 border-b border-slate-100">
-          <div className="w-10 h-10 flex items-center justify-center shrink-0">
-            <Image
-              src="/punroyal-logo.png"
-              alt="Punroyal Logo"
-              width={40}
-              height={40}
+          <div className="w-11 h-11 rounded-xl bg-slate-50 border border-slate-200/80 p-1 flex items-center justify-center shrink-0 overflow-hidden">
+            <img
+              src={logoSrc}
+              alt={brandName || "Punroyal Logo"}
               className="w-full h-full object-contain"
-              priority
-              unoptimized
+              onError={(e: any) => {
+                e.currentTarget.src = "/punroyal-logo.png";
+              }}
             />
           </div>
           <div>
-            <h1 className="text-lg font-normal text-slate-900 tracking-tight leading-none">
-              Punroyal Portal
+            <h1 className="text-lg font-bold text-slate-900 tracking-tight leading-none">
+              {brandName || "Punroyal"} Portal
             </h1>
             <p className="text-xs font-normal text-slate-400 mt-1">
               Sign in to manage your account

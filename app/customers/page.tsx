@@ -49,7 +49,7 @@ export default function CustomersPage() {
         )
       );
       toast.success(
-        `${customer.name || customer.email} is now ${newActive ? "Active" : "Blocked"}`
+        `${customer.name || customer.phone || customer.email || "Customer"} is now ${newActive ? "Active" : "Blocked"}`
       );
     } catch (err: any) {
       toast.error(err?.response?.data?.message || err?.message || "Failed to update user status");
@@ -139,9 +139,9 @@ export default function CustomersPage() {
                       <div className="font-semibold text-slate-800">{customer.name || "—"}</div>
                     </td>
                     <td className="px-6 py-4 text-slate-600 font-mono text-xs">
-                      {customer.email}
+                      {customer.email && !customer.email.includes("@punroyal.user") ? customer.email : "—"}
                     </td>
-                    <td className="px-6 py-4 text-slate-600 text-xs">
+                    <td className="px-6 py-4 text-slate-700 font-medium text-xs">
                       {customer.phone || "—"}
                     </td>
                     <td className="px-6 py-4 text-slate-500 text-xs">

@@ -43,6 +43,7 @@ import {
 import PageHeader from "@/components/admin/head/head";
 import { globalSettingsAPI } from "@/lib/integration/globalSettings";
 import { couponsAPI } from "@/lib/integration/coupons";
+import { useSettingsStore } from "@/store/settingsStore";
 import { dashboardAPI } from "@/lib/integration/dashboard";
 
 interface FooterLink {
@@ -316,6 +317,11 @@ export default function SettingsPage() {
       if (data.header_logo) setHeaderLogo(data.header_logo);
       if (data.footer_logo) setFooterLogo(data.footer_logo);
       if (data.favicon) setFavicon(data.favicon);
+      useSettingsStore.getState().updateSettingsCache({
+        headerLogo: data.header_logo || "",
+        footerLogo: data.footer_logo || "",
+        favicon: data.favicon || "",
+      });
       if (data.newsletter_image !== undefined) setNewsletterImage(data.newsletter_image || "");
       if (data.newsletter_title !== undefined) setNewsletterTitle(data.newsletter_title || "");
       if (data.newsletter_subtitle !== undefined) setNewsletterSubtitle(data.newsletter_subtitle || "");

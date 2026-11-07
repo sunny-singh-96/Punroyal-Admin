@@ -27,6 +27,7 @@ import { orderAPI } from "@/lib/integration/orders";
 import { enquiryAPI } from "@/lib/integration/enquiry";
 import { newsletterAPI } from "@/lib/integration/newsletter";
 import { logoutUser } from "@/lib/middleware/auth";
+import { useSettingsStore } from "@/store/settingsStore";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -190,6 +191,8 @@ const menuItems = [
 
 export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   const pathname = usePathname();
+  const { headerLogo, favicon } = useSettingsStore();
+  const logoSrc = headerLogo || favicon || "/punroyal-logo.png";
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [openMenus, setOpenMenus] = useState<string[]>([]);
   const [pendingCount, setPendingCount] = useState(0);
@@ -270,15 +273,14 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
           {/* Logo */}
           <div className="h-20 flex items-center justify-between px-6 border-b">
             <Link href="/dashboard" className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 border border-amber-300/70 shadow-xs bg-slate-900 p-0.5">
-                <Image
-                  src="/punroyal-logo.png"
+              <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 border border-amber-300/70 shadow-xs bg-slate-900 p-0.5 flex items-center justify-center">
+                <img
+                  src={logoSrc}
                   alt="Punroyal Logo"
-                  width={38}
-                  height={38}
-                  className="w-full h-full object-cover rounded-full"
-                  priority
-                  unoptimized
+                  className="w-full h-full object-contain rounded-full"
+                  onError={(e: any) => {
+                    e.currentTarget.src = "/punroyal-logo.png";
+                  }}
                 />
               </div>
               <div className="flex flex-col">
