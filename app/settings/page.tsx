@@ -35,7 +35,10 @@ import {
   Search,
   Sparkles,
   HelpCircle,
-  AlertCircle
+  AlertCircle,
+  RotateCcw,
+  Clock,
+  Ban
 } from "lucide-react";
 import PageHeader from "@/components/admin/head/head";
 import { globalSettingsAPI } from "@/lib/integration/globalSettings";
@@ -130,6 +133,7 @@ const DEFAULT_GST_RULES: GstRule[] = [
 
 type TabId =
   | "general"
+  | "order_policy"
   | "branding"
   | "gst"
   | "sizechart"
@@ -153,6 +157,13 @@ const TABS: TabItem[] = [
     name: "General",
     subtitle: "Store profile, contact information, address and copyright",
     icon: Sliders,
+  },
+  {
+    id: "order_policy",
+    name: "Order & Return Policy",
+    subtitle: "Order cancellation cutoff stage, return window duration, and policy controls",
+    icon: RotateCcw,
+    badge: "Policy",
   },
   {
     id: "branding",
@@ -240,6 +251,13 @@ export default function SettingsPage() {
     twitter: "",
   });
   const [topbarMessages, setTopbarMessages] = useState<string[]>([]);
+
+  // Order & Return Policy Settings
+  const [returnWindowDays, setReturnWindowDays] = useState<number>(7);
+  const [isReturnAllowed, setIsReturnAllowed] = useState<boolean>(true);
+  const [cancellationCutoffStatus, setCancellationCutoffStatus] = useState<string>("ready_to_ship");
+  const [isCancellationAllowed, setIsCancellationAllowed] = useState<boolean>(true);
+  const [cancellationTimeLimitHours, setCancellationTimeLimitHours] = useState<number>(24);
   const [couponHighlight, setCouponHighlight] = useState("");
   const [couponOptions, setCouponOptions] = useState<CouponOption[]>([]);
   const [gstRules, setGstRules] = useState<GstRule[]>(DEFAULT_GST_RULES);
@@ -325,6 +343,12 @@ export default function SettingsPage() {
       } else {
         setTopbarMessages([]);
       }
+      if (data.return_window_days !== undefined) setReturnWindowDays(Number(data.return_window_days) || 7);
+      if (data.is_return_allowed !== undefined) setIsReturnAllowed(Boolean(data.is_return_allowed));
+      if (data.cancellation_cutoff_status !== undefined) setCancellationCutoffStatus(data.cancellation_cutoff_status || "ready_to_ship");
+      if (data.is_cancellation_allowed !== undefined) setIsCancellationAllowed(Boolean(data.is_cancellation_allowed));
+      if (data.cancellation_time_limit_hours !== undefined) setCancellationTimeLimitHours(Number(data.cancellation_time_limit_hours) || 24);
+
       const highlight = data.coupon_highlight;
       if (highlight && typeof highlight === "object" && highlight._id) {
         setCouponHighlight(highlight._id);
@@ -648,6 +672,11 @@ export default function SettingsPage() {
       formData.append("topbar_messages", JSON.stringify(topbarMessages));
       formData.append("coupon_highlight", couponHighlight || "");
       formData.append("gst_rules", JSON.stringify(gstRules));
+      formData.append("return_window_days", String(returnWindowDays));
+      formData.append("is_return_allowed", String(isReturnAllowed));
+      formData.append("cancellation_cutoff_status", cancellationCutoffStatus);
+      formData.append("is_cancellation_allowed", String(isCancellationAllowed));
+      formData.append("cancellation_time_limit_hours", String(cancellationTimeLimitHours));
       formData.append("smtp", JSON.stringify(smtp));
 
       const res: any = await globalSettingsAPI.update(formData);
@@ -937,6 +966,226 @@ export default function SettingsPage() {
                           {clearingCache ? "Clearing Website Cache..." : "Clear Website Cache Now"}
                         </button>
                         <span className="text-[11px] text-slate-400">Refreshes banners, categories &amp; product indexes</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 1.5. ORDERS & RETURN POLICY TAB */}
+                {activeTab === "order_policy" && (
+                  <div className="space-y-6">
+                    <div className="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-200/80 text-xs text-indigo-900 flex items-start gap-3">
+                      <ShieldCheck size={18} className="text-indigo-600 shrink-0 mt-0.5" />
+                      <div className="space-y-1">
+                        <p className="font-bold">Order Lifecycle, Cancellation &amp; Return Policies:</p>
+                        <p className="text-indigo-800 leading-relaxed">
+                          Configure customer cancellation rules, the exact order stage when the Cancel button becomes disabled, and the return window allowed after delivery.
+                          These policies dynamically control the cancellation and return buttons across customer order details, account dashboards, and backend validation.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="divide-y divide-slate-100">
+                      {/* Customer Cancellation Toggle */}
+                      <div className="py-5 first:pt-0 grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-6 items-center">
+                        <div className="md:col-span-5 space-y-1">
+                          <label className="text-sm font-semibold text-slate-800 block">
+                            Allow Order Cancellation
+                          </label>
+                          <p className="text-xs text-slate-400">
+                            Allow customers to cancel orders from their account dashboard
+                          </p>
+                        </div>
+                        <div className="md:col-span-7">
+                          <label className="inline-flex items-center gap-3 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={isCancellationAllowed}
+                              onChange={(e) => setIsCancellationAllowed(e.target.checked)}
+                              className="sr-only"
+                            />
+                            <div
+                              className={`w-5 h-5 rounded-md flex items-center justify-center border transition-all ${
+                                isCancellationAllowed
+                                  ? "bg-emerald-600 border-emerald-600 text-white"
+                                  : "bg-white border-slate-300"
+                              }`}
+                            >
+                              {isCancellationAllowed && <Check size={14} className="stroke-[3]" />}
+                            </div>
+                            <span className="text-sm font-medium text-slate-700">
+                              {isCancellationAllowed
+                                ? "Order cancellation is enabled"
+                                : "Order cancellation is disabled store-wide"}
+                            </span>
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Cancellation Cutoff Status */}
+                      <div className="py-5 grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-6 items-center">
+                        <div className="md:col-span-5 space-y-1">
+                          <label className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
+                            <Ban size={15} className="text-rose-500" /> Cancel Button Disabled At Status
+                          </label>
+                          <p className="text-xs text-slate-400">
+                            Order status stage at which the customer&apos;s Cancel button automatically disables
+                          </p>
+                        </div>
+                        <div className="md:col-span-7">
+                          <select
+                            value={cancellationCutoffStatus}
+                            onChange={(e) => setCancellationCutoffStatus(e.target.value)}
+                            className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+                          >
+                            <option value="ready_to_ship">
+                              Ready to Ship (Disables when packed / ready for courier) — Recommended
+                            </option>
+                            <option value="confirmed">
+                              Confirmed / Processing (Disables as soon as admin confirms order)
+                            </option>
+                            <option value="pickup_scheduled">
+                              Pickup Scheduled (Disables when courier pickup token is assigned)
+                            </option>
+                            <option value="shipped">
+                              Shipped / Dispatched (Disables once order is physically in transit)
+                            </option>
+                          </select>
+                          <p className="text-[11px] text-slate-400 mt-1.5">
+                            {cancellationCutoffStatus === "ready_to_ship" &&
+                              "Customers can cancel while order is Created or Confirmed. Once marked Ready to Ship, cancel button will disable."}
+                            {cancellationCutoffStatus === "confirmed" &&
+                              "Customers can only cancel while order is in Created state. Once Confirmed, cancel button will disable."}
+                            {cancellationCutoffStatus === "pickup_scheduled" &&
+                              "Customers can cancel until courier pickup is assigned by logistics."}
+                            {cancellationCutoffStatus === "shipped" &&
+                              "Customers can cancel anytime prior to handover to courier for dispatch."}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Cancellation Time Limit (Hours) */}
+                      <div className="py-5 grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-6 items-center">
+                        <div className="md:col-span-5 space-y-1">
+                          <label className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
+                            <Clock size={15} className="text-slate-400" /> Cancellation Time Window
+                          </label>
+                          <p className="text-xs text-slate-400">
+                            Maximum hours allowed to cancel after placing the order (0 = unlimited / status-based only)
+                          </p>
+                        </div>
+                        <div className="md:col-span-7 flex items-center gap-3">
+                          <div className="relative w-40">
+                            <input
+                              type="number"
+                              min={0}
+                              max={720}
+                              value={cancellationTimeLimitHours}
+                              onChange={(e) =>
+                                setCancellationTimeLimitHours(Math.max(0, Number(e.target.value) || 0))
+                              }
+                              className="w-full pl-3.5 pr-14 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+                            />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 font-bold text-slate-400 text-xs">
+                              hours
+                            </span>
+                          </div>
+                          <span className="text-[11px] text-slate-400">
+                            {cancellationTimeLimitHours > 0
+                              ? `Order can only be cancelled within ${cancellationTimeLimitHours} hour(s) of placement.`
+                              : "No hourly time limit; determined purely by order status."}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Allow Customer Returns */}
+                      <div className="py-5 grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-6 items-center">
+                        <div className="md:col-span-5 space-y-1">
+                          <label className="text-sm font-semibold text-slate-800 block">
+                            Allow Customer Return Requests
+                          </label>
+                          <p className="text-xs text-slate-400">
+                            Permit customers to request returns on delivered orders
+                          </p>
+                        </div>
+                        <div className="md:col-span-7">
+                          <label className="inline-flex items-center gap-3 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={isReturnAllowed}
+                              onChange={(e) => setIsReturnAllowed(e.target.checked)}
+                              className="sr-only"
+                            />
+                            <div
+                              className={`w-5 h-5 rounded-md flex items-center justify-center border transition-all ${
+                                isReturnAllowed
+                                  ? "bg-emerald-600 border-emerald-600 text-white"
+                                  : "bg-white border-slate-300"
+                              }`}
+                            >
+                              {isReturnAllowed && <Check size={14} className="stroke-[3]" />}
+                            </div>
+                            <span className="text-sm font-medium text-slate-700">
+                              {isReturnAllowed
+                                ? "Customer returns are enabled"
+                                : "Customer returns are disabled store-wide"}
+                            </span>
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Return Window Duration (Days) */}
+                      <div className="py-5 last:pb-0 grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-6 items-center">
+                        <div className="md:col-span-5 space-y-1">
+                          <label className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
+                            <RotateCcw size={15} className="text-emerald-600" /> Return Window Duration
+                          </label>
+                          <p className="text-xs text-slate-400">
+                            Number of days after delivery during which a return request can be submitted
+                          </p>
+                        </div>
+                        <div className="md:col-span-7 space-y-2">
+                          <div className="flex flex-wrap items-center gap-2 mb-2">
+                            {[1, 2, 3, 5, 7, 10, 14, 30].map((days) => (
+                              <button
+                                key={days}
+                                type="button"
+                                onClick={() => setReturnWindowDays(days)}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                                  returnWindowDays === days
+                                    ? "bg-slate-900 text-white shadow-xs"
+                                    : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+                                }`}
+                              >
+                                {days === 1 ? "24h (1 Day)" : `${days} Days`}
+                              </button>
+                            ))}
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <div className="relative w-40">
+                              <input
+                                type="number"
+                                min={1}
+                                max={90}
+                                value={returnWindowDays}
+                                onChange={(e) =>
+                                  setReturnWindowDays(Math.max(1, Number(e.target.value) || 1))
+                                }
+                                className="w-full pl-3.5 pr-12 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+                              />
+                              <span className="absolute right-3 top-1/2 -translate-y-1/2 font-bold text-slate-400 text-xs">
+                                days
+                              </span>
+                            </div>
+                            <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
+                              = {returnWindowDays * 24} hours from delivery timestamp
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-400">
+                            Once this period has passed after order delivery, the customer&apos;s Return button will automatically disable.
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
