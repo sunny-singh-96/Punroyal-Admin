@@ -37,7 +37,6 @@ import {
   HelpCircle,
   AlertCircle,
   RotateCcw,
-  Clock,
   Ban
 } from "lucide-react";
 import PageHeader from "@/components/admin/head/head";
@@ -682,7 +681,7 @@ export default function SettingsPage() {
       formData.append("is_return_allowed", String(isReturnAllowed));
       formData.append("cancellation_cutoff_status", cancellationCutoffStatus);
       formData.append("is_cancellation_allowed", String(isCancellationAllowed));
-      formData.append("cancellation_time_limit_hours", String(cancellationTimeLimitHours));
+      formData.append("cancellation_time_limit_hours", "0");
       formData.append("smtp", JSON.stringify(smtp));
 
       const res: any = await globalSettingsAPI.update(formData);
@@ -1067,40 +1066,6 @@ export default function SettingsPage() {
                             {cancellationCutoffStatus === "shipped" &&
                               "Customers can cancel anytime prior to handover to courier for dispatch."}
                           </p>
-                        </div>
-                      </div>
-
-                      {/* Cancellation Time Limit (Hours) */}
-                      <div className="py-5 grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-6 items-center">
-                        <div className="md:col-span-5 space-y-1">
-                          <label className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
-                            <Clock size={15} className="text-slate-400" /> Cancellation Time Window
-                          </label>
-                          <p className="text-xs text-slate-400">
-                            Maximum hours allowed to cancel after placing the order (0 = unlimited / status-based only)
-                          </p>
-                        </div>
-                        <div className="md:col-span-7 flex items-center gap-3">
-                          <div className="relative w-40">
-                            <input
-                              type="number"
-                              min={0}
-                              max={720}
-                              value={cancellationTimeLimitHours}
-                              onChange={(e) =>
-                                setCancellationTimeLimitHours(Math.max(0, Number(e.target.value) || 0))
-                              }
-                              className="w-full pl-3.5 pr-14 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
-                            />
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 font-bold text-slate-400 text-xs">
-                              hours
-                            </span>
-                          </div>
-                          <span className="text-[11px] text-slate-400">
-                            {cancellationTimeLimitHours > 0
-                              ? `Order can only be cancelled within ${cancellationTimeLimitHours} hour(s) of placement.`
-                              : "No hourly time limit; determined purely by order status."}
-                          </span>
                         </div>
                       </div>
 
