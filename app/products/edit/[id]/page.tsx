@@ -162,6 +162,7 @@ export default function CreateProductPage() {
   const id = params?.id as string;
 
   const [loading, setLoading] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true);
   const [colorVariantsValid, setColorVariantsValid] = useState(false);
   const [redirectTo, setRedirectTo] = useState("");
   const [productImages, setProductImages] = useState<ProductImage[]>([]);
@@ -298,6 +299,7 @@ export default function CreateProductPage() {
       toast.error(getErrorMessage(error));
     } finally {
       setLoading(false);
+      setPageLoading(false);
     }
   }, [id]);
 
@@ -328,6 +330,7 @@ export default function CreateProductPage() {
       toast.error(getErrorMessage(error));
     } finally {
       setLoading(false);
+      setPageLoading(false);
     }
   }, []);
 
@@ -338,12 +341,9 @@ export default function CreateProductPage() {
       router.replace("/influencer/products");
       return;
     }
-    const delay = setTimeout(() => {
-      setLoading(true);
-      fetchCommon();
-      fetchProduct(id);
-    }, 300);
-    return () => clearTimeout(delay);
+    setPageLoading(true);
+    fetchCommon();
+    fetchProduct(id);
   }, [fetchCommon, fetchProduct, id, router]);
 
   useEffect(() => {
@@ -627,6 +627,19 @@ export default function CreateProductPage() {
     id: s._id,
     name: s.name,
   }));
+
+  // ---------- Page Loading State ----------
+  if (pageLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[70vh]">
+        <div className="text-center p-8 bg-white rounded-3xl border border-slate-200 shadow-sm max-w-sm w-full mx-4">
+          <Loader2 className="w-10 h-10 animate-spin text-indigo-600 mx-auto mb-3" />
+          <h4 className="font-bold text-slate-800 text-base mb-1">Loading Product Details</h4>
+          <p className="text-slate-400 text-xs">Please wait while we retrieve product information and variants...</p>
+        </div>
+      </div>
+    );
+  }
 
   // ---------- Render ----------
   return (

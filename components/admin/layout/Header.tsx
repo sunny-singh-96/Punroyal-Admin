@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Menu, Search, Bell, UserCircle, LogOut, Settings, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { logoutUser } from '@/lib/middleware/auth';
 
 interface HeaderProps {
   setIsOpen: (value: boolean) => void;
@@ -24,10 +25,8 @@ export default function Header({ setIsOpen }: HeaderProps) {
   }, []);
 
   // 2. Secure Logout Function
-  const handleLogout = () => {
-    localStorage.clear();
-    // Use window.location for a hard refresh to clear all React states
-    window.location.href = '/login';
+  const handleLogout = async () => {
+    await logoutUser('admin');
   };
 
   return (

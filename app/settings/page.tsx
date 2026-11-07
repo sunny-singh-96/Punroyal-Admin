@@ -679,7 +679,7 @@ export default function SettingsPage() {
       formData.append("gst_rules", JSON.stringify(gstRules));
       formData.append("return_window_days", String(returnWindowDays));
       formData.append("is_return_allowed", String(isReturnAllowed));
-      formData.append("cancellation_cutoff_status", cancellationCutoffStatus);
+      formData.append("cancellation_cutoff_status", "pickup_scheduled");
       formData.append("is_cancellation_allowed", String(isCancellationAllowed));
       formData.append("cancellation_time_limit_hours", "0");
       formData.append("smtp", JSON.stringify(smtp));
@@ -1027,44 +1027,30 @@ export default function SettingsPage() {
                         </div>
                       </div>
 
-                      {/* Cancellation Cutoff Status */}
+                      {/* Cancellation Cutoff Status (Informational Fixed Rule) */}
                       <div className="py-5 grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-6 items-center">
                         <div className="md:col-span-5 space-y-1">
                           <label className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
-                            <Ban size={15} className="text-rose-500" /> Cancel Button Disabled At Status
+                            <Ban size={15} className="text-rose-500" /> Cancel Button Disabled Stage
                           </label>
                           <p className="text-xs text-slate-400">
-                            Order status stage at which the customer&apos;s Cancel button automatically disables
+                            Fixed cutoff rule: stage when customer&apos;s Cancel button automatically disables
                           </p>
                         </div>
                         <div className="md:col-span-7">
-                          <select
-                            value={cancellationCutoffStatus}
-                            onChange={(e) => setCancellationCutoffStatus(e.target.value)}
-                            className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
-                          >
-                            <option value="ready_to_ship">
-                              Ready to Ship (Disables when packed / ready for courier) — Recommended
-                            </option>
-                            <option value="confirmed">
-                              Confirmed / Processing (Disables as soon as admin confirms order)
-                            </option>
-                            <option value="pickup_scheduled">
-                              Pickup Scheduled (Disables when courier pickup token is assigned)
-                            </option>
-                            <option value="shipped">
-                              Shipped / Dispatched (Disables once order is physically in transit)
-                            </option>
-                          </select>
-                          <p className="text-[11px] text-slate-400 mt-1.5">
-                            {cancellationCutoffStatus === "ready_to_ship" &&
-                              "Customers can cancel while order is Created or Confirmed. Once marked Ready to Ship, cancel button will disable."}
-                            {cancellationCutoffStatus === "confirmed" &&
-                              "Customers can only cancel while order is in Created state. Once Confirmed, cancel button will disable."}
-                            {cancellationCutoffStatus === "pickup_scheduled" &&
-                              "Customers can cancel until courier pickup is assigned by logistics."}
-                            {cancellationCutoffStatus === "shipped" &&
-                              "Customers can cancel anytime prior to handover to courier for dispatch."}
+                          <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
+                            <div className="flex items-center gap-2.5">
+                              <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0"></span>
+                              <span className="text-sm font-bold text-slate-800">
+                                Pickup Scheduled (Courier Pickup Assigned)
+                              </span>
+                            </div>
+                            <span className="text-[11px] font-bold text-slate-500 bg-white border border-slate-200 px-2.5 py-1 rounded-full shadow-2xs">
+                              Fixed Rule
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
+                            Customers can cancel while order is in Created or Confirmed state. Once courier pickup is assigned by logistics (<code className="text-slate-600 font-bold bg-slate-100 px-1.5 py-0.5 rounded">pickup_scheduled</code>), the Cancel button automatically disables.
                           </p>
                         </div>
                       </div>

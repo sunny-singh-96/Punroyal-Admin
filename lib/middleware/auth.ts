@@ -68,6 +68,8 @@ export const logoutUser = async (targetRole?: 'admin' | 'influencer'): Promise<v
   // Admin Logout
   try {
     storageUtils.clearAdmin();
+    storageUtils.removeAuthStorage();
+    useAuthStore.setState({ user: null, token: null, isLoading: false });
   } catch (e) {
     console.error('Storage clear admin error:', e);
   }
