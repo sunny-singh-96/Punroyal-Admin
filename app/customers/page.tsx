@@ -78,7 +78,7 @@ export default function CustomersPage() {
               setSearch(e.target.value);
               setPage(1);
             }}
-            placeholder="Search by name, email, or phone..."
+            placeholder="Search by email or phone..."
             className="w-full pl-10 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
           />
         </div>
@@ -100,7 +100,6 @@ export default function CustomersPage() {
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-100 text-xs font-bold text-slate-400 uppercase tracking-wider">
                 <th className="px-6 py-4">#</th>
-                <th className="px-6 py-4">Customer Name</th>
                 <th className="px-6 py-4">Email</th>
                 <th className="px-6 py-4">Phone</th>
                 <th className="px-6 py-4">Registered Date</th>
@@ -113,7 +112,6 @@ export default function CustomersPage() {
                 Array.from({ length: 6 }).map((_, idx) => (
                   <tr key={idx} className="animate-pulse">
                     <td className="px-6 py-4"><div className="h-4 w-6 bg-slate-100 rounded" /></td>
-                    <td className="px-6 py-4"><div className="h-4 w-32 bg-slate-100 rounded" /></td>
                     <td className="px-6 py-4"><div className="h-4 w-40 bg-slate-100 rounded" /></td>
                     <td className="px-6 py-4"><div className="h-4 w-24 bg-slate-100 rounded" /></td>
                     <td className="px-6 py-4"><div className="h-4 w-28 bg-slate-100 rounded" /></td>
@@ -123,7 +121,7 @@ export default function CustomersPage() {
                 ))
               ) : data.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-16 text-center text-slate-400">
+                  <td colSpan={6} className="px-6 py-16 text-center text-slate-400">
                     <Users className="mx-auto h-10 w-10 text-slate-300 mb-2" />
                     <p className="text-base font-medium text-slate-600">No customers found</p>
                     <p className="text-xs text-slate-400 mt-1">Try adjusting your search criteria</p>
@@ -134,9 +132,6 @@ export default function CustomersPage() {
                   <tr key={customer._id} className="hover:bg-slate-50/50 transition">
                     <td className="px-6 py-4 text-xs font-semibold text-slate-400">
                       {(page - 1) * limit + idx + 1}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="font-semibold text-slate-800">{customer.name || "—"}</div>
                     </td>
                     <td className="px-6 py-4 text-slate-600 font-mono text-xs">
                       {customer.email && !customer.email.includes("@punroyal.user") ? customer.email : "—"}
