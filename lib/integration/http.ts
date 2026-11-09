@@ -20,15 +20,17 @@ const concatUrl = (endpoint: string) => {
 
 export const http = {
   // GET request
-  async get<T = any>(endpoint: string, config?: any): Promise<T> {
+  async get<T = any>(endpoint: string, config?: any, requireAuth: boolean = true): Promise<T> {
+    const isPublic = !requireAuth || endpoint.includes('/global-settings');
     try {
-      ensureTokenExists();
+      if (!isPublic) {
+        ensureTokenExists();
+      }
 
       const response = await api.get(concatUrl(endpoint), config);
       return response.data;
     } catch (error: any) {
-
-      if (error.response?.status === 401 || error.response?.status === 403) {
+      if (!isPublic && (error.response?.status === 401 || error.response?.status === 403)) {
         await handleAuthError();
       }
 

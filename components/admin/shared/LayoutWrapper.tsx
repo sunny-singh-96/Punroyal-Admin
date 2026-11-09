@@ -18,12 +18,12 @@ export default function LayoutWrapper({
   const pathname = usePathname();
   const isLoginPage = pathname === '/' || pathname === '/login' || pathname === '/influencer/login';
   const { user } = useAuthStore();
-  const { favicon, fetchSettings } = useSettingsStore();
+  const { favicon } = useSettingsStore();
 
   useEffect(() => {
     setMounted(true);
-    fetchSettings();
-  }, [fetchSettings]);
+    useSettingsStore.getState().fetchSettings();
+  }, []);
 
   useEffect(() => {
     if (favicon) {

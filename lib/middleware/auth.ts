@@ -61,7 +61,9 @@ export const logoutUser = async (targetRole?: 'admin' | 'influencer'): Promise<v
       document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0;';
     }
 
-    window.location.replace('/influencer/login');
+    if (path !== '/influencer/login') {
+      window.location.replace('/influencer/login');
+    }
     return;
   }
 
@@ -87,7 +89,9 @@ export const logoutUser = async (targetRole?: 'admin' | 'influencer'): Promise<v
     document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0;';
   }
 
-  window.location.replace('/');
+  if (path !== '/' && path !== '/login') {
+    window.location.replace('/');
+  }
 };
 
 /**
@@ -158,6 +162,12 @@ export const isPublicRoute = (pathname: string): boolean => {
  * Used in integration layer to prevent unauthorized access
  */
 export const ensureTokenExists = (): void => {
+  if (typeof window !== 'undefined') {
+    const path = window.location.pathname;
+    if (path === '/' || path === '/login' || path === '/influencer/login') {
+      return;
+    }
+  }
   if (!validateToken()) {
     logoutUser();
     throw new Error('No authentication token');

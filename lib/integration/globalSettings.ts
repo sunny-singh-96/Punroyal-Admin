@@ -3,7 +3,7 @@ import { ENDPOINTS } from "@/constants/endpoint";
 
 export const globalSettingsAPI = {
   get: async () => {
-    return http.get(ENDPOINTS.GLOBAL_SETTINGS.GET);
+    return http.get(ENDPOINTS.GLOBAL_SETTINGS.GET, undefined, false);
   },
   adminGet: async () => {
     return http.get(ENDPOINTS.GLOBAL_SETTINGS.ADMIN_GET);
