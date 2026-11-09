@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { confirmDelete, showErrorAlert } from "@/lib/sweetAlert";
+import { getErrorMessage } from "@/lib/helpers/handlers";
 import { productsAPI } from "@/lib/integration/products";
 import { commonAPI } from "@/lib/integration/common";
 import DataGrid, { Header } from "@/components/admin/tables/dataTableWithGrid";
@@ -170,10 +171,6 @@ interface EnrichedProduct extends Omit<Product, "category" | "status"> {
   _materials: Material[];
   _variants: Variant[];
   _model: Model | null;
-}
-
-function getErrorMessage(e: unknown) {
-  return e instanceof Error ? e.message : "An unknown error occurred";
 }
 
 // ─── Sidebar primitives ────────────────────────────────────────────────────────
@@ -888,8 +885,15 @@ export default function ProductsPage() {
         await showErrorAlert("Cannot Delete Product", errorMsg);
         toast.error(errorMsg);
       }
-    } catch (e) {
-      const errorMsg = getErrorMessage(e) || "Cannot delete this product as it is associated with existing orders.";
+    } catch (e: any) {
+      const serverMsg =
+        e?.response?.data?.message ||
+        e?.response?.data?.error ||
+        getErrorMessage(e);
+      const errorMsg =
+        serverMsg && !serverMsg.includes("status code")
+          ? serverMsg
+          : "Cannot delete this product because it has already been ordered by customers. You can mark it as inactive instead.";
       await showErrorAlert("Cannot Delete Product", errorMsg);
       toast.error(errorMsg);
     } finally {
@@ -921,8 +925,15 @@ export default function ProductsPage() {
         await showErrorAlert("Cannot Delete Products", errorMsg);
         toast.error(errorMsg);
       }
-    } catch (e) {
-      const errorMsg = getErrorMessage(e) || "Cannot delete these products as they are associated with existing orders.";
+    } catch (e: any) {
+      const serverMsg =
+        e?.response?.data?.message ||
+        e?.response?.data?.error ||
+        getErrorMessage(e);
+      const errorMsg =
+        serverMsg && !serverMsg.includes("status code")
+          ? serverMsg
+          : "Cannot delete these products because one or more have already been ordered by customers. You can mark them as inactive instead.";
       await showErrorAlert("Cannot Delete Products", errorMsg);
       toast.error(errorMsg);
     } finally {
