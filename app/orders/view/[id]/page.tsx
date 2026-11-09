@@ -72,6 +72,8 @@ interface Order {
   items: OrderItem[];
   payment: Payment;
   htr_items: string[];
+  awb?: string;
+  metadata?: Record<string, any>;
 }
 
 export default function OrderDetailsPage() {
@@ -91,6 +93,19 @@ export default function OrderDetailsPage() {
 
   const handleStatusChange = async (newStatus: string) => {
     if (!orderId || !newStatus || newStatus === order?.status?.toLowerCase()) return;
+    const isPickedUp = Boolean(
+      order?.metadata?.physically_picked_up ||
+      ['shipped', 'picked_up', 'in_transit', 'out_for_delivery', 'delivered'].includes(order?.status?.toLowerCase() || '')
+    );
+    if (newStatus === 'cancelled' && isPickedUp) {
+      const confirmed = window.confirm(
+        "Warning: The courier has already physically collected this package. Cancelling will not stop carrier transit. Do you wish to force-cancel?"
+      );
+      if (!confirmed) {
+        setCurrentStatus(order?.status?.toLowerCase() || '');
+        return;
+      }
+    }
     setIsUpdatingStatus(true);
     try {
       await orderAPI.updateStatus(orderId, newStatus);
@@ -151,6 +166,23 @@ export default function OrderDetailsPage() {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <PageHeader title="Order Detail" subtitle={"#" + (order.order_number || "")} />
         <div className="flex flex-wrap items-center gap-3">
+          {(() => {
+            const isPickedUp = Boolean(
+              order.metadata?.physically_picked_up ||
+              ['shipped', 'picked_up', 'in_transit', 'out_for_delivery', 'delivered'].includes((currentStatus || order.status || '').toLowerCase())
+            );
+            return (
+              <span className={`px-3 py-2 text-xs font-bold rounded-xl border flex items-center gap-1.5 shadow-2xs ${
+                isPickedUp
+                  ? 'bg-blue-50 text-blue-700 border-blue-200'
+                  : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+              }`}>
+                <span className={`w-2 h-2 rounded-full ${isPickedUp ? 'bg-blue-500' : 'bg-emerald-500'}`}></span>
+                {isPickedUp ? 'Handed Over to Courier (Locked)' : 'In Warehouse (Cancellable)'}
+              </span>
+            );
+          })()}
+
           {(() => {
             const statusKey = (currentStatus || order.status || '').toLowerCase();
             const cfg = ORDER_STATUS_CONFIG[statusKey];

@@ -1034,23 +1034,23 @@ export default function SettingsPage() {
                             <Ban size={15} className="text-rose-500" /> Cancel Button Disabled Stage
                           </label>
                           <p className="text-xs text-slate-400">
-                            Fixed cutoff rule: stage when customer&apos;s Cancel button automatically disables
+                            Courier pickup rule: stage when customer&apos;s Cancel button automatically locks
                           </p>
                         </div>
                         <div className="md:col-span-7">
                           <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
                             <div className="flex items-center gap-2.5">
-                              <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0"></span>
+                              <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0"></span>
                               <span className="text-sm font-bold text-slate-800">
-                                Pickup Scheduled (Courier Pickup Assigned)
+                                Physical Courier Pickup (Handover Scanned)
                               </span>
                             </div>
                             <span className="text-[11px] font-bold text-slate-500 bg-white border border-slate-200 px-2.5 py-1 rounded-full shadow-2xs">
-                              Fixed Rule
+                              Live Logistics Gate
                             </span>
                           </div>
                           <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
-                            Customers can cancel while order is in Created or Confirmed state. Once courier pickup is assigned by logistics (<code className="text-slate-600 font-bold bg-slate-100 px-1.5 py-0.5 rounded">pickup_scheduled</code>), the Cancel button automatically disables.
+                            Customers can cancel at any time while the parcel remains in the warehouse. Once the courier driver physically scans and collects the parcel (<code className="text-slate-600 font-bold bg-slate-100 px-1.5 py-0.5 rounded">shipped / in_transit</code>), the Cancel button is permanently disabled.
                           </p>
                         </div>
                       </div>
