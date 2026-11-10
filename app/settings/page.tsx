@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import toast from "react-hot-toast";
 import {
   Save,
@@ -131,9 +131,16 @@ const DEFAULT_GST_RULES: GstRule[] = [
   },
 ];
 
+const DEFAULT_INVOICE_TERMS = [
+  "1. All items are authentic, hand-tailored luxury garments.",
+  "2. All garment prices are inclusive of GST as per Govt. norms.",
+  "3. Support email: care@punroyal.com | Mon - Sat 10am to 7pm."
+];
+
 type TabId =
   | "general"
   | "order_policy"
+  | "invoice_pdf"
   | "branding"
   | "gst"
   | "sizechart"
@@ -160,10 +167,17 @@ const TABS: TabItem[] = [
   },
   {
     id: "order_policy",
-    name: "Order & Return Policy",
-    subtitle: "Order cancellation cutoff stage, return window duration, and policy controls",
+    name: "Return Policy",
+    subtitle: "Customer return window duration and return policy controls",
     icon: RotateCcw,
     badge: "Policy",
+  },
+  {
+    id: "invoice_pdf",
+    name: "Invoice PDF & Terms",
+    subtitle: "Custom Terms & Notes printed on customer PDF invoices",
+    icon: FileText,
+    badge: "Invoice",
   },
   {
     id: "branding",
@@ -258,6 +272,7 @@ export default function SettingsPage() {
   const [cancellationCutoffStatus, setCancellationCutoffStatus] = useState<string>("ready_to_ship");
   const [isCancellationAllowed, setIsCancellationAllowed] = useState<boolean>(true);
   const [cancellationTimeLimitHours, setCancellationTimeLimitHours] = useState<number>(24);
+  const [invoiceTerms, setInvoiceTerms] = useState<string[]>(DEFAULT_INVOICE_TERMS);
   const [couponHighlight, setCouponHighlight] = useState("");
   const [couponOptions, setCouponOptions] = useState<CouponOption[]>([]);
   const [gstRules, setGstRules] = useState<GstRule[]>(DEFAULT_GST_RULES);
@@ -269,7 +284,13 @@ export default function SettingsPage() {
   const [testingSmtp, setTestingSmtp] = useState(false);
   const [smtpTestResult, setSmtpTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
-  // File uploads
+  // File uploads and refs
+  const formRef = useRef<HTMLFormElement>(null);
+  const headerLogoInputRef = useRef<HTMLInputElement>(null);
+  const footerLogoInputRef = useRef<HTMLInputElement>(null);
+  const faviconInputRef = useRef<HTMLInputElement>(null);
+  const newsletterImageInputRef = useRef<HTMLInputElement>(null);
+
   const [headerLogoFile, setHeaderLogoFile] = useState<File | null>(null);
   const [footerLogoFile, setFooterLogoFile] = useState<File | null>(null);
   const [faviconFile, setFaviconFile] = useState<File | null>(null);
@@ -280,6 +301,25 @@ export default function SettingsPage() {
   const [footerLogoPreview, setFooterLogoPreview] = useState("");
   const [faviconPreview, setFaviconPreview] = useState("");
   const [newsletterImagePreview, setNewsletterImagePreview] = useState("");
+
+  const addInvoiceTerm = useCallback(() => {
+    setInvoiceTerms((prev) => {
+      if (prev.length >= 6) return prev;
+      return [...prev, `${prev.length + 1}. Customer support email: care@punroyal.com`];
+    });
+  }, []);
+
+  const updateInvoiceTerm = useCallback((index: number, val: string) => {
+    setInvoiceTerms((prev) => {
+      const next = [...prev];
+      next[index] = val;
+      return next;
+    });
+  }, []);
+
+  const removeInvoiceTerm = useCallback((index: number) => {
+    setInvoiceTerms((prev) => prev.filter((_, i) => i !== index));
+  }, []);
 
   const handleClearCache = async () => {
     if (clearingCache) return;
@@ -353,6 +393,9 @@ export default function SettingsPage() {
       if (data.cancellation_cutoff_status !== undefined) setCancellationCutoffStatus(data.cancellation_cutoff_status || "ready_to_ship");
       if (data.is_cancellation_allowed !== undefined) setIsCancellationAllowed(Boolean(data.is_cancellation_allowed));
       if (data.cancellation_time_limit_hours !== undefined) setCancellationTimeLimitHours(Number(data.cancellation_time_limit_hours) || 24);
+      if (Array.isArray(data.invoice_terms) && data.invoice_terms.length > 0) {
+        setInvoiceTerms(data.invoice_terms);
+      }
 
       const highlight = data.coupon_highlight;
       if (highlight && typeof highlight === "object" && highlight._id) {
@@ -682,6 +725,7 @@ export default function SettingsPage() {
       formData.append("cancellation_cutoff_status", "pickup_scheduled");
       formData.append("is_cancellation_allowed", String(isCancellationAllowed));
       formData.append("cancellation_time_limit_hours", "0");
+      formData.append("invoice_terms", JSON.stringify(invoiceTerms));
       formData.append("smtp", JSON.stringify(smtp));
 
       const res: any = await globalSettingsAPI.update(formData);
@@ -976,87 +1020,23 @@ export default function SettingsPage() {
                   </div>
                 )}
 
-                {/* 1.5. ORDERS & RETURN POLICY TAB */}
+                {/* 1.5. RETURN POLICY TAB */}
                 {activeTab === "order_policy" && (
                   <div className="space-y-6">
                     <div className="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-200/80 text-xs text-indigo-900 flex items-start gap-3">
                       <ShieldCheck size={18} className="text-indigo-600 shrink-0 mt-0.5" />
                       <div className="space-y-1">
-                        <p className="font-bold">Order Lifecycle, Cancellation &amp; Return Policies:</p>
+                        <p className="font-bold">Customer Return Policy:</p>
                         <p className="text-indigo-800 leading-relaxed">
-                          Configure customer cancellation rules, the exact order stage when the Cancel button becomes disabled, and the return window allowed after delivery.
-                          These policies dynamically control the cancellation and return buttons across customer order details, account dashboards, and backend validation.
+                          Configure customer return window duration and return rules.
+                          These policies dynamically control the return buttons and duration across customer order details and account dashboards.
                         </p>
                       </div>
                     </div>
 
                     <div className="divide-y divide-slate-100">
-                      {/* Customer Cancellation Toggle */}
-                      <div className="py-5 first:pt-0 grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-6 items-center">
-                        <div className="md:col-span-5 space-y-1">
-                          <label className="text-sm font-semibold text-slate-800 block">
-                            Allow Order Cancellation
-                          </label>
-                          <p className="text-xs text-slate-400">
-                            Allow customers to cancel orders from their account dashboard
-                          </p>
-                        </div>
-                        <div className="md:col-span-7">
-                          <label className="inline-flex items-center gap-3 cursor-pointer select-none">
-                            <input
-                              type="checkbox"
-                              checked={isCancellationAllowed}
-                              onChange={(e) => setIsCancellationAllowed(e.target.checked)}
-                              className="sr-only"
-                            />
-                            <div
-                              className={`w-5 h-5 rounded-md flex items-center justify-center border transition-all ${
-                                isCancellationAllowed
-                                  ? "bg-emerald-600 border-emerald-600 text-white"
-                                  : "bg-white border-slate-300"
-                              }`}
-                            >
-                              {isCancellationAllowed && <Check size={14} className="stroke-[3]" />}
-                            </div>
-                            <span className="text-sm font-medium text-slate-700">
-                              {isCancellationAllowed
-                                ? "Order cancellation is enabled"
-                                : "Order cancellation is disabled store-wide"}
-                            </span>
-                          </label>
-                        </div>
-                      </div>
-
-                      {/* Cancellation Cutoff Status (Informational Fixed Rule) */}
-                      <div className="py-5 grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-6 items-center">
-                        <div className="md:col-span-5 space-y-1">
-                          <label className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
-                            <Ban size={15} className="text-rose-500" /> Cancel Button Disabled Stage
-                          </label>
-                          <p className="text-xs text-slate-400">
-                            Courier pickup rule: stage when customer&apos;s Cancel button automatically locks
-                          </p>
-                        </div>
-                        <div className="md:col-span-7">
-                          <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
-                            <div className="flex items-center gap-2.5">
-                              <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0"></span>
-                              <span className="text-sm font-bold text-slate-800">
-                                Physical Courier Pickup (Handover Scanned)
-                              </span>
-                            </div>
-                            <span className="text-[11px] font-bold text-slate-500 bg-white border border-slate-200 px-2.5 py-1 rounded-full shadow-2xs">
-                              Live Logistics Gate
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
-                            Customers can cancel at any time while the parcel remains in the warehouse. Once the courier driver physically scans and collects the parcel (<code className="text-slate-600 font-bold bg-slate-100 px-1.5 py-0.5 rounded">shipped / in_transit</code>), the Cancel button is permanently disabled.
-                          </p>
-                        </div>
-                      </div>
-
                       {/* Allow Customer Returns */}
-                      <div className="py-5 grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-6 items-center">
+                      <div className="py-5 first:pt-0 grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-6 items-center">
                         <div className="md:col-span-5 space-y-1">
                           <label className="text-sm font-semibold text-slate-800 block">
                             Allow Customer Return Requests
@@ -1144,6 +1124,58 @@ export default function SettingsPage() {
                           </p>
                         </div>
                       </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 1.6. INVOICE PDF & TERMS TAB */}
+                {activeTab === "invoice_pdf" && (
+                  <div className="space-y-6">
+                    <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/80 text-xs text-amber-900 flex items-start gap-3">
+                      <FileText size={18} className="text-amber-600 shrink-0 mt-0.5" />
+                      <div className="space-y-1">
+                        <p className="font-bold">PDF Tax Invoice Terms &amp; Conditions Notes:</p>
+                        <p className="text-amber-800 leading-relaxed">
+                          Customize the Terms &amp; Notes printed at the bottom left of customer A4 PDF Tax Invoices.
+                          Each line below corresponds to an editable bulleted note on the downloaded invoice.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      {invoiceTerms.map((term, index) => (
+                        <div key={index} className="p-4 bg-slate-50 border border-slate-200/80 rounded-2xl flex items-center gap-3">
+                          <span className="w-7 h-7 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-xs font-bold text-slate-700 shrink-0">
+                            {index + 1}
+                          </span>
+                          <input
+                            type="text"
+                            value={term}
+                            onChange={(e) => updateInvoiceTerm(index, e.target.value)}
+                            placeholder={`Invoice Terms line ${index + 1}...`}
+                            className="flex-1 bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-800 font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+                          />
+                          {invoiceTerms.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeInvoiceTerm(index)}
+                              className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition cursor-pointer"
+                              title="Delete line"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+
+                      <button
+                        type="button"
+                        onClick={addInvoiceTerm}
+                        disabled={invoiceTerms.length >= 6}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 transition shadow-2xs disabled:opacity-50 cursor-pointer"
+                      >
+                        <Plus size={15} /> Add Terms Line
+                      </button>
                     </div>
                   </div>
                 )}

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -191,6 +191,7 @@ const menuItems = [
 
 export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   const pathname = usePathname();
+  const sidebarRef = useRef<HTMLElement>(null);
   const { headerLogo, favicon } = useSettingsStore();
   const logoSrc = headerLogo || favicon || "/punroyal-logo.png";
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -198,6 +199,29 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   const [pendingCount, setPendingCount] = useState(0);
   const [pendingEnquiriesCount, setPendingEnquiriesCount] = useState(0);
   const [subscriberCount, setSubscriberCount] = useState(0);
+
+  // Close sidebar on outside click & lock mobile scroll when open
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleOutsideClick = (event: MouseEvent | TouchEvent) => {
+      if (sidebarRef.current && !sidebarRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("touchstart", handleOutsideClick, { passive: true });
+
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("touchstart", handleOutsideClick);
+    };
+  }, [isOpen, setIsOpen]);
 
   // ✅ Fetch pending order and enquiry counts for badges
   const fetchBadgeData = useCallback(async () => {
@@ -257,15 +281,26 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       {/* Overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-slate-900/40 z-[100] lg:hidden"
+          className="fixed inset-0 bg-slate-900/40 z-[115] lg:hidden backdrop-blur-xs"
           onClick={() => setIsOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:sticky top-0 left-0 z-[110] h-screen w-72 bg-white border-r 
-        transition-all duration-300 shadow-2xl lg:shadow-none
+        ref={sidebarRef}
+        style={{
+          position: isOpen ? "fixed" : undefined,
+          top: 0,
+          bottom: 0,
+          left: 0,
+          height: "100%",
+          maxHeight: "100dvh",
+          overscrollBehavior: "contain",
+        }}
+        className={`fixed inset-y-0 left-0 z-[120] h-screen h-[100dvh] w-72 bg-white border-r 
+        transition-transform duration-300 shadow-2xl lg:shadow-none lg:sticky lg:top-0 lg:z-30
+        overscroll-contain select-none
         ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
       >
         <div className="flex flex-col h-full">
