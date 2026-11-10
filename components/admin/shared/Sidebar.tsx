@@ -290,23 +290,22 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       <aside
         ref={sidebarRef}
         style={{
-          position: isOpen ? "fixed" : undefined,
           top: 0,
           bottom: 0,
           left: 0,
-          height: "100%",
+          height: "100dvh",
           maxHeight: "100dvh",
-          overscrollBehavior: "contain",
         }}
-        className={`fixed inset-y-0 left-0 z-[120] h-screen h-[100dvh] w-72 bg-white border-r 
-        transition-transform duration-300 shadow-2xl lg:shadow-none lg:sticky lg:top-0 lg:z-30
-        overscroll-contain select-none
+        className={`fixed inset-y-0 left-0 z-[120] w-72 bg-white border-r 
+        transition-transform duration-300 shadow-2xl lg:shadow-none 
+        lg:sticky lg:top-0 lg:z-30 h-screen h-[100dvh] max-h-[100dvh]
+        flex flex-col overflow-hidden select-none
         ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
       >
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full min-h-0 overflow-hidden">
 
           {/* Logo */}
-          <div className="h-20 flex items-center justify-between px-6 border-b">
+          <div className="h-20 shrink-0 flex items-center justify-between px-6 border-b bg-white">
             <Link href="/dashboard" className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 border border-amber-300/70 shadow-xs bg-slate-900 p-0.5 flex items-center justify-center">
                 <img
@@ -336,7 +335,10 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
           </div>
 
           {/* NAVIGATION */}
-          <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-2 select-none [scrollbar-width:thin] [scrollbar-color:#cbd5e1_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
+          <nav
+            style={{ overscrollBehavior: "contain", WebkitOverflowScrolling: "touch" }}
+            className="flex-1 min-h-0 overflow-y-auto overscroll-contain py-6 px-4 space-y-2 select-none touch-pan-y [scrollbar-width:thin] [scrollbar-color:#cbd5e1_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent"
+          >
             {menuItems.map((item) => {
               const isOpen = openMenus.includes(item.name);
 
@@ -465,10 +467,10 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
           </nav>
 
           {/* FOOTER */}
-          <div className="p-4 border-t space-y-2">
+          <div className="p-4 border-t space-y-2 shrink-0 bg-white">
             <button
               onClick={() => setShowLogoutModal(true)}
-              className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl"
+              className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl font-semibold transition"
             >
               <LogOut size={18} /> Logout
             </button>

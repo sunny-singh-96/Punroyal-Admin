@@ -61,13 +61,13 @@ export default function InfluencerSidebar({ isOpen, setIsOpen }: SidebarProps) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:sticky top-0 left-0 z-[110] h-screen w-72 bg-white border-r 
-        transition-all duration-300 shadow-2xl lg:shadow-none
+        className={`fixed lg:sticky top-0 left-0 z-[110] h-screen h-[100dvh] max-h-[100dvh] w-72 bg-white border-r 
+        transition-all duration-300 shadow-2xl lg:shadow-none flex flex-col overflow-hidden select-none
         ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
       >
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full min-h-0 overflow-hidden">
           {/* Logo */}
-          <div className="h-20 flex items-center justify-between px-6 border-b">
+          <div className="h-20 shrink-0 flex items-center justify-between px-6 border-b bg-white">
             <Link href="/influencer/dashboard" className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 border border-amber-300/70 shadow-xs bg-slate-900 p-0.5 flex items-center justify-center">
                 <img
@@ -97,7 +97,10 @@ export default function InfluencerSidebar({ isOpen, setIsOpen }: SidebarProps) {
           </div>
 
           {/* NAVIGATION */}
-          <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-2">
+          <nav
+            style={{ overscrollBehavior: "contain", WebkitOverflowScrolling: "touch" }}
+            className="flex-1 min-h-0 overflow-y-auto overscroll-contain py-6 px-4 space-y-2 select-none touch-pan-y [scrollbar-width:thin] [scrollbar-color:#cbd5e1_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent"
+          >
             {menuItems.map((item) => {
               const isActive =
                 pathname === item.path || pathname.startsWith(`${item.path}/`);
@@ -123,7 +126,7 @@ export default function InfluencerSidebar({ isOpen, setIsOpen }: SidebarProps) {
           </nav>
 
           {/* FOOTER */}
-          <div className="p-4 border-t space-y-2">
+          <div className="p-4 border-t space-y-2 shrink-0 bg-white">
             
 
             <button
