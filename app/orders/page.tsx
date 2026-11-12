@@ -69,7 +69,9 @@ interface Order {
   payment: Payment;
   htr_items: string[];
   awb?: string;
+  courier_name?: string;
   metadata?: any;
+  awb_res?: any;
 }
 
 
@@ -530,13 +532,34 @@ export default function AdminOrderMaster() {
               key: "courier_awb",
               label: "Courier / AWB",
               render: (row: Order) => {
-                const awb = row.awb || row.metadata?.shiprocket?.awb;
-                const courier = row.metadata?.shiprocket?.courier_name;
+                const awb =
+                  row.awb ||
+                  row.metadata?.shiprocket?.awb ||
+                  row.awb_res?.response?.data?.awb_code ||
+                  row.awb_res?.awb_code;
+                const courier =
+                  (row as any).courier_name ||
+                  row.metadata?.shiprocket?.courier_name ||
+                  row.awb_res?.response?.data?.courier_name ||
+                  row.awb_res?.courier_name;
                 if (!awb && !courier) return <span className="text-slate-400 text-xs">—</span>;
                 return (
                   <div className="text-xs">
-                    {courier && <div className="font-semibold text-slate-700">{courier}</div>}
-                    {awb && <div className="font-mono text-indigo-600 font-medium">{awb}</div>}
+                    {courier && <div className="font-semibold text-slate-700 leading-tight mb-0.5">{courier}</div>}
+                    {awb && (
+                      <div className="flex items-center gap-1 font-mono text-indigo-600 font-medium">
+                        <span>{awb}</span>
+                        <a
+                          href={`https://punroyal.com/track-awb?awb=${encodeURIComponent(awb)}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-slate-400 hover:text-indigo-600 ml-0.5 inline-flex items-center transition"
+                          title="Track shipment"
+                        >
+                          <ArrowUpRight size={13} />
+                        </a>
+                      </div>
+                    )}
                   </div>
                 );
               },

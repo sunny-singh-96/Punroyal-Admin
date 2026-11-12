@@ -73,6 +73,8 @@ interface Order {
   payment: Payment;
   htr_items: string[];
   awb?: string;
+  courier_name?: string;
+  awb_res?: any;
   metadata?: Record<string, any>;
 }
 
@@ -302,7 +304,45 @@ export default function OrderDetailsPage() {
 
           {/* SHIPPING */}
           <div className="bg-white p-5 rounded-2xl border shadow-sm">
-            <h2 className="font-semibold mb-4">Shipping</h2>
+            <h2 className="font-semibold mb-4">Shipping & Tracking</h2>
+
+            {(() => {
+              const awb =
+                order.awb ||
+                order.metadata?.shiprocket?.awb ||
+                order.awb_res?.response?.data?.awb_code ||
+                order.awb_res?.awb_code;
+              const courier =
+                (order as any).courier_name ||
+                order.metadata?.shiprocket?.courier_name ||
+                order.awb_res?.response?.data?.courier_name ||
+                order.awb_res?.courier_name;
+              if (awb || courier) {
+                return (
+                  <div className="mb-4 p-3.5 bg-indigo-50/70 rounded-xl border border-indigo-100 text-xs space-y-1">
+                    {courier && (
+                      <div className="font-semibold text-slate-800">
+                        Courier: <span className="font-bold text-indigo-700">{courier}</span>
+                      </div>
+                    )}
+                    {awb && (
+                      <div className="font-mono text-slate-700 flex items-center justify-between pt-1 border-t border-indigo-100/60 mt-1">
+                        <span>AWB: <b className="text-indigo-600 font-bold">{awb}</b></span>
+                        <a
+                          href={`https://punroyal.com/track-awb?awb=${encodeURIComponent(awb)}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-indigo-600 hover:text-indigo-800 underline font-sans font-medium"
+                        >
+                          Track &rarr;
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+              return null;
+            })()}
 
             <div className="text-sm text-slate-600 space-y-1">
               <p>{order.shipping_address?.name}</p>
