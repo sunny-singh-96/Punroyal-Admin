@@ -770,14 +770,15 @@ export default function SettingsPage() {
   return (
     <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
         <PageHeader
           title="Global Settings"
           subtitle="Configure system-wide store branding, dynamic GST rules, SMTP server, and storefront content"
+          transparent
         />
 
         {/* Quick Search */}
-        <div className="relative w-full sm:w-72">
+        <div className="relative w-full sm:w-72 shrink-0">
           <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"

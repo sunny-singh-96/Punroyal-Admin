@@ -546,20 +546,7 @@ export default function AdminOrderMaster() {
                 return (
                   <div className="text-xs">
                     {courier && <div className="font-semibold text-slate-700 leading-tight mb-0.5">{courier}</div>}
-                    {awb && (
-                      <div className="flex items-center gap-1 font-mono text-indigo-600 font-medium">
-                        <span>{awb}</span>
-                        <a
-                          href={`https://punroyal.com/track-awb?awb=${encodeURIComponent(awb)}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-slate-400 hover:text-indigo-600 ml-0.5 inline-flex items-center transition"
-                          title="Track shipment"
-                        >
-                          <ArrowUpRight size={13} />
-                        </a>
-                      </div>
-                    )}
+                    {awb && <div className="font-mono text-indigo-600 font-medium">{awb}</div>}
                   </div>
                 );
               },
