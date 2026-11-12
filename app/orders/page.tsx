@@ -77,12 +77,8 @@ interface Order {
 
 const ORDER_TABS = [
   { id: 'all', label: 'All Orders', status: '', icon: Package },
-  { id: 'created', label: 'Order Created', status: 'created,new,confirmed,pending', icon: Clock },
-  { id: 'ready_to_ship', label: 'Ready to Ship', status: 'ready_to_ship,manifest_generated,pickup_scheduled', icon: Package },
-  { id: 'shipped', label: 'Shipped / In Transit', status: 'shipped,in_transit,out_for_delivery', icon: Truck },
-  { id: 'delivered', label: 'Delivered', status: 'delivered', icon: CheckCircle2 },
-  { id: 'cancelled', label: 'Cancelled Orders', status: 'cancelled,payment_failed', icon: XCircle },
   { id: 'returns', label: 'Return Orders', status: 'returned,return_requested,rto_initiated,rto_delivered', icon: RotateCcw },
+  { id: 'cancelled', label: 'Cancelled Orders', status: 'cancelled,payment_failed', icon: XCircle },
 ];
 
 export default function AdminOrderMaster() {
@@ -541,7 +537,8 @@ export default function AdminOrderMaster() {
                   (row as any).courier_name ||
                   row.metadata?.shiprocket?.courier_name ||
                   row.awb_res?.response?.data?.courier_name ||
-                  row.awb_res?.courier_name;
+                  row.awb_res?.courier_name ||
+                  (awb ? 'Shiprocket' : '');
                 if (!awb && !courier) return <span className="text-slate-400 text-xs">—</span>;
                 return (
                   <div className="text-xs">
