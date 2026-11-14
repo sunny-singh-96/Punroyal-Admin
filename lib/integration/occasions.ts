@@ -43,4 +43,16 @@ export const occasionsAPI = {
   async delete(id: string) {
     return http.delete(`${ENDPOINTS.OCCASION.DELETE}/${id}`);
   },
+
+  // Reorder occasions (like categories)
+  async reorder(orders: Array<{ id: string; order: number }>) {
+    return Promise.all(
+      orders.map(({ id, order }) => http.put(`${ENDPOINTS.OCCASION.UPDATE}/${id}`, { order }))
+    );
+  },
+
+  // Update single occasion order
+  async updateOrder(id: string, order: number) {
+    return http.put(`${ENDPOINTS.OCCASION.UPDATE}/${id}`, { order });
+  },
 };

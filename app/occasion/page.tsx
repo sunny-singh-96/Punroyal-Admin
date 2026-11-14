@@ -8,7 +8,7 @@ import { occasionsAPI } from "@/lib/integration/occasions";
 import PageHeader from "@/components/admin/head/head";
 import DataGrid from "@/components/admin/tables/dataGrid";
 import { getErrorMessage } from "@/lib/helpers/handlers";
-import { Edit2, Trash2, Search, X, Image as ImageIcon, UploadCloud } from "lucide-react";
+import { Edit2, Trash2, Search, X, Image as ImageIcon, UploadCloud, ArrowUp, ArrowDown } from "lucide-react";
 
 interface OccasionItem {
   _id: string;
@@ -179,6 +179,49 @@ export default function OccasionPage() {
       showErrorAlert("Cannot Deactivate Occasion", msg);
     }
   };
+
+  const handleMove = useCallback(async (currentIndex: number, direction: 'up' | 'down') => {
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= data.length) return;
+
+    const newData = [...data];
+    const temp = newData[currentIndex];
+    newData[currentIndex] = newData[targetIndex];
+    newData[targetIndex] = temp;
+
+    const baseOrder = (lazyParams.page - 1) * lazyParams.limit;
+    const reorderPayload = newData.map((occ, idx) => ({
+      id: occ._id,
+      order: baseOrder + idx + 1,
+    }));
+
+    const updatedData = newData.map((occ, idx) => ({
+      ...occ,
+      order: baseOrder + idx + 1,
+    }));
+    setData(updatedData);
+
+    try {
+      await occasionsAPI.reorder(reorderPayload);
+      toast.success("Occasion order updated");
+    } catch (error) {
+      toast.error(getErrorMessage(error) || "Failed to update occasion order");
+      fetchOccasions();
+    }
+  }, [data, lazyParams, fetchOccasions]);
+
+  const handleUpdateOrderNumber = useCallback(async (id: string, newOrder: number) => {
+    try {
+      await occasionsAPI.updateOrder(id, newOrder);
+      setData((prev) =>
+        prev.map((c) => (c._id === id ? { ...c, order: newOrder } : c))
+      );
+      toast.success("Occasion order saved");
+      fetchOccasions();
+    } catch (error) {
+      toast.error(getErrorMessage(error) || "Failed to update order");
+    }
+  }, [fetchOccasions]);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -378,6 +421,58 @@ export default function OccasionPage() {
           <DataGrid<OccasionItem>
             headers={[
               {
+                key: "order",
+                label: "Display Order",
+                render: (row: OccasionItem) => {
+                  const currentIndex = data.findIndex((c) => c._id === row._id);
+                  return (
+                    <div className="flex items-center gap-2">
+                      <div className="flex flex-col gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleMove(currentIndex, 'up')}
+                          disabled={currentIndex === 0}
+                          title="Move Up"
+                          className="p-1 rounded bg-slate-100 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition text-slate-700 cursor-pointer"
+                        >
+                          <ArrowUp size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleMove(currentIndex, 'down')}
+                          disabled={currentIndex === data.length - 1}
+                          title="Move Down"
+                          className="p-1 rounded bg-slate-100 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition text-slate-700 cursor-pointer"
+                        >
+                          <ArrowDown size={13} />
+                        </button>
+                      </div>
+                      <input
+                        type="number"
+                        defaultValue={row.order ?? currentIndex + 1}
+                        key={`${row._id}-${row.order ?? currentIndex + 1}`}
+                        onBlur={(e) => {
+                          const val = parseInt(e.target.value, 10);
+                          if (!isNaN(val) && val !== row.order) {
+                            handleUpdateOrderNumber(row._id, val);
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            const val = parseInt((e.target as HTMLInputElement).value, 10);
+                            if (!isNaN(val) && val !== row.order) {
+                              handleUpdateOrderNumber(row._id, val);
+                            }
+                          }
+                        }}
+                        className="w-14 px-2 py-1 text-xs text-center border border-slate-300 rounded-md font-semibold text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                        title="Enter order number and press Enter or blur to save"
+                      />
+                    </div>
+                  );
+                },
+              },
+              {
                 key: "image",
                 label: "Image",
                 render: (row) => (
@@ -408,15 +503,6 @@ export default function OccasionPage() {
                       </span>
                     </div>
                   </div>
-                ),
-              },
-              {
-                key: "order",
-                label: "Display Order",
-                render: (row) => (
-                  <span className="inline-flex items-center justify-center min-w-[36px] px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 font-bold text-xs border border-slate-200">
-                    #{row.order ?? 1}
-                  </span>
                 ),
               },
               {
