@@ -21,6 +21,8 @@ export interface AdminReviewsQuery {
   limit?: number;
   search?: string;
   status?: '' | 'enabled' | 'disabled';
+  cursor?: string;
+  after_id?: string;
 }
 
 export const reviewsAPI = {
@@ -30,6 +32,8 @@ export const reviewsAPI = {
     if (params?.limit) query.append('limit', String(params.limit));
     if (params?.search) query.append('search', params.search);
     if (params?.status) query.append('status', params.status);
+    if (params?.cursor) query.append('cursor', params.cursor);
+    if (params?.after_id) query.append('after_id', params.after_id);
     const qs = query.toString();
     const endpoint = qs
       ? `${ENDPOINTS.REVIEW.ADMIN_LIST}?${qs}`

@@ -92,7 +92,21 @@ export default function AdminReviewsPage() {
       />
     ));
 
-  const totalPages = Math.max(1, Math.ceil(totalRecords / limit));
+    const totalPages = Math.max(1, Math.ceil(totalRecords / limit));
+
+  const getPaginationItems = (currentPage: number, total: number): (number | "...")[] => {
+    if (total <= 1) return [];
+    if (total <= 7) {
+      return Array.from({ length: total }, (_, i) => i + 1);
+    }
+    if (currentPage <= 4) {
+      return [1, 2, 3, 4, 5, "...", total];
+    }
+    if (currentPage >= total - 3) {
+      return [1, "...", total - 4, total - 3, total - 2, total - 1, total];
+    }
+    return [1, "...", currentPage - 1, currentPage, currentPage + 1, "...", total];
+  };
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -223,24 +237,62 @@ export default function AdminReviewsPage() {
           )}
 
           {totalRecords > limit && (
-            <div className="p-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+            <div className="p-4 border-t border-slate-100 flex items-center justify-between flex-wrap gap-3 text-xs text-slate-500">
               <span>
                 Page {page} of {totalPages} ({totalRecords} reviews)
               </span>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <button
                   type="button"
                   disabled={page <= 1}
                   onClick={() => setPage((p) => p - 1)}
-                  className="px-3 py-1 border rounded-lg disabled:opacity-40"
+                  className="px-3 py-1.5 border border-slate-200 rounded-xl bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition font-semibold text-xs shadow-xs"
                 >
                   Prev
                 </button>
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-1">
+                    {getPaginationItems(page, totalPages).map((item, idx) => {
+                      if (item === "...") {
+                        const isFirstEllipsis = idx < 3;
+                        const jumpTarget = isFirstEllipsis
+                          ? Math.max(1, page - 3)
+                          : Math.min(totalPages, page + 3);
+                        return (
+                          <button
+                            key={`ellipsis-${idx}`}
+                            type="button"
+                            onClick={() => setPage(jumpTarget)}
+                            title={`Jump to page ${jumpTarget}`}
+                            className="min-w-[32px] h-8 px-1 flex items-center justify-center text-xs font-bold text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition"
+                          >
+                            &hellip;
+                          </button>
+                        );
+                      }
+                      const isCurrent = item === page;
+                      return (
+                        <button
+                          key={`page-${item}`}
+                          type="button"
+                          onClick={() => setPage(item as number)}
+                          className={`min-w-[32px] h-8 px-2 flex items-center justify-center text-xs rounded-xl font-bold transition shadow-xs ${
+                            isCurrent
+                              ? "bg-slate-900 text-white shadow-md cursor-default"
+                              : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                          }`}
+                        >
+                          {item}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
                 <button
                   type="button"
                   disabled={page >= totalPages}
                   onClick={() => setPage((p) => p + 1)}
-                  className="px-3 py-1 border rounded-lg disabled:opacity-40"
+                  className="px-3 py-1.5 border border-slate-200 rounded-xl bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition font-semibold text-xs shadow-xs"
                 >
                   Next
                 </button>

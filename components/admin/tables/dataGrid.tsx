@@ -67,17 +67,15 @@ export default function DataGrid<T = unknown>({
 
   const totalPages = Math.ceil(totalRecords / pageSize);
   const getPaginationItems = (currentPage: number, total: number): (number | "...")[] => {
+    if (total <= 1) return [];
     if (total <= 7) {
       return Array.from({ length: total }, (_, i) => i + 1);
     }
-    if (currentPage <= 3) {
-      return [1, 2, 3, "...", total];
-    }
-    if (currentPage === 4) {
+    if (currentPage <= 4) {
       return [1, 2, 3, 4, 5, "...", total];
     }
-    if (currentPage >= total - 2) {
-      return [1, "...", total - 3, total - 2, total - 1, total];
+    if (currentPage >= total - 3) {
+      return [1, "...", total - 4, total - 3, total - 2, total - 1, total];
     }
     return [1, "...", currentPage - 1, currentPage, currentPage + 1, "...", total];
   };
@@ -273,17 +271,58 @@ export default function DataGrid<T = unknown>({
             {Math.min(page * pageSize, totalRecords)} of {totalRecords} entries
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             {/* Left (Prev) */}
             <button
               type="button"
               disabled={page === 1 || loading}
               onClick={() => onPageChange(page - 1)}
               title="Previous Page"
-              className="px-3.5 py-1.5 flex items-center gap-1.5 border border-slate-200 rounded-xl bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition font-semibold text-xs shadow-xs"
+              className="px-3 py-1.5 flex items-center gap-1 border border-slate-200 rounded-xl bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition font-semibold text-xs shadow-xs"
             >
               <ChevronLeft size={15} /> Prev
             </button>
+
+            {/* Ellipsis Numbered Pages */}
+            {totalPages > 1 && (
+              <div className="flex items-center gap-1">
+                {getPaginationItems(page, totalPages).map((item, idx) => {
+                  if (item === "...") {
+                    const isFirstEllipsis = idx < 3;
+                    const jumpTarget = isFirstEllipsis
+                      ? Math.max(1, page - 3)
+                      : Math.min(totalPages, page + 3);
+                    return (
+                      <button
+                        key={`ellipsis-${idx}`}
+                        type="button"
+                        onClick={() => onPageChange(jumpTarget)}
+                        title={`Jump to page ${jumpTarget}`}
+                        className="min-w-[32px] h-8 px-1 flex items-center justify-center text-xs font-bold text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition"
+                      >
+                        &hellip;
+                      </button>
+                    );
+                  }
+                  const isCurrent = item === page;
+                  return (
+                    <button
+                      key={`page-${item}`}
+                      type="button"
+                      disabled={loading}
+                      onClick={() => onPageChange(item as number)}
+                      className={`min-w-[32px] h-8 px-2 flex items-center justify-center text-xs rounded-xl font-bold transition shadow-xs ${
+                        isCurrent
+                          ? "bg-slate-900 text-white shadow-md cursor-default"
+                          : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                      }`}
+                    >
+                      {item}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
             {/* Right (Next) */}
             <button
@@ -291,7 +330,7 @@ export default function DataGrid<T = unknown>({
               disabled={page === totalPages || totalPages === 0 || loading}
               onClick={() => onPageChange(page + 1)}
               title="Next Page"
-              className="px-3.5 py-1.5 flex items-center gap-1.5 border border-slate-200 rounded-xl bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition font-semibold text-xs shadow-xs"
+              className="px-3 py-1.5 flex items-center gap-1 border border-slate-200 rounded-xl bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition font-semibold text-xs shadow-xs"
             >
               Next <ChevronRight size={15} />
             </button>
