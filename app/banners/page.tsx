@@ -9,7 +9,7 @@ import PageHeader from '@/components/admin/head/head';
 import { bannersAPI } from '@/lib/integration/banners';
 import { confirmDelete } from '@/lib/sweetAlert';
 import { getErrorMessage } from '@/lib/helpers/handlers';
-import { Edit2, Trash2, ExternalLink } from 'lucide-react';
+import { Edit2, Trash2, ExternalLink, ArrowUp, ArrowDown } from 'lucide-react';
 
 type Banner = {
   _id: string;
@@ -17,6 +17,7 @@ type Banner = {
   banner: string;
   redirect_to?: string;
   status: boolean;
+  order?: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -94,6 +95,50 @@ export default function BannerListPage() {
     }
   }, [fetchBanners]);
 
+  const handleMove = useCallback(async (index: number, direction: 'up' | 'down') => {
+    if (direction === 'up' && index === 0) return;
+    if (direction === 'down' && index === data.length - 1) return;
+
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    const newData = [...data];
+    const temp = newData[index];
+    newData[index] = newData[targetIndex];
+    newData[targetIndex] = temp;
+
+    const baseOrder = (lazyParams.page - 1) * lazyParams.limit;
+    const reorderPayload = newData.map((banner, idx) => ({
+      id: banner._id,
+      order: baseOrder + idx + 1,
+    }));
+
+    const updatedData = newData.map((banner, idx) => ({
+      ...banner,
+      order: baseOrder + idx + 1,
+    }));
+    setData(updatedData);
+
+    try {
+      await bannersAPI.reorder(reorderPayload);
+      toast.success("Banner order updated");
+    } catch (error) {
+      toast.error(getErrorMessage(error) || "Failed to update banner order");
+      fetchBanners();
+    }
+  }, [data, lazyParams, fetchBanners]);
+
+  const handleUpdateOrderNumber = useCallback(async (id: string, newOrder: number) => {
+    try {
+      await bannersAPI.updateOrder(id, newOrder);
+      setData((prev) =>
+        prev.map((b) => (b._id === id ? { ...b, order: newOrder } : b))
+      );
+      toast.success("Banner order saved");
+      fetchBanners();
+    } catch (error) {
+      toast.error(getErrorMessage(error) || "Failed to update order");
+    }
+  }, [fetchBanners]);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <PageHeader title="Banners" subtitle="Manage site banners (Active banners appear on customer homepage)" />
@@ -101,6 +146,58 @@ export default function BannerListPage() {
       <div className="p-4 md:p-6">
         <DataGrid<Banner>
           headers={[
+            {
+              key: "order",
+              label: "Display Order",
+              render: (row: Banner) => {
+                const currentIndex = data.findIndex((b) => b._id === row._id);
+                return (
+                  <div className="flex items-center gap-2">
+                    <div className="flex flex-col gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleMove(currentIndex, 'up')}
+                        disabled={currentIndex === 0}
+                        title="Move Up"
+                        className="p-1 rounded bg-slate-100 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition text-slate-700 cursor-pointer"
+                      >
+                        <ArrowUp size={13} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleMove(currentIndex, 'down')}
+                        disabled={currentIndex === data.length - 1}
+                        title="Move Down"
+                        className="p-1 rounded bg-slate-100 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition text-slate-700 cursor-pointer"
+                      >
+                        <ArrowDown size={13} />
+                      </button>
+                    </div>
+                    <input
+                      type="number"
+                      defaultValue={row.order ?? currentIndex + 1}
+                      key={`${row._id}-${row.order ?? currentIndex + 1}`}
+                      onBlur={(e) => {
+                        const val = parseInt(e.target.value, 10);
+                        if (!isNaN(val) && val !== row.order) {
+                          handleUpdateOrderNumber(row._id, val);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          const val = parseInt((e.target as HTMLInputElement).value, 10);
+                          if (!isNaN(val) && val !== row.order) {
+                            handleUpdateOrderNumber(row._id, val);
+                          }
+                        }
+                      }}
+                      className="w-14 px-2 py-1 text-xs text-center border border-slate-300 rounded-md font-semibold text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                      title="Enter order number and press Enter or blur to save"
+                    />
+                  </div>
+                );
+              },
+            },
             {
               key: 'image',
               label: 'Banner',

@@ -20,6 +20,7 @@ export default function EditBannerPage() {
     banner: "",
     redirect_to: "",
     status: true,
+    order: 1,
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
@@ -49,6 +50,7 @@ export default function EditBannerPage() {
             banner: data.banner || "",
             redirect_to: data.redirect_to || "",
             status: data.status ?? true,
+            order: data.order ?? 1,
           });
           setImageFile(null);
           setPreviewUrl(data.banner || "");
@@ -98,6 +100,7 @@ export default function EditBannerPage() {
       payload.append("title", formData.title.trim() || "Banner Link");
       payload.append("redirect_to", formData.redirect_to.trim());
       payload.append("status", String(formData.status));
+      payload.append("order", String(formData.order ?? 1));
       if (imageFile) {
         payload.append("banner", imageFile);
       } else if (formData.banner) {
@@ -263,6 +266,26 @@ export default function EditBannerPage() {
                   />
                   <p className="text-xs text-slate-400 mt-1.5">
                     Enter the URL or internal path where the user will be directed upon clicking the banner.
+                  </p>
+                </div>
+
+                {/* Display Order */}
+                <div>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    Display Order
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={formData.order}
+                    onChange={(e) => {
+                      setFormData({ ...formData, order: parseInt(e.target.value, 10) || 1 });
+                    }}
+                    placeholder="1"
+                    className="mt-2 w-full px-4 py-3 rounded-xl border-2 border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 outline-none transition"
+                  />
+                  <p className="text-xs text-slate-400 mt-1.5">
+                    Order number controls banner position on the customer homepage (lowest number first).
                   </p>
                 </div>
 

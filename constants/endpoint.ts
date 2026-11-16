@@ -53,7 +53,8 @@ export const ENDPOINTS = {
         GET: '/banner/admin/banner',
         ADD: '/banner/admin/banner/add',
         UPDATE: '/banner/admin/banner/update',
-        DELETE: '/banner/admin/banner/delete'
+        DELETE: '/banner/admin/banner/delete',
+        REORDER: '/banner/admin/banner/reorder'
     },
     OCCASION: {
         LIST: '/occations/admin/list',

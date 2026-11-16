@@ -162,7 +162,7 @@ export default function ModelsPage() {
     if (!credentialsData) return;
     const allText =
       `=== Punroyal Influencer Login Details ===\n` +
-      `Portal URL : http://194.5.157.175:5000/\n` +
+      `Portal URL : ${typeof window !== 'undefined' ? window.location.origin : 'https://admin.punroyal.com'}/influencer/login\n` +
       `Name       : ${credentialsData.name}\n` +
       `Username   : ${credentialsData.username}\n` +
       `Email      : ${credentialsData.email}\n` +
@@ -739,10 +739,10 @@ export default function ModelsPage() {
 
               {/* Portal URL */}
               <div className="p-2.5 bg-blue-50/50 border border-blue-100 rounded-xl text-xs text-slate-600 flex items-center justify-between">
-                <span>Login URL: <strong className="text-blue-700 font-mono">http://194.5.157.175:5000/</strong></span>
+                <span>Login URL: <strong className="text-blue-700 font-mono">{typeof window !== 'undefined' ? `${window.location.origin}/influencer/login` : 'https://admin.punroyal.com/influencer/login'}</strong></span>
                 <button
                   type="button"
-                  onClick={() => copyField("http://194.5.157.175:5000/", "URL")}
+                  onClick={() => copyField(typeof window !== 'undefined' ? `${window.location.origin}/influencer/login` : 'https://admin.punroyal.com/influencer/login', "URL")}
                   className="text-blue-600 hover:underline font-bold text-[11px]"
                 >
                   {copiedField === "URL" ? "Copied!" : "Copy URL"}

@@ -28,12 +28,13 @@ export const bannersAPI = {
     });
   },
 
-  async update(id: string, data: FormData) {
-    return http.put(`${ENDPOINTS.BANNER.UPDATE}/${id}`, data, {
+  async update(id: string, data: FormData | Record<string, unknown>) {
+    const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
+    return http.put(`${ENDPOINTS.BANNER.UPDATE}/${id}`, data, isFormData ? {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
-    });
+    } : undefined);
   },
 
   async updateStatus(id: string, status: boolean) {
@@ -42,5 +43,13 @@ export const bannersAPI = {
 
   async delete(id: string) {
     return http.delete(`${ENDPOINTS.BANNER.DELETE}/${id}`);
+  },
+
+  async reorder(orders: Array<{ id: string; order: number }>) {
+    return http.put(`${ENDPOINTS.BANNER.REORDER}`, { orders });
+  },
+
+  async updateOrder(id: string, order: number) {
+    return http.put(`${ENDPOINTS.BANNER.UPDATE}/${id}`, { order });
   },
 };
