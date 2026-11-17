@@ -158,11 +158,18 @@ export default function ModelsPage() {
     }
   };
 
+  const getInfluencerPortalUrl = () => {
+    if (typeof window !== 'undefined' && window.location.hostname.includes('admin.punroyal.com')) {
+      return `${window.location.origin}/influencer/login`;
+    }
+    return 'https://admin.punroyal.com/influencer/login';
+  };
+
   const copyAllCredentials = async () => {
     if (!credentialsData) return;
     const allText =
       `=== Punroyal Influencer Login Details ===\n` +
-      `Portal URL : ${typeof window !== 'undefined' ? window.location.origin : 'https://admin.punroyal.com'}/influencer/login\n` +
+      `Portal URL : ${getInfluencerPortalUrl()}\n` +
       `Name       : ${credentialsData.name}\n` +
       `Username   : ${credentialsData.username}\n` +
       `Email      : ${credentialsData.email}\n` +
@@ -739,10 +746,10 @@ export default function ModelsPage() {
 
               {/* Portal URL */}
               <div className="p-2.5 bg-blue-50/50 border border-blue-100 rounded-xl text-xs text-slate-600 flex items-center justify-between">
-                <span>Login URL: <strong className="text-blue-700 font-mono">{typeof window !== 'undefined' ? `${window.location.origin}/influencer/login` : 'https://admin.punroyal.com/influencer/login'}</strong></span>
+                <span>Login URL: <strong className="text-blue-700 font-mono">{getInfluencerPortalUrl()}</strong></span>
                 <button
                   type="button"
-                  onClick={() => copyField(typeof window !== 'undefined' ? `${window.location.origin}/influencer/login` : 'https://admin.punroyal.com/influencer/login', "URL")}
+                  onClick={() => copyField(getInfluencerPortalUrl(), "URL")}
                   className="text-blue-600 hover:underline font-bold text-[11px]"
                 >
                   {copiedField === "URL" ? "Copied!" : "Copy URL"}
