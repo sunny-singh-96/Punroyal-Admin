@@ -263,17 +263,48 @@ export default function DataGrid<T = unknown>({
             {Math.min(page * pageSize, totalRecords)} of {totalRecords} entries
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 flex-wrap">
             {/* Left (Prev) */}
             <button
               type="button"
               disabled={page === 1 || loading}
               onClick={() => onPageChange(page - 1)}
               title="Previous Page"
-              className="px-3.5 py-1.5 flex items-center gap-1.5 border border-slate-200 rounded-xl bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition font-semibold text-xs shadow-xs"
+              className="px-3 py-1.5 flex items-center gap-1 border border-slate-200 rounded-xl bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition font-semibold text-xs shadow-xs"
             >
               <ChevronLeft size={15} /> Prev
             </button>
+
+            {/* Page Numbers with Ellipsis */}
+            {totalPages > 1 && getPaginationItems(page, totalPages).map((item, idx) => {
+              if (item === "...") {
+                return (
+                  <span
+                    key={`ellipsis-${idx}`}
+                    className="px-2 py-1 text-slate-400 font-bold text-xs select-none"
+                  >
+                    …
+                  </span>
+                );
+              }
+              const pageNum = Number(item);
+              const isActive = pageNum === page;
+              return (
+                <button
+                  key={pageNum}
+                  type="button"
+                  disabled={loading || isActive}
+                  onClick={() => onPageChange(pageNum)}
+                  className={`min-w-[32px] h-8 px-2.5 flex items-center justify-center rounded-xl text-xs font-bold transition-all shadow-xs ${
+                    isActive
+                      ? "bg-slate-900 text-white shadow-sm"
+                      : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300"
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
 
             {/* Right (Next) */}
             <button
@@ -281,7 +312,7 @@ export default function DataGrid<T = unknown>({
               disabled={page === totalPages || totalPages === 0 || loading}
               onClick={() => onPageChange(page + 1)}
               title="Next Page"
-              className="px-3.5 py-1.5 flex items-center gap-1.5 border border-slate-200 rounded-xl bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition font-semibold text-xs shadow-xs"
+              className="px-3 py-1.5 flex items-center gap-1 border border-slate-200 rounded-xl bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition font-semibold text-xs shadow-xs"
             >
               Next <ChevronRight size={15} />
             </button>
