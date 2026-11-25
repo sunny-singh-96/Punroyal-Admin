@@ -259,8 +259,13 @@ function LoginCardContent({ initialRole = "admin" }: LoginCardProps) {
   };
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-white flex items-center justify-center p-4">
-      <div className="w-full max-w-[380px] bg-white border border-slate-200/90 p-6 rounded-2xl shadow-sm">
+    <div className="h-screen w-screen overflow-hidden bg-slate-50/40 flex items-center justify-center p-4">
+      <div
+        className="w-full max-w-[380px] bg-white border border-slate-200 p-6 rounded-2xl"
+        style={{
+          boxShadow: "0 10px 30px -5px rgba(15, 23, 42, 0.08), 0 4px 12px -2px rgba(15, 23, 42, 0.04)",
+        }}
+      >
         {/* LOGO & TITLE */}
         <div className="flex items-center gap-3 mb-4 pb-3 border-b border-slate-100">
           <div className="w-11 h-11 rounded-xl bg-slate-50 border border-slate-200/80 p-1 flex items-center justify-center shrink-0 overflow-hidden">

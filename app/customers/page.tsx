@@ -13,23 +13,45 @@ export default function CustomersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const limit = 20;
+  const [currentCursor, setCurrentCursor] = useState<string | null>(null);
+  const [cursorHistory, setCursorHistory] = useState<(string | null)[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const limit = 8;
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const fetchCustomers = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await customersAPI.getAll({ page, limit, search });
+      const res = await customersAPI.getAll({ page, limit, search, cursor: currentCursor });
       if (res?.code === "OK" || (res as any)?.success) {
         setData(res.data || []);
         setTotalRecords(res.totalRecords || 0);
+        setNextCursor(res.nextCursor || null);
+        setHasMore(Boolean(res.hasMore));
       }
     } catch (err: any) {
       toast.error(err?.response?.data?.message || err?.message || "Failed to load customers");
     } finally {
       setLoading(false);
     }
-  }, [page, search]);
+  }, [page, search, currentCursor]);
+
+  const handleNextPage = () => {
+    if (!hasMore || !nextCursor) return;
+    setCursorHistory((prev) => [...prev, currentCursor]);
+    setCurrentCursor(nextCursor);
+    setPage((p) => p + 1);
+  };
+
+  const handlePrevPage = () => {
+    if (cursorHistory.length === 0) return;
+    const prevStack = [...cursorHistory];
+    const prevCursor = prevStack.pop() ?? null;
+    setCursorHistory(prevStack);
+    setCurrentCursor(prevCursor);
+    setPage((p) => Math.max(1, p - 1));
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -77,6 +99,8 @@ export default function CustomersPage() {
             onChange={(e) => {
               setSearch(e.target.value);
               setPage(1);
+              setCurrentCursor(null);
+              setCursorHistory([]);
             }}
             placeholder="Search by email or phone..."
             className="w-full pl-10 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
@@ -191,27 +215,27 @@ export default function CustomersPage() {
           </table>
         </div>
 
-        {/* Pagination Bar */}
-        {totalPages > 1 && (
+        {/* Cursor Pagination Bar */}
+        {(totalRecords > limit || cursorHistory.length > 0 || hasMore) && (
           <div className="px-6 py-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between text-xs">
             <span className="text-slate-500 font-medium">
-              Showing {(page - 1) * limit + 1}–{Math.min(page * limit, totalRecords)} of {totalRecords} customers
+              Showing {data.length > 0 ? (page - 1) * limit + 1 : 0}–{(page - 1) * limit + data.length} of {totalRecords} customers
             </span>
             <div className="flex items-center gap-1.5">
               <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="px-3 py-1.5 font-semibold border border-slate-200 rounded-lg hover:bg-slate-100 disabled:opacity-40 transition"
+                onClick={handlePrevPage}
+                disabled={cursorHistory.length === 0 || loading}
+                className="px-3 py-1.5 font-semibold border border-slate-200 rounded-lg hover:bg-slate-100 disabled:opacity-40 transition cursor-pointer"
               >
                 Previous
               </button>
               <span className="px-3 py-1.5 text-slate-700 font-bold bg-white border border-slate-200 rounded-lg">
-                {page} / {totalPages}
+                Page {page} / {totalPages}
               </span>
               <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="px-3 py-1.5 font-semibold border border-slate-200 rounded-lg hover:bg-slate-100 disabled:opacity-40 transition"
+                onClick={handleNextPage}
+                disabled={!hasMore || !nextCursor || loading}
+                className="px-3 py-1.5 font-semibold border border-slate-200 rounded-lg hover:bg-slate-100 disabled:opacity-40 transition cursor-pointer"
               >
                 Next
               </button>

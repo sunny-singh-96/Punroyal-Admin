@@ -18,21 +18,26 @@ export interface CustomersResponse {
   totalRecords: number;
   page: number;
   limit: number;
+  nextCursor?: string | null;
+  hasMore?: boolean;
 }
 
 export const customersAPI = {
   getAll: async ({
     page = 1,
-    limit = 20,
+    limit = 8,
     search = "",
+    cursor = null,
   }: {
     page?: number;
     limit?: number;
     search?: string;
+    cursor?: string | null;
   }): Promise<CustomersResponse> => {
     const params = new URLSearchParams({
       page: String(page),
       limit: String(limit),
+      ...(cursor ? { cursor } : {}),
       ...(search && search.trim() ? { search: search.trim() } : {}),
     });
     return http.get<CustomersResponse>(`/auth/users?${params.toString()}`);
