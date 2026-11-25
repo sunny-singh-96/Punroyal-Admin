@@ -20,4 +20,11 @@ export const globalSettingsAPI = {
   testSmtp: async (data: Record<string, unknown>) => {
     return http.post(ENDPOINTS.GLOBAL_SETTINGS.TEST_SMTP, data);
   },
+  previewInvoicePdf: async (invoiceTerms?: string[]) => {
+    return http.post<Blob>(
+      ENDPOINTS.GLOBAL_SETTINGS.PREVIEW_INVOICE_PDF,
+      { invoice_terms: invoiceTerms },
+      { responseType: "blob" }
+    );
+  },
 };

@@ -37,7 +37,8 @@ import {
   HelpCircle,
   AlertCircle,
   RotateCcw,
-  Ban
+  Ban,
+  Download
 } from "lucide-react";
 import PageHeader from "@/components/admin/head/head";
 import { globalSettingsAPI } from "@/lib/integration/globalSettings";
@@ -147,8 +148,7 @@ type TabId =
   | "smtp"
   | "topbar"
   | "footer"
-  | "social"
-  | "cache";
+  | "social";
 
 interface TabItem {
   id: TabId;
@@ -222,12 +222,6 @@ const TABS: TabItem[] = [
     subtitle: "Social media profiles and customer floating WhatsApp widget",
     icon: Share2,
   },
-  {
-    id: "cache",
-    name: "Website Cache",
-    subtitle: "Redis memory cache synchronization and performance",
-    icon: RotateCw,
-  },
 ];
 
 export default function SettingsPage() {
@@ -236,6 +230,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [clearingCache, setClearingCache] = useState(false);
+  const [downloadingSamplePdf, setDownloadingSamplePdf] = useState(false);
 
   // Form fields
   const [headerLogo, setHeaderLogo] = useState("");
@@ -251,6 +246,7 @@ export default function SettingsPage() {
     { name: "Contact", link: "/contact" },
     { name: "Terms & Conditions", link: "/terms-and-conditions" },
     { name: "Privacy Policy", link: "/privacy-policy" },
+    { name: "Cancellation Policy", link: "/cancellation-policy" },
     { name: "Track Order", link: "/track-order" },
   ]);
   const [email, setEmail] = useState("");
@@ -686,6 +682,27 @@ export default function SettingsPage() {
       setSmtpTestResult({ success: false, message: errMsg });
     } finally {
       setTestingSmtp(false);
+    }
+  };
+
+  // Download Sample / Dummy Invoice PDF
+  const handleDownloadSampleInvoicePdf = async () => {
+    try {
+      setDownloadingSamplePdf(true);
+      const blob = await globalSettingsAPI.previewInvoicePdf(invoiceTerms);
+      const url = window.URL.createObjectURL(blob instanceof Blob ? blob : new Blob([blob], { type: "application/pdf" }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "Punroyal-Sample-Invoice.pdf";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("Sample Invoice PDF downloaded!");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || "Failed to download sample invoice PDF");
+    } finally {
+      setDownloadingSamplePdf(false);
     }
   };
 
@@ -1169,14 +1186,30 @@ export default function SettingsPage() {
                         </div>
                       ))}
 
-                      <button
-                        type="button"
-                        onClick={addInvoiceTerm}
-                        disabled={invoiceTerms.length >= 6}
-                        className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 transition shadow-2xs disabled:opacity-50 cursor-pointer"
-                      >
-                        <Plus size={15} /> Add Terms Line
-                      </button>
+                      <div className="flex flex-wrap items-center gap-3 pt-1">
+                        <button
+                          type="button"
+                          onClick={addInvoiceTerm}
+                          disabled={invoiceTerms.length >= 6}
+                          className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 transition shadow-2xs disabled:opacity-50 cursor-pointer"
+                        >
+                          <Plus size={15} /> Add Terms Line
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleDownloadSampleInvoicePdf}
+                          disabled={downloadingSamplePdf}
+                          className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition shadow-xs disabled:opacity-50 cursor-pointer"
+                        >
+                          {downloadingSamplePdf ? (
+                            <Loader2 size={15} className="animate-spin" />
+                          ) : (
+                            <Download size={15} />
+                          )}
+                          {downloadingSamplePdf ? "Generating PDF..." : "Download Dummy Invoice PDF"}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -2135,44 +2168,6 @@ export default function SettingsPage() {
                           className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
                         />
                       </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* 9. CACHE & PERFORMANCE TAB */}
-                {activeTab === "cache" && (
-                  <div className="space-y-6">
-                    <div className="p-5 rounded-2xl bg-amber-50/70 border border-amber-200/80 space-y-3">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center text-amber-800">
-                          <RotateCw size={16} />
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-bold text-slate-900">Redis In-Memory Cache</h4>
-                          <p className="text-xs text-slate-500">Fast storefront data caching engine</p>
-                        </div>
-                      </div>
-                      <p className="text-xs text-amber-900 leading-relaxed">
-                        To guarantee high throughput, the customer website caches product listings, collection pages, banners, occasion links, and global store settings in Redis.
-                        Whenever you make critical catalog changes that you want to see reflected right away, use the button below to flush the store cache.
-                      </p>
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-slate-50 border border-slate-200/80">
-                      <div>
-                        <h4 className="text-sm font-bold text-slate-800">Purge Complete Website Cache</h4>
-                        <p className="text-xs text-slate-500">Flushes all cache tags without restarting the server</p>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={handleClearCache}
-                        disabled={clearingCache}
-                        className="flex items-center justify-center gap-2 px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-xs transition-all active:scale-95 disabled:opacity-50"
-                      >
-                        <RotateCw size={15} className={clearingCache ? "animate-spin" : ""} />
-                        {clearingCache ? "Purging Cache..." : "Clear Website Cache Now"}
-                      </button>
                     </div>
                   </div>
                 )}

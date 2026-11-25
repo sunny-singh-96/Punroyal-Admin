@@ -63,7 +63,7 @@ function formatDiscount(coupon: Coupon) {
   if (type === "flat") {
     return `₹${val.toLocaleString()} Flat`;
   }
-  return `${val}% Off${coupon.maxDiscount ? ` (Max ₹${coupon.maxDiscount})` : ""}`;
+  return `${val}% Off`;
 }
 
 export default function CouponsPage() {
@@ -141,7 +141,7 @@ export default function CouponsPage() {
       discountType: formData.discountType,
       discountValue: Number(formData.discountValue) || 0,
       minOrderAmount: Number(formData.minOrderAmount) || 0,
-      maxDiscount: Number(formData.maxDiscount) || 0,
+      maxDiscount: 0,
       startDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
       expiryType: formData.expiryType,
       count: Number(formData.count) || 100,
@@ -548,41 +548,22 @@ export default function CouponsPage() {
                 </div>
               </div>
 
-              {/* Row 3: Minimum Order & Max Discount */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-                    Minimum Order Amount (₹)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="0 = No minimum"
-                    value={formData.minOrderAmount}
-                    onChange={(e) =>
-                      setFormData({ ...formData, minOrderAmount: parseFloat(e.target.value) || 0 })
-                    }
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-                  />
-                  <p className="text-[11px] text-slate-400 mt-1">Order subtotal required to use coupon</p>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-                    Maximum Discount Cap (₹)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="0 = No maximum cap"
-                    value={formData.maxDiscount}
-                    onChange={(e) =>
-                      setFormData({ ...formData, maxDiscount: parseFloat(e.target.value) || 0 })
-                    }
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-                  />
-                  <p className="text-[11px] text-slate-400 mt-1">Max discount limit for percentage coupon</p>
-                </div>
+              {/* Row 3: Minimum Order Amount */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                  Minimum Order Amount (₹)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="0 = No minimum"
+                  value={formData.minOrderAmount}
+                  onChange={(e) =>
+                    setFormData({ ...formData, minOrderAmount: parseFloat(e.target.value) || 0 })
+                  }
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">Order subtotal required to use coupon</p>
               </div>
 
               {/* Row 4: Start Date & Expiry Type */}
